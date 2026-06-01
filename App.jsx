@@ -32,13 +32,13 @@ const CAT_COLORS = { Mantenimiento: "#6366F1", Limpieza: "#06B6D4", Servicios: "
 
 const DEFAULT_RECURSOS = [{ id: "rec1", nombre: "Quincho Principal", capacidadMax: 100 }];
 const DEFAULT_USUARIOS = [
+const DEFAULT_USUARIOS = [
   { id:"root", nombre:"Cristian", apellido:"Manzo", email:"cristianduly@gmail.com", whatsapp:"", puesto:"Propietario",
-    rol:"Administrador", estado:"Activo",
+    rol:"Administrador", estado:"Activo", pin:"1303",
     permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
-  { id:"u1", nombre:"Bere", apellido:"", email:"admin@bere", whatsapp:"", puesto:"Administradora",
-    rol:"Administrador", estado:"Activo",
+  { id:"u1", nombre:"Aye", apellido:"", email:"admin@aye", whatsapp:"", puesto:"Administradora",
+    rol:"Administrador", estado:"Activo", pin:"1733",
     permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
-];
 
 const DEFAULT_SERVICIOS = [
   { id: "srv1", descripcion: "Servicio de Limpieza", precioActual: 15000 },
@@ -1067,19 +1067,19 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
 }
 
 function LoginScreen({ usuarios, onLogin }) {
-  const [mode, setMode] = useState("list"); // "list" | "email"
-  const [email, setEmail] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [pin, setPin] = useState("");
   const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
   const active = usuarios.filter(u=>u.estado==="Activo");
 
-  const handleEmailLogin = async () => {
-    setLoading(true); setErr("");
-    try {
-      const u = await DBService.mockAuth(email, usuarios);
-      onLogin(u);
-    } catch(e) { setErr(e.message); }
-    setLoading(false);
+  const handlePinLogin = () => {
+    if(!selectedUser) return;
+    if(pin === selectedUser.pin) {
+      onLogin(selectedUser);
+    } else {
+      setErr("PIN incorrecto. Intentá de nuevo.");
+      setPin("");
+    }
   };
 
   return (
@@ -1089,31 +1089,32 @@ function LoginScreen({ usuarios, onLogin }) {
       <div style={{fontSize:28,fontWeight:800,color:"#1C1C1E",fontFamily:"'Playfair Display',serif",lineHeight:1.1,marginBottom:4}}>de Bere</div>
       <div style={{fontSize:12,color:"#8B7355",marginBottom:28,letterSpacing:0.5}}>Tu lugar de descanso y diversión</div>
       <div style={{width:"100%",maxWidth:360}}>
-        {mode==="list" ? (
+        {!selectedUser ? (
           <>
             <div style={{fontSize:12,fontWeight:700,color:"#5C4033",textAlign:"center",marginBottom:14,textTransform:"uppercase",letterSpacing:0.5}}>¿Quién está ingresando?</div>
             {active.map(u=>(
-              <button key={u.id} onClick={()=>onLogin(u)} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 18px",background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:12,cursor:"pointer",marginBottom:10,fontFamily:"inherit",boxShadow:"0 2px 8px rgba(196,96,43,0.08)"}}>
+              <button key={u.id} onClick={()=>{setSelectedUser(u);setPin("");setErr("");}} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 18px",background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:12,cursor:"pointer",marginBottom:10,fontFamily:"inherit",boxShadow:"0 2px 8px rgba(196,96,43,0.08)"}}>
                 <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:18,flexShrink:0,fontFamily:"'Playfair Display',serif"}}>{u.nombre[0].toUpperCase()}</div>
                 <div style={{textAlign:"left"}}><div style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>{u.nombre} {u.apellido||""}</div><div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{u.puesto||u.rol}</div></div>
                 <div style={{marginLeft:"auto",fontSize:18,color:"#C4602B"}}>→</div>
               </button>
             ))}
-            <button onClick={()=>setMode("email")} style={{width:"100%",padding:"11px",background:"transparent",border:"1.5px dashed #D4C5B5",borderRadius:10,color:"#8B7355",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",marginTop:4}}>
-              Ingresar con email →
-            </button>
           </>
         ) : (
           <>
-            <div style={{fontSize:12,fontWeight:700,color:"#5C4033",textAlign:"center",marginBottom:14,textTransform:"uppercase",letterSpacing:0.5}}>Ingresá con tu email</div>
-            <input value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleEmailLogin()}
-              placeholder="tu@email.com" type="email"
-              style={{width:"100%",padding:"12px 16px",borderRadius:10,border:"1.5px solid #EDE0D0",fontSize:14,marginBottom:10,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}} />
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,padding:"12px 16px",background:"#FFF",borderRadius:12,border:"1.5px solid #EDE0D0"}}>
+              <div style={{width:40,height:40,borderRadius:20,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:16,fontFamily:"'Playfair Display',serif"}}>{selectedUser.nombre[0].toUpperCase()}</div>
+              <div style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>{selectedUser.nombre} {selectedUser.apellido||""}</div>
+            </div>
+            <div style={{fontSize:12,fontWeight:700,color:"#5C4033",textAlign:"center",marginBottom:12,textTransform:"uppercase",letterSpacing:0.5}}>Ingresá tu PIN</div>
+            <input value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handlePinLogin()}
+              placeholder="••••" type="password" maxLength={4}
+              style={{width:"100%",padding:"14px 16px",borderRadius:10,border:"1.5px solid #EDE0D0",fontSize:24,marginBottom:10,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center",letterSpacing:8}} />
             {err&&<div style={{color:"#DC2626",fontSize:12,marginBottom:10,textAlign:"center",fontWeight:600}}>{err}</div>}
-            <button onClick={handleEmailLogin} disabled={loading} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#C4602B,#9E4A1E)",color:"#FFF",border:"none",borderRadius:10,fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>
-              {loading?"Verificando...":"Ingresar"}
+            <button onClick={handlePinLogin} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#C4602B,#9E4A1E)",color:"#FFF",border:"none",borderRadius:10,fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>
+              Ingresar
             </button>
-            <button onClick={()=>{setMode("list");setErr("");}} style={{width:"100%",padding:"10px",background:"transparent",border:"1.5px solid #EDE0D0",borderRadius:10,color:"#8B7355",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+            <button onClick={()=>{setSelectedUser(null);setErr("");setPin("");}} style={{width:"100%",padding:"10px",background:"transparent",border:"1.5px solid #EDE0D0",borderRadius:10,color:"#8B7355",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
               ← Volver
             </button>
           </>
