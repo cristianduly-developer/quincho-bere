@@ -2379,7 +2379,7 @@ export default function App() {
       if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",pin:x.pin||"",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
-      var cu=await db.get("currentUser"); if(cu)setCurrentUser(cu);
+      var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){} if(cu)setCurrentUser(cu);
     } catch(e) {
       console.error("Error cargando datos de Supabase:", e);
     } finally {
@@ -2426,8 +2426,8 @@ export default function App() {
     return ()=>clearInterval(interval);
   },[loaded]);
 
-  const handleLogin=(user)=>{ setCurrentUser(user); db.set("currentUser",user); };
-  const handleLogout=()=>{ setCurrentUser(null); db.set("currentUser",null); };
+  const handleLogin=(user)=>{ setCurrentUser(user); db.set("currentUser",user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
+  const handleLogout=()=>{ setCurrentUser(null); db.set("currentUser",null); try{localStorage.removeItem("qb_user");}catch(e){} };
   const saveC =async d=>{setClientes(d);await sb.upsert("clientes",d.map(mapCliente));};
   const saveR =async d=>{setReservas(d);await sb.upsert("reservas",d.map(mapReserva));};
   const saveP =async d=>{setPagos(d);await sb.upsert("pagos",d.map(mapPago));};
