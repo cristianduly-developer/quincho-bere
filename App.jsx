@@ -32,13 +32,14 @@ const CAT_COLORS = { Mantenimiento: "#6366F1", Limpieza: "#06B6D4", Servicios: "
 
 const DEFAULT_RECURSOS = [{ id: "rec1", nombre: "Quincho Principal", capacidadMax: 100 }];
 const DEFAULT_USUARIOS = [
+const DEFAULT_USUARIOS = [
   { id:"root", nombre:"Cristian", apellido:"Manzo", email:"cristianduly@gmail.com", whatsapp:"", puesto:"Propietario",
     rol:"Administrador", estado:"Activo", pin:"1303",
     permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
   { id:"u1", nombre:"Aye", apellido:"", email:"admin@aye", whatsapp:"", puesto:"Administradora",
     rol:"Administrador", estado:"Activo", pin:"1733",
     permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
-];
+
 const DEFAULT_SERVICIOS = [
   { id: "srv1", descripcion: "Servicio de Limpieza", precioActual: 15000 },
   { id: "srv2", descripcion: "DJ / Sonido",          precioActual: 30000 },
@@ -68,24 +69,37 @@ const SUPA_URL = "https://pmohyepcqfvkwijmljee.supabase.co";
 const SUPA_KEY = "sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
 
 async function sbFetch(path, options={}) {
-  const res = await fetch(SUPA_URL + "/rest/v1/" + path, {
-    headers: {
-      "apikey": SUPA_KEY,
-      "Authorization": "Bearer " + SUPA_KEY,
-      "Content-Type": "application/json",
-      "Prefer": options.prefer || "return=representation",
-    },
-    ...options,
-  });
-  if(!res.ok){ const e=await res.text(); console.error("SB error:",e); return null; }
-  const t=await res.text(); return t?JSON.parse(t):null;
+  try {
+    const res = await fetch(SUPA_URL + "/rest/v1/" + path, {
+      headers: {
+        "apikey": SUPA_KEY,
+        "Authorization": "Bearer " + SUPA_KEY,
+        "Content-Type": "application/json",
+        "Prefer": options.prefer || "return=representation",
+      },
+      ...options,
+    });
+    if(!res.ok){ const e=await res.text(); console.error("SB error:",path,e); return null; }
+    const t=await res.text(); return t?JSON.parse(t):null;
+  } catch(e) { console.error("SB fetch error:",path,e); return null; }
 }
 
 const sb = {
   async getAll(table) { return await sbFetch(table+"?select=*&order=creado_en.asc") || []; },
   async upsert(table, rows) {
     const arr=Array.isArray(rows)?rows:[rows];
-    return await sbFetch(table, {method:"POST",body:JSON.stringify(arr),prefer:"resolution=merge-duplicates,return=representation"});
+    if(!arr.length) return null;
+    return await sbFetch(table, {
+      method:"POST",
+      body:JSON.stringify(arr),
+      prefer:"resolution=merge-duplicates,return=representation",
+      headers:{
+        "apikey": SUPA_KEY,
+        "Authorization": "Bearer " + SUPA_KEY,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=representation",
+      }
+    });
   },
   async remove(table, id) { return await sbFetch(table+"?id=eq."+id,{method:"DELETE"}); },
 };
@@ -2363,8 +2377,8 @@ export default function App() {
       if(er&&er.length)setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
       if(se&&se.length)setServiciosExtras(se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})));
       if(t&&t.length)setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
-      if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
       if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",pin:x.pin||"",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
+      if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
       var cu=await db.get("currentUser"); if(cu)setCurrentUser(cu);
     } catch(e) {
