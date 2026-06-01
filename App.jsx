@@ -1139,6 +1139,7 @@ function LoginScreen({ usuarios, onLogin }) {
 function UsuariosView({ usuarios, setUsuarios, currentUser }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({nombre:"",email:"",rol:"Personal",estado:"Activo",pin:""});
+  const saveSrv = async d => { setServiciosExtras(d); await sb.upsert("servicios_extras", d.map(x=>({id:x.id,descripcion:x.descripcion||"",precio_actual:x.precioActual||0,activo:x.activo!==false,creado_en:x.creadoEn||new Date().toISOString()}))); };
   const save = async d => { setUsuarios(d); await sb.upsert("usuarios", d.map(mapUsuario)); };
   if(currentUser?.rol!=="Administrador") return (
     <div style={{padding:"40px 20px",textAlign:"center",color:"#8B7355"}}>
