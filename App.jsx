@@ -32,14 +32,13 @@ const CAT_COLORS = { Mantenimiento: "#6366F1", Limpieza: "#06B6D4", Servicios: "
 
 const DEFAULT_RECURSOS = [{ id: "rec1", nombre: "Quincho Principal", capacidadMax: 100 }];
 const DEFAULT_USUARIOS = [
-const DEFAULT_USUARIOS = [
   { id:"root", nombre:"Cristian", apellido:"Manzo", email:"cristianduly@gmail.com", whatsapp:"", puesto:"Propietario",
     rol:"Administrador", estado:"Activo", pin:"1303",
     permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
   { id:"u1", nombre:"Aye", apellido:"", email:"admin@aye", whatsapp:"", puesto:"Administradora",
     rol:"Administrador", estado:"Activo", pin:"1733",
     permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
-
+];
 const DEFAULT_SERVICIOS = [
   { id: "srv1", descripcion: "Servicio de Limpieza", precioActual: 15000 },
   { id: "srv2", descripcion: "DJ / Sonido",          precioActual: 30000 },
