@@ -2364,7 +2364,7 @@ export default function App() {
       if(se&&se.length)setServiciosExtras(se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})));
       if(t&&t.length)setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
       if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
-      if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
+      if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",pin:x.pin||"",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
       var cu=await db.get("currentUser"); if(cu)setCurrentUser(cu);
     } catch(e) {
