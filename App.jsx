@@ -2030,7 +2030,7 @@ function ReservasView({ reservas, clientes, pagos, recursos, extrasReserva, onRe
   const [scope,setScope]=useState("activas");
   const [filter,setFilter]=useState("all");
   const [search,setSearch]=useState("");
-  const scoped=scope==="activas"?reservas.filter(r=>ACTIVAS.includes(r.estado)):reservas;
+  const scoped=scope==="activas"?reservas.filter(r=>ACTIVAS.includes(r.estado)):scope==="finalizadas"?reservas.filter(r=>r.estado==="finalizada"||r.estado==="cancelada"):reservas;
   const filtered=scoped
     .filter(r=>filter==="all"||r.estado===filter)
     .filter(r=>{ if(!search)return true; const c=clientes.find(x=>x.id===r.clienteId); return clientName(c).toLowerCase().includes(search.toLowerCase())||r.fecha.includes(search); })
@@ -2038,7 +2038,7 @@ function ReservasView({ reservas, clientes, pagos, recursos, extrasReserva, onRe
   return (
     <div style={{padding:"16px 16px 100px"}}>
       <div style={{display:"flex",gap:0,marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0"}}>
-        {[{v:"activas",l:"Activas"},{v:"all",l:"Todas"}].map(o=>(
+        {[{v:"activas",l:"Activas"},{v:"all",l:"Todas"},{v:"finalizadas",l:"Historial"}].map(o=>(
           <button key={o.v} onClick={()=>{setScope(o.v);setFilter("all");}} style={{flex:1,padding:"10px 0",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:scope===o.v?"#C4602B":"#FDF8F3",color:scope===o.v?"#FFF":"#8B7355"}}>{o.l}</button>
         ))}
       </div>
@@ -2341,6 +2341,7 @@ export default function App() {
   const [extraReservaId,setExtraReservaId]=useState(null);
   const [printData,setPrintData]=useState(null);
   const [ratingQueue,setRatingQueue]=useState([]);
+  const [snoozedRatings,setSnoozedRatings]=useState(new Set());
   const [checkTick,setCheckTick]=useState(0);
   const [alertaActiva,setAlertaActiva]=useState(null);
   const [shownAlerts,setShownAlerts]=useState(new Set());
@@ -2406,7 +2407,7 @@ export default function App() {
       current=reservas.map(r=>toClose.some(x=>x.id===r.id)?{...r,estado:'finalizada'}:r);
       saveR(current);
     }
-    const needsRating=current.filter(r=>r.estado==='finalizada'&&!r.calificacion&&r.clienteId);
+    const needsRating=current.filter(r=>r.estado==='finalizada'&&!r.calificacion&&r.clienteId&&!snoozedRatings.has(r.id));
     setRatingQueue(needsRating);
     // Check due recordatorios
     const now2=new Date();
@@ -2696,7 +2697,7 @@ export default function App() {
           setAlertaActiva(null);
         }}
       />}
-      {ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>setRatingQueue(q=>q.filter((_,i)=>i!==0))} />}
+      {ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
       {dayModal && <DayModal
