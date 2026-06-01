@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from "recharts";
 
 // ─── CONSTANTS ────────────────────────────────────────────
@@ -2720,5 +2720,4 @@ export default function App() {
       />}
     </div>
   );
-}
 }
