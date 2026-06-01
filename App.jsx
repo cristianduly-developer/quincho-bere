@@ -2193,7 +2193,7 @@ function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtr
   const [showSrvForm,setShowSrvForm]=useState(false);
   const [srvForm,setSrvForm]=useState({descripcion:"",precioActual:""});
   const saveRec = async d=>{setRecursos(d); await db.set(KEYS.recursos,d);};
-  const saveSrv = async d=>{setServiciosExtras(d); await db.set(KEYS.serviciosExtras,d);};
+  const saveSrv = async d=>{setServiciosExtras(d); await sb.upsert("servicios_extras", d.map(x=>({id:x.id,descripcion:x.descripcion||"",precio_actual:x.precioActual||0,activo:x.activo!==false,creado_en:x.creadoEn||new Date().toISOString()})));};
   return (
     <div style={{padding:"16px 16px 100px"}}>
       {/* Recursos */}
