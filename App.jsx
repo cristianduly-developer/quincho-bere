@@ -518,7 +518,7 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
 }
 
 function GastoModal({ onClose, onSave }) {
-  const [f,setF] = useState({fecha:toDateStr(new Date()),concepto:"",monto:"",categoria:"Insumos"});
+  const [f,setF] = useState({fecha:toDateStr(new Date()),concepto:"",monto:"",categoria:"Insumos",metodo:"Efectivo"});
   const set=k=>v=>setF(p=>({...p,[k]:v}));
   return (
     <BottomModal title="Registrar Gasto" onClose={onClose}>
@@ -528,7 +528,11 @@ function GastoModal({ onClose, onSave }) {
           options={EXPENSE_CATS.map(c=>({value:c,label:c}))} />
       </div>
       <Input label="Concepto / descripción" value={f.concepto} onChange={set("concepto")} placeholder="Limpieza post-evento, repuestos..." required />
-      <Input label="Monto ($)" type="number" value={f.monto} onChange={set("monto")} required placeholder="0" />
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Input label="Monto ($)" type="number" value={f.monto} onChange={set("monto")} required placeholder="0" />
+        <Select label="Método de pago" value={f.metodo} onChange={set("metodo")}
+          options={[{value:"Efectivo",label:"💵 Efectivo"},{value:"Transferencia",label:"🏦 Transferencia"}]} />
+      </div>
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn onClick={()=>{
@@ -2337,6 +2341,7 @@ export default function App() {
   const [ratingQueue,setRatingQueue]=useState([]);
   const [checkTick,setCheckTick]=useState(0);
   const [alertaActiva,setAlertaActiva]=useState(null);
+  const [shownAlerts,setShownAlerts]=useState(new Set());
   const [showRootMenu,setShowRootMenu]=useState(false);
 
   const [clientes,setClientes]=useState([]);
@@ -2408,7 +2413,8 @@ export default function App() {
     const due=recordatorios.find(r=>
       r.estado==='Pendiente'&&
       r.fechaAlerta===today2&&
-      r.horaAlerta<=curT
+      r.horaAlerta<=curT&&
+      !shownAlerts.has(r.id)
     );
     if(due) setAlertaActiva(due);
   },[loaded,checkTick,reservas,recordatorios]);
@@ -2671,7 +2677,7 @@ export default function App() {
         alerta={alertaActiva}
         clientes={clientes}
         reservas={reservas}
-        onClose={()=>setAlertaActiva(null)}
+        onClose={()=>{setShownAlerts(s=>new Set([...s,alertaActiva.id]));setAlertaActiva(null);}}
         onVerCliente={()=>{const c=clientes.find(x=>x.id===alertaActiva.clienteId);if(c){setDetailCliente(c);setAlertaActiva(null);}}}
         onVerEvento={()=>{const r=reservas.find(x=>x.id===alertaActiva.reservaId);if(r){setDetailReserva(r);setAlertaActiva(null);}}}
         onNewPago={()=>{if(alertaActiva.reservaId){setPagoReservaId(alertaActiva.reservaId);setModal("pago");setAlertaActiva(null);}}}
