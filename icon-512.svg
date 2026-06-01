@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#FDF8F3"/>
+
+  <!-- Roof lines -->
+  <line x1="110" y1="210" x2="256" y2="95" stroke="#C4602B" stroke-width="14" stroke-linecap="round"/>
+  <line x1="256" y1="95" x2="402" y2="210" stroke="#C4602B" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- Chimney -->
+  <rect x="310" y="110" width="40" height="60" fill="none" stroke="#C4602B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Heart on chimney -->
+  <path d="M330 98 C330 98 320 88 315 93 C310 98 315 105 330 115 C345 105 350 98 345 93 C340 88 330 98 330 98Z" fill="#C4602B"/>
+
+  <!-- Text: De (script style) -->
+  <text x="256" y="320" font-family="Georgia, serif" font-size="90" font-style="italic" font-weight="bold" text-anchor="middle" fill="#C4602B">De</text>
+
+  <!-- Text: BERE (large, light) -->
+  <text x="256" y="410" font-family="Georgia, serif" font-size="72" font-weight="bold" text-anchor="middle" fill="#C4602B" opacity="0.35" letter-spacing="8">BERE</text>
+
+  <!-- Text: EL QUINCHO (small, light) -->
+  <text x="256" y="240" font-family="Georgia, serif" font-size="42" font-weight="bold" text-anchor="middle" fill="#C4602B" opacity="0.35" letter-spacing="4">EL QUINCHO</text>
+</svg>
