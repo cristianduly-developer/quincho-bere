@@ -32,7 +32,6 @@ const CAT_COLORS = { Mantenimiento: "#6366F1", Limpieza: "#06B6D4", Servicios: "
 
 const DEFAULT_RECURSOS = [{ id: "rec1", nombre: "Quincho Principal", capacidadMax: 100 }];
 const DEFAULT_USUARIOS = [
-const DEFAULT_USUARIOS = [
   { id:"root", nombre:"Cristian", apellido:"Manzo", email:"cristianduly@gmail.com", whatsapp:"", puesto:"Propietario",
     rol:"Administrador", estado:"Activo", pin:"1303",
     permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
