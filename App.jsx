@@ -67,40 +67,34 @@ const getSaldo        = (res, extrasReserva, pagos) => (res.montoPactado + getTo
 const SUPA_URL = "https://pmohyepcqfvkwijmljee.supabase.co";
 const SUPA_KEY = "sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
 
-async function sbFetch(path, options={}) {
+async function sbFetch(path, method, body, prefer) {
   try {
-    const res = await fetch(SUPA_URL + "/rest/v1/" + path, {
-      headers: {
-        "apikey": SUPA_KEY,
-        "Authorization": "Bearer " + SUPA_KEY,
-        "Content-Type": "application/json",
-        "Prefer": options.prefer || "return=representation",
-      },
-      ...options,
-    });
+    const headers = {
+      "apikey": SUPA_KEY,
+      "Authorization": "Bearer " + SUPA_KEY,
+      "Content-Type": "application/json",
+    };
+    if(prefer) headers["Prefer"] = prefer;
+    const opts = { method: method||"GET", headers };
+    if(body) opts.body = JSON.stringify(body);
+    const res = await fetch(SUPA_URL + "/rest/v1/" + path, opts);
     if(!res.ok){ const e=await res.text(); console.error("SB error:",path,e); return null; }
     const t=await res.text(); return t?JSON.parse(t):null;
   } catch(e) { console.error("SB fetch error:",path,e); return null; }
 }
 
 const sb = {
-  async getAll(table) { return await sbFetch(table+"?select=*&order=creado_en.asc") || []; },
+  async getAll(table) {
+    return await sbFetch(table+"?select=*&order=creado_en.asc","GET",null,null) || [];
+  },
   async upsert(table, rows) {
     const arr=Array.isArray(rows)?rows:[rows];
     if(!arr.length) return null;
-    return await sbFetch(table, {
-      method:"POST",
-      body:JSON.stringify(arr),
-      prefer:"resolution=merge-duplicates,return=representation",
-      headers:{
-        "apikey": SUPA_KEY,
-        "Authorization": "Bearer " + SUPA_KEY,
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates,return=representation",
-      }
-    });
+    return await sbFetch(table, "POST", arr, "resolution=merge-duplicates,return=representation");
   },
-  async remove(table, id) { return await sbFetch(table+"?id=eq."+id,{method:"DELETE"}); },
+  async remove(table, id) {
+    return await sbFetch(table+"?id=eq."+id, "DELETE", null, null);
+  },
 };
 
 // Session-only storage (currentUser, etc.)
