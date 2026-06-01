@@ -1138,8 +1138,8 @@ function LoginScreen({ usuarios, onLogin }) {
 
 function UsuariosView({ usuarios, setUsuarios, currentUser }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({nombre:"",email:"",rol:"Personal",estado:"Activo"});
-  const save = async d => { setUsuarios(d); await db.set(KEYS.usuarios, d); };
+  const [form, setForm] = useState({nombre:"",email:"",rol:"Personal",estado:"Activo",pin:""});
+  const save = async d => { setUsuarios(d); await sb.upsert("usuarios", d.map(mapUsuario)); };
   if(currentUser?.rol!=="Administrador") return (
     <div style={{padding:"40px 20px",textAlign:"center",color:"#8B7355"}}>
       <div style={{fontSize:40,marginBottom:12}}>🔒</div>
@@ -1175,6 +1175,7 @@ function UsuariosView({ usuarios, setUsuarios, currentUser }) {
             <Input label="Apellido" value={form.apellido||""} onChange={v=>setForm(p=>({...p,apellido:v}))} placeholder="Manzo" />
           </div>
           <Input label="Email" value={form.email} onChange={v=>setForm(p=>({...p,email:v}))} placeholder="correo@ejemplo.com" />
+          <Input label="PIN de acceso (4 dígitos)" type="password" value={form.pin||""} onChange={v=>setForm(p=>({...p,pin:v}))} placeholder="ej: 1234" maxLength={4} />
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <Input label="WhatsApp" value={form.whatsapp||""} onChange={v=>setForm(p=>({...p,whatsapp:v}))} placeholder="+54 11..." />
             <Input label="Puesto / Función" value={form.puesto||""} onChange={v=>setForm(p=>({...p,puesto:v}))} placeholder="Administrador" />
@@ -1192,8 +1193,9 @@ function UsuariosView({ usuarios, setUsuarios, currentUser }) {
             <Btn variant="ghost" onClick={()=>setShowForm(false)}>Cancelar</Btn>
             <Btn onClick={()=>{
               if(!form.nombre||!form.email) return alert("Completá nombre e email.");
+              if(!form.pin||form.pin.length!==4) return alert("El PIN debe tener 4 dígitos.");
               save([...usuarios,{id:genId(),...form}]);
-              setShowForm(false); setForm({nombre:"",email:"",rol:"Personal",estado:"Activo"});
+              setShowForm(false); setForm({nombre:"",email:"",rol:"Personal",estado:"Activo",pin:""});
             }}>Guardar</Btn>
           </div>
         </BottomModal>
@@ -2486,11 +2488,11 @@ export default function App() {
   };
   const handleSaveGasto=(data)=>{saveG([...gastos,{id:genId(),...data,creadoEn:new Date().toISOString()}]);setModal(null);};
   const handleSaveExtra=(data)=>{saveER([...extrasReserva,{id:genId(),...data,creadoEn:new Date().toISOString()}]);setModal(null);setExtraReservaId(null);};
-  const handleDeleteReserva=(id)=>{
-    
-    saveR(reservas.filter(r=>r.id!==id));
-    saveP(pagos.filter(p=>p.reservaId!==id));
-    saveER(extrasReserva.filter(e=>e.reservaId!==id));
+  const handleDeleteReserva=async(id)=>{
+    await sb.remove("reservas", id);
+    setReservas(reservas.filter(r=>r.id!==id));
+    setPagos(pagos.filter(p=>p.reservaId!==id));
+    setExtrasReserva(extrasReserva.filter(e=>e.reservaId!==id));
     setDetailReserva(null);
   };
   const handleBloquear=(date,{turno,motivo})=>{
@@ -2499,18 +2501,19 @@ export default function App() {
     saveBloqueos([...bloqueos,{id:genId(),fecha:date,turno,motivo,creadoPor:currentUser?.nombre||"",creadoEn:new Date().toISOString()}]);
     setBloqueoModal(null);setDayModal(null);
   };
-  const handleDesbloquear=(bloqueoId)=>{
-    saveBloqueos(bloqueos.filter(b=>b.id!==bloqueoId));
+  const handleDesbloquear=async(bloqueoId)=>{
+    await sb.remove("bloqueos", bloqueoId);
+    setBloqueos(bloqueos.filter(b=>b.id!==bloqueoId));
     setBloqueoModal(null);setDayModal(null);
   };
   const handleSaveRating=(reservaId, calificacion)=>{
     saveR(reservas.map(r=>r.id===reservaId?{...r,calificacion}:r));
     setRatingQueue(q=>q.filter(r=>r.id!==reservaId));
   };
-  const handleDeleteCliente=(id)=>{
-    
-    saveC(clientes.filter(c=>c.id!==id));setDetailCliente(null);
-  };
+  const handleDeleteCliente=async(id)=>{
+    await sb.remove("clientes", id);
+    setClientes(clientes.filter(c=>c.id!==id));
+    setDetailCliente(null);
 
   const PAGE_TITLES={inicio:"Inicio",reservas:"Reservas",clientes:"Clientes",gastos:"Gastos",recursos:"Espacios y Extras",reportes:"Reportes"};
 
@@ -2640,9 +2643,10 @@ export default function App() {
           saveR(reservas.map(r=>r.id===detailReserva.id?{...r,estado:"cancelada"}:r));
           setDetailReserva(null);
         } : undefined}
-        onDeletePago={(pid)=>{
+        onDeletePago={async(pid)=>{
+          await sb.remove("pagos", pid);
           const newPagos=pagos.filter(p=>p.id!==pid);
-          saveP(newPagos);
+          setPagos(newPagos);
           const res=reservas.find(r=>r.id===detailReserva.id);
           if(res){
             const tp=newPagos.filter(p=>p.reservaId===res.id).reduce((s,p)=>s+p.monto,0);
