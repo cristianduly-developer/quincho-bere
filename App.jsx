@@ -1139,7 +1139,6 @@ function LoginScreen({ usuarios, onLogin }) {
 function UsuariosView({ usuarios, setUsuarios, currentUser }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({nombre:"",email:"",rol:"Personal",estado:"Activo",pin:""});
-  const saveSrv = async d => { setServiciosExtras(d); await sb.upsert("servicios_extras", d.map(x=>({id:x.id,descripcion:x.descripcion||"",precio_actual:x.precioActual||0,activo:x.activo!==false,creado_en:x.creadoEn||new Date().toISOString()}))); };
   const save = async d => { setUsuarios(d); await sb.upsert("usuarios", d.map(mapUsuario)); };
   if(currentUser?.rol!=="Administrador") return (
     <div style={{padding:"40px 20px",textAlign:"center",color:"#8B7355"}}>
@@ -1360,6 +1359,7 @@ function BloqueoModal({ date, bloqueoExistente, onClose, onBloquear, onDesbloque
     return (
       <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2500,padding:20}}>
         <div style={{background:"#FFF",borderRadius:16,width:"100%",maxWidth:380,padding:28,textAlign:"center"}}>
+
           <div style={{fontSize:36,marginBottom:12}}>🔒</div>
           <div style={{fontWeight:800,fontSize:18,color:"#1C1C1E",marginBottom:6}}>Fecha bloqueada</div>
           <div style={{fontSize:13,color:"#8B7355",marginBottom:4}}>{fmtDate(date)}</div>
@@ -2721,8 +2721,5 @@ export default function App() {
       />}
     </div>
   );
-    }
-  }
-    
-
+}
 
