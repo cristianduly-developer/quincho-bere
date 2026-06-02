@@ -381,7 +381,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         <Input label="Hora inicio" type="time" value={f.horario} onChange={set("horario")} />
         <Input label="Hora fin *" type="time" value={f.horarioFin} onChange={set("horarioFin")} />
-        <Input label="Cant. invitados" type="number" value={f.cantInvitados} onChange={set("cantInvitados")} min="1" placeholder="0" />
+        <Input label="Cant. invitados" type="number" value={f.cantInvitados} onChange={set("cantInvitados")} min="1" placeholder="0" onFocus={e=>e.target.select()} />
       </div>
       <Input label="Monto pactado ($)" type="number" value={f.montoPactado} onChange={set("montoPactado")} required placeholder="0" />
       {isEdit ? (
@@ -414,7 +414,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
 function ClienteModal({ onClose, onSave, cliente }) {
   const [f, setF] = useState({
     nombre: cliente?.nombre||"", apellido: cliente?.apellido||"",
-    whatsapp: cliente?.whatsapp||"", localidad: cliente?.localidad||"",
+    whatsapp: cliente?.whatsapp||"", localidad: cliente?.localidad||"Mar del Plata",
     email: cliente?.email||"", notasInternas: cliente?.notasInternas||"",
   });
   const set = k=>v=>setF(p=>({...p,[k]:v}));
@@ -486,7 +486,7 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         <div>
           <label style={{display:"block",fontSize:11,fontWeight:700,color:"#5C4033",marginBottom:5,textTransform:"uppercase",letterSpacing:0.6}}>Monto ($)</label>
-          <input type="number" value={f.monto} onChange={e=>setF(p=>({...p,monto:e.target.value}))}
+          <input type="number" value={f.monto} onChange={e=>setF(p=>({...p,monto:e.target.value}))} onFocus={e=>e.target.select()}
             style={{width:"100%",padding:"10px 12px",borderRadius:8,fontSize:14,border:"1.5px solid #EDE0D0",background:"#FFF",outline:"none",color:"#1C1C1E",boxSizing:"border-box",fontFamily:"inherit"}} />
         </div>
         <Input label="Fecha del pago" type="date" value={f.fecha} onChange={v=>setF(p=>({...p,fecha:v}))} required />
@@ -591,7 +591,8 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
 function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, canModifyCaja }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(false); // null | "confirm" | "refund"
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDelPagoId, setConfirmDelPagoId] = useState(null); // null | "confirm" | "refund"
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [showReschedule, setShowReschedule] = useState(false);
   const cliente = clientes.find(c=>c.id===reserva.clienteId);
@@ -711,7 +712,14 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                       {canModifyCaja&&(
                         <>
                           <button onClick={()=>setEditingPago(p)} style={{background:"#EFF6FF",border:"1px solid #93C5FD",color:"#2563EB",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit"}}>✏️</button>
-                          <button onClick={()=>{onDeletePago(p.id);}} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit"}}>🗑️</button>
+                          {confirmDelPagoId===p.id ? (
+                            <div style={{display:"flex",gap:4}}>
+                              <button onClick={()=>setConfirmDelPagoId(null)} style={{background:"#F3F4F6",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontFamily:"inherit",color:"#6B7280"}}>No</button>
+                              <button onClick={()=>{onDeletePago(p.id);setConfirmDelPagoId(null);}} style={{background:"#DC2626",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",color:"#FFF"}}>Sí</button>
+                            </div>
+                          ) : (
+                            <button onClick={()=>setConfirmDelPagoId(p.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit"}}>🗑️</button>
+                          )}
                         </>
                       )}
                     </div>
@@ -890,7 +898,7 @@ function EditPagoModal({ pago, onClose, onSave }) {
       <div style={{marginBottom:12,padding:"10px 14px",background:"#F9F6F2",borderRadius:8,fontSize:12,color:"#8B7355"}}>
         Cobro del {fmtDate(pago.fecha)}
       </div>
-      <Input label="Monto ($)" type="number" value={monto} onChange={setMonto} required />
+      <Input label="Monto ($)" type="number" value={monto} onChange={setMonto} required onFocus={e=>e.target.select()} />
       <Select label="Método de pago" value={metodo} onChange={setMetodo}
         options={PAYMENT_METHODS.map(m=>({value:m,label:m}))} />
       <TextArea label="Notas" value={notas} onChange={setNotas} rows={2} placeholder="Referencia, comprobante..." />
@@ -1508,7 +1516,7 @@ function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes
 
 function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick }) {
   const year=calDate.getFullYear(), month=calDate.getMonth();
-  const firstDay=new Date(year,month,1).getDay();
+  const firstDay=(new Date(year,month,1).getDay()+6)%7; // Monday-first week
   const daysInMonth=new Date(year,month+1,0).getDate();
   const todayStr=toDateStr(new Date());
   const getDay = (day) => {
@@ -1786,13 +1794,20 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
   const saldo = getSaldo(nextEvento, extrasReserva, pagos);
   const t = TURNOS[nextEvento.turno];
   const s = STATUS[nextEvento.estado] || STATUS.pendiente;
+  const now2 = new Date();
+  const today2 = toDateStr(now2);
+  const curMin = now2.getHours()*60+now2.getMinutes();
+  const startMin = nextEvento.horario ? parseInt(nextEvento.horario)*60+parseInt((nextEvento.horario.split(':')[1])||0) : 660;
+  const endMin = nextEvento.horarioFin ? parseInt(nextEvento.horarioFin)*60+parseInt((nextEvento.horarioFin.split(':')[1])||0) : 1439;
+  const enCurso = nextEvento.fecha===today2 && curMin>=startMin && curMin<=endMin;
   return (
     <div onClick={()=>onReservaClick(nextEvento)} style={{
-      background:"linear-gradient(135deg,#C4602B,#9E4A1E)",
+      background:enCurso?"linear-gradient(135deg,#16A34A,#15803D)":"linear-gradient(135deg,#C4602B,#9E4A1E)",
       borderRadius:14,padding:"16px 18px",marginBottom:14,cursor:"pointer",
-      boxShadow:"0 4px 16px rgba(196,96,43,0.35)",
+      boxShadow:enCurso?"0 4px 16px rgba(22,163,74,0.35)":"0 4px 16px rgba(196,96,43,0.35)",
     }}>
-      <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>🗓 Próximo evento</div>
+      {enCurso && <div style={{fontSize:11,fontWeight:800,color:"#FFF",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>🟢 EVENTO EN CURSO</div>}
+      {!enCurso && <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>🗓 Próximo evento</div>}
       <div style={{fontWeight:800,fontSize:20,color:"#FFF",fontFamily:"'Playfair Display',serif",marginBottom:4}}>{clientName(c)}</div>
       <div style={{fontSize:13,color:"rgba(255,255,255,0.85)",marginBottom:8}}>
         {fmtDate(nextEvento.fecha)}
@@ -1845,7 +1860,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
     return "\u00a1Hola, "+clientName(c)+"! Te recordamos que ma\u00f1ana es tu evento en el Quincho de Bere. \ud83c\udf89\n\n"+
       "\u23f0 Horario: Tu turno es de "+(r.horario||"--")+" a "+(r.horarioFin||"--")+".\n"+
       "\u2728 Servicios Extras Contratados:\n"+extrasText+"\n\n"+
-      "\ud83d\udcb0 Control de Saldo: El monto pactado inicial fue de "+fmtCurrency(r.montoPactado)+". Al d\u00eda de hoy, llev\u00e1s pagado un total de "+fmtCurrency(tp)+", por lo que tu SALDO PENDIENTE A ABONAR ES DE: "+fmtCurrency(saldo)+".\n\n"+
+      "\ud83d\udcb0 Control de Saldo: El monto pactado inicial fue de "+fmtCurrency(r.montoPactado)+". Al d\u00eda de hoy, llev\u00e1s pagado un total de "+fmtCurrency(tp)+", por lo que tu SALDO PENDIENTE A ABONAR ES DE: "+fmtCurrency(saldo)+".\n"+"\ud83d\udcb5 Dep\u00f3sito en efectivo al ingreso: "+fmtCurrency(50000)+".\n"+"\ud83d\udcb3 TOTAL A ABONAR MA\u00d1ANA: "+fmtCurrency(saldo+50000)+".\n\n"+
       "\u00a1Te esperamos para disfrutar de un gran d\u00eda!";
   };
   const nextEvento=upcoming[0]||null;
@@ -2342,6 +2357,7 @@ export default function App() {
   const [printData,setPrintData]=useState(null);
   const [ratingQueue,setRatingQueue]=useState([]);
   const [snoozedRatings,setSnoozedRatings]=useState(new Set());
+  const lastActivityRef = React.useRef(Date.now());
   const [checkTick,setCheckTick]=useState(0);
   const [alertaActiva,setAlertaActiva]=useState(null);
   const [shownAlerts,setShownAlerts]=useState(new Set());
@@ -2425,8 +2441,25 @@ export default function App() {
   // Interval: re-check every 60 seconds
   useEffect(()=>{
     if(!loaded) return;
-    const interval=setInterval(()=>setCheckTick(t=>t+1), 60000);
-    return ()=>clearInterval(interval);
+    // Track user activity
+    const updateActivity = () => { lastActivityRef.current = Date.now(); };
+    window.addEventListener('click', updateActivity);
+    window.addEventListener('touchstart', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+
+    const interval=setInterval(()=>{
+      setCheckTick(t=>t+1);
+      // Auto-logout after 30 min of inactivity
+      if(Date.now() - lastActivityRef.current > 30*60*1000) {
+        handleLogout();
+      }
+    }, 60000);
+    return ()=>{
+      clearInterval(interval);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('touchstart', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+    };
   },[loaded]);
 
   const handleLogin=(user)=>{ setCurrentUser(user); db.set("currentUser",user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
@@ -2679,7 +2712,7 @@ export default function App() {
         onClose={()=>setDetailCliente(null)}
         onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}}
         onDelete={()=>handleDeleteCliente(detailCliente.id)} />}
-      {alertaActiva && <AlertaRecordatorioModal
+      {currentUser && alertaActiva && <AlertaRecordatorioModal
         alerta={alertaActiva}
         clientes={clientes}
         reservas={reservas}
@@ -2697,7 +2730,7 @@ export default function App() {
           setAlertaActiva(null);
         }}
       />}
-      {ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
+      {currentUser && ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
       {dayModal && <DayModal
