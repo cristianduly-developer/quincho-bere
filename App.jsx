@@ -2462,23 +2462,16 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
     }
   }
 
-  const systemPrompt = `Sos el asistente de gestión del Quincho de Bere, un espacio para eventos en Mar del Plata.
-Hoy es ${today}.
-
-RESERVAS PRÓXIMAS (${upcoming.length}):
-${upcoming.slice(0,10).map(r=>{
-  const c=clientes.find(x=>x.id===r.clienteId);
-  return `- ${r.fecha} | ${r.turno} | ${c?c.nombre+' '+c.apellido:'Sin cliente'} | Estado: ${r.estado} | $${r.montoPactado}`;
-}).join('
-')}
-
-FINES DE SEMANA DISPONIBLES (próximos):
-${finesDisponibles.slice(0,8).join(', ')}
-
-CLIENTES TOTALES: ${clientes.length}
-INGRESOS ESTE MES: $${pagos.filter(p=>p.fecha&&p.fecha.startsWith(today.slice(0,7))).reduce((s,p)=>s+p.monto,0)}
-
-Respondé de forma concisa y útil. Si te piden crear algo, explicá qué datos necesitan completar en la app.`;
+  const resumenRes = upcoming.slice(0,10).map(r=>{
+    const c=clientes.find(x=>x.id===r.clienteId);
+    return "- "+r.fecha+" | "+r.turno+" | "+(c?c.nombre+" "+c.apellido:"Sin cliente")+" | "+r.estado+" | $"+r.montoPactado;
+  }).join("\n");
+  const systemPrompt = "Sos el asistente del Quincho de Bere en Mar del Plata. Hoy es "+today+".\n\n"+
+    "RESERVAS PROXIMAS ("+upcoming.length+"):\n"+resumenRes+"\n\n"+
+    "FINES DISPONIBLES: "+finesDisponibles.slice(0,8).join(", ")+"\n"+
+    "CLIENTES: "+clientes.length+"\n"+
+    "INGRESOS MES: $"+pagos.filter(p=>p.fecha&&p.fecha.startsWith(today.slice(0,7))).reduce((s,p)=>s+p.monto,0)+"\n\n"+
+    "Responde conciso y util. Si piden crear algo, explica que datos completar en la app.";
 
   const send = async () => {
     if(!input.trim()||loading) return;
