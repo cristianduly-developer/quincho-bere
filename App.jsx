@@ -1597,7 +1597,7 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
                 if(isPast){ cellBg="#9CA3AF"; }
                 else if(r.estado==="pendiente"){ cellBg="#6B7280"; }
                 else if(r.estado==="senada"||r.estado==="confirmada"){
-                  cellBg=r.turno==="dia"?"#F59E0B":r.turno==="noche"?"#3B82F6":r.turno==="completo"?"#7C3AED":"#6B7280";
+                  cellBg=TURNOS[r.turno]?.color||"#6B7280";
                 } else if(r.estado==="finalizada"){ cellBg="#9CA3AF"; }
                 else { cellBg="#6B7280"; }
                 return (
