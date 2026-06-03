@@ -342,7 +342,7 @@ function Avatar({ nombre }) {
 
 // ─── MODALS ───────────────────────────────────────────────
 
-function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno }) {
+function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config }) {
   const isEdit = !!reserva;
   const initTurno = reserva?.turno || initialTurno || "dia";
   const initH = !reserva ? (TURNO_HORARIOS[initTurno] || {}) : {};
@@ -3060,7 +3060,7 @@ export default function App() {
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} />
 
       {/* Modals */}
-      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} />}
+      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} />}
       {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} />}
       {iaOpen && <IAModal onClose={()=>setIaOpen(false)} reservas={reservas} clientes={clientes} pagos={pagos} bloqueos={bloqueos} serviciosExtras={serviciosExtras} config={config} />}
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} />}
