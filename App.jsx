@@ -1623,12 +1623,10 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
 }
 
 function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes }) {
-  const [repDate, setRepDate] = useState(new Date());
-
   const generarPDF = () => {
-    const mes = MONTHS[repDate.getMonth()];
-    const anio = repDate.getFullYear();
-    const prefix = anio+"-"+String(repDate.getMonth()+1).padStart(2,"0");
+    const mes = MONTHS[selMonth];
+    const anio = selYear;
+    const prefix = selYear+"-"+String(selMonth+1).padStart(2,"0");
     const reservasMes = reservas.filter(r=>r.fecha&&r.fecha.startsWith(prefix)&&r.estado!=="cancelada").sort((a,b)=>a.fecha.localeCompare(b.fecha));
     const gastosMes = gastos.filter(g=>g.fecha&&g.fecha.startsWith(prefix));
     const totalCobrado = pagos.filter(p=>p.fecha&&p.fecha.startsWith(prefix)).reduce((s,p)=>s+p.monto,0);
