@@ -1549,9 +1549,9 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
   return (
     <div style={{...card,overflow:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:"linear-gradient(135deg,#C4602B 0%,#9E4A1E 100%)",color:"#FFF"}}>
-        <button onClick={()=>setCalDate(d=>new Date(d.getFullYear(),d.getMonth()-1,1))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
+        <button onClick={()=>setCalDate(d=>{const nd=new Date(d);nd.setDate(1);nd.setMonth(nd.getMonth()-1);return nd;})} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
         <span style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif"}}>{MONTHS[month]} {year}</span>
-        <button onClick={()=>setCalDate(d=>new Date(d.getFullYear(),d.getMonth()+1,1))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
+        <button onClick={()=>setCalDate(d=>{const nd=new Date(d);nd.setDate(1);nd.setMonth(nd.getMonth()+1);return nd;})} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#FDF8F3",borderBottom:"1px solid #EDE0D0"}}>
         {DAYS_SHORT.map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#8B7355",padding:"6px 0",textTransform:"uppercase",letterSpacing:0.5}}>{d}</div>)}
@@ -2355,7 +2355,7 @@ function AddUsuarioForm({ usuarios, setUsuarios }) {
 }
 
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario }) {
-  const [precios, setPrecios] = useState(config.precios);
+  const [precios, setPrecios] = useState(config?.precios || DEFAULT_CONFIG.precios);
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
@@ -2401,7 +2401,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                 <span style={{fontSize:13,color:"#5C4033",fontWeight:600}}>{turnoLabel}</span>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:12,color:"#8B7355"}}>$</span>
-                  <input type="number" value={precios[tipo][turno]}
+                  <input type="number" value={precios?.[tipo]?.[turno]||0}
                     onChange={e=>updatePrecio(tipo,turno,e.target.value)}
                     onFocus={e=>e.target.select()}
                     style={{width:100,padding:"6px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",textAlign:"right",outline:"none"}} />
