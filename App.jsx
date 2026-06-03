@@ -2382,7 +2382,7 @@ function AddUsuarioForm({ usuarios, setUsuarios }) {
   );
 }
 
-function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario }) {
+function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios }) {
   const [precios, setPrecios] = useState(config?.precios || DEFAULT_CONFIG.precios);
   const [saved, setSaved] = useState(false);
 
@@ -2404,18 +2404,21 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
       {/* USUARIOS */}
       <div style={{...card, marginBottom:16}}>
         <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:12,fontFamily:"'Playfair Display',serif"}}>👤 Usuarios</div>
-        {usuarios.map(u=>(
+        {(perfilesUsuarios||[]).map(u=>(
           <div key={u.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
             <div>
-              <div style={{fontWeight:600,fontSize:13}}>{u.nombre}</div>
-              <div style={{fontSize:11,color:"#8B7355"}}>{u.rol}{u.email?" · "+u.email:""}</div>
+              <div style={{fontWeight:600,fontSize:13}}>{u.nombre||u.email}</div>
+              <div style={{fontSize:11,color:"#8B7355"}}>{u.rol} · {u.email}</div>
             </div>
-            {currentUser?.rol==="Administrador" && u.id!==currentUser.id && (
-              <button onClick={()=>removeUsuario(u.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
+            {currentUser?.rol==="Administrador" && u.email!==currentUser.email && (
+              <button onClick={async()=>{
+                await supabase.from("perfiles_usuarios").delete().eq("id",u.id);
+                setPerfilesUsuarios(prev=>prev.filter(x=>x.id!==u.id));
+              }} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
             )}
           </div>
         ))}
-        {currentUser?.rol==="Administrador" && <AddUsuarioForm usuarios={usuarios} setUsuarios={setUsuarios} />}
+        {currentUser?.rol==="Administrador" && <AddUsuarioForm usuarios={perfilesUsuarios} setUsuarios={setPerfilesUsuarios} />}
       </div>
       {/* PRECIOS */}
       <div style={{...card, marginBottom:16}}>
@@ -2929,6 +2932,7 @@ export default function App() {
   const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
   const [config,setConfig]=useState(()=>{ try{ const s=localStorage.getItem("quincho_config"); if(s) return JSON.parse(s); }catch(e){} return DEFAULT_CONFIG; });
   const [usuarios,setUsuarios]=useState(DEFAULT_USUARIOS);
+  const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
   const [currentUser,setCurrentUser]=useState(null);
   const [tareas,setTareas]=useState([]);
   const [bloqueos,setBloqueos]=useState([]);
@@ -2953,6 +2957,9 @@ export default function App() {
       setServiciosExtras(se&&se.length?se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})):[]);
       if(t&&t.length)setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
       if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",pin:x.pin||"",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
+      // Load perfiles_usuarios for Google OAuth users
+      const {data:perfiles}=await supabase.from("perfiles_usuarios").select("*").order("creado_en",{ascending:true});
+      if(perfiles)setPerfilesUsuarios(perfiles);
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
       var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){} if(cu)setCurrentUser(cu);
@@ -3183,7 +3190,7 @@ export default function App() {
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
       {tab==="gastos" && <GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} />}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
-      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} />}
+      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} />}
       {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} />}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
       {tab==="reportes" && <ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} />}
