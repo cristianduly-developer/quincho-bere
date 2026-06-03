@@ -2782,7 +2782,7 @@ export default function App() {
   const [recursos,setRecursos]=useState(DEFAULT_RECURSOS);
   const [extrasReserva,setExtrasReserva]=useState([]);
   const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
-  const [config,setConfig]=useState(DEFAULT_CONFIG);
+  const [config,setConfig]=useState(()=>{ try{ const s=localStorage.getItem("quincho_config"); if(s) return JSON.parse(s); }catch(e){} return DEFAULT_CONFIG; });
   const [usuarios,setUsuarios]=useState(DEFAULT_USUARIOS);
   const [currentUser,setCurrentUser]=useState(null);
   const [tareas,setTareas]=useState([]);
