@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from "recharts";
 
 // ─── CONSTANTS ────────────────────────────────────────────
@@ -2357,7 +2357,7 @@ export default function App() {
   const [printData,setPrintData]=useState(null);
   const [ratingQueue,setRatingQueue]=useState([]);
   const [snoozedRatings,setSnoozedRatings]=useState(new Set());
-  const lastActivityRef = React.useRef(Date.now());
+  const lastActivityRef = useRef(Date.now());
   const [checkTick,setCheckTick]=useState(0);
   const [alertaActiva,setAlertaActiva]=useState(null);
   const [shownAlerts,setShownAlerts]=useState(new Set());
