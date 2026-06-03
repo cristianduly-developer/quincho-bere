@@ -3002,11 +3002,6 @@ export default function App() {
                   {currentUser.nombre} {currentUser.apellido||""}
                 </div>
                 <div style={{height:1,background:"#EDE0D0",margin:"4px 0"}} />
-                {currentUser.permisoRoot&&(
-                  <button onClick={()=>{setTab("usuarios");setShowRootMenu(false);}} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,color:"#1C1C1E",fontFamily:"inherit",textAlign:"left"}}>
-                    ⚙️ Gestionar Usuarios
-                  </button>
-                )}
                 <button onClick={()=>{handleLogout();setShowRootMenu(false);}} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,color:"#DC2626",fontFamily:"inherit",textAlign:"left"}}>
                   🚪 Cerrar sesión
                 </button>
