@@ -2027,7 +2027,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
 
       {/* ── Calendario ── */}
       <div style={{marginBottom:16}}>
-        <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={onDayClick} />
+        <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={calDate} setCalDate={setCalDate} onDayClick={onDayClick} />
       </div>
 
       {/* ── Próximas reservas ── */}
