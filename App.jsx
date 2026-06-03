@@ -2798,7 +2798,7 @@ function GoogleLoginScreen({ onLogin }) {
     const allParams = new URLSearchParams(
       tryHash.startsWith("#") ? tryHash.substring(1) : trySearch
     );
-    const token = allParams.get("access_token") || localStorage.getItem("qb_access_token");
+    const token = allParams.get("access_token");
     if(token) {
       setLoading(true);
       window.history.replaceState(null, "", window.location.pathname);
@@ -2953,6 +2953,8 @@ export default function App() {
       const oauthParams=new URLSearchParams(hashStr.startsWith("#")?hashStr.substring(1):searchStr);
       const oauthToken=oauthParams.get("access_token");
       if(oauthToken){localStorage.setItem("qb_access_token",oauthToken);window.history.replaceState(null,"",window.location.pathname);}
+      // Clear token if no user profile saved
+      else if(!localStorage.getItem("qb_user")){localStorage.removeItem("qb_access_token");}
     } catch(e) {
       console.error("Error cargando datos de Supabase:", e);
     } finally {
