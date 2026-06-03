@@ -354,7 +354,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     horario:      reserva?.horario      || initH.horario  || "",
     horarioFin:   reserva?.horarioFin   || initH.horarioFin || "",
     cantInvitados:reserva?.cantInvitados||35,
-    montoPactado: reserva?.montoPactado || "",
+    montoPactado: reserva?.montoPactado || (()=>{ try{ if(!config?.precios) return ""; const fd=reserva?.fecha||initialDate||toDateStr(new Date()); const d=new Date(fd+"T12:00:00"); const dow=d.getDay(); const tipo=(dow===0||dow===6)?"dia_finde":"dia_semana"; return config.precios[tipo]?.[initTurno]||""; }catch(e){return "";} })(),
     estado:       reserva?.estado       || "pendiente",
     notas:        reserva?.notas        || "",
   });
@@ -2575,7 +2575,7 @@ function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtr
 function FAB({ onNewPago, onNewGasto }) {
   const [open,setOpen]=useState(false);
   return (
-    <div style={{position:"fixed",bottom:74,right:20,zIndex:1500}}>
+    <div style={{position:"fixed",bottom:144,right:20,zIndex:1500}}>
       {open && (
         <>
           <div onClick={()=>{setOpen(false);onNewGasto();}} style={{position:"absolute",bottom:130,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
@@ -3048,7 +3048,7 @@ export default function App() {
 
       {/* FAB */}
       <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />
-      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:144,right:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexDirection:"column",gap:1}}>
+      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:74,right:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexDirection:"column",gap:1}}>
         <div style={{display:"flex",gap:3,alignItems:"center"}}>
           <span style={{fontSize:14,color:"#FFF"}}>✦</span>
           <span style={{fontSize:18,color:"#FFF"}}>✦</span>
