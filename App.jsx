@@ -1932,7 +1932,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
     if(r.fecha<today) return false;
     if(r.fecha===today&&r.horarioFin&&curTimeDash>r.horarioFin) return false;
     return true;
-  }).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  }).sort((a,b)=>(a.fecha+(a.horario||"00:00")).localeCompare(b.fecha+(b.horario||"00:00")));
   const tomorrowDate=new Date(now); tomorrowDate.setDate(tomorrowDate.getDate()+1);
   const tmStr=toDateStr(tomorrowDate);
   const tmReservas=reservas.filter(r=>r.fecha===tmStr&&(r.estado==="senada"||r.estado==="confirmada")&&!r.recordatorioEnviado);
@@ -2497,7 +2497,7 @@ function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtr
 
 // ─── FAB ─────────────────────────────────────────────────
 
-function FAB({ onNewPago, onNewGasto, onIa }) {
+function FAB({ onNewPago, onNewGasto }) {
   const [open,setOpen]=useState(false);
   return (
     <div style={{position:"fixed",bottom:74,right:20,zIndex:1500}}>
@@ -2506,10 +2506,6 @@ function FAB({ onNewPago, onNewGasto, onIa }) {
           <div onClick={()=>{setOpen(false);onNewGasto();}} style={{position:"absolute",bottom:130,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
             <span style={{background:"#FFF",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:600,color:"#DC2626",boxShadow:"0 2px 10px rgba(0,0,0,0.12)",whiteSpace:"nowrap"}}>Registrar Gasto</span>
             <div style={{width:48,height:48,borderRadius:24,background:"#DC2626",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(220,38,38,0.4)",fontSize:20,flexShrink:0}}>💸</div>
-          </div>
-          <div onClick={()=>{setOpen(false);onIa();}} style={{position:"absolute",bottom:188,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
-            <span style={{background:"#FFF",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:700,color:"#1C1C1E",boxShadow:"0 2px 8px rgba(0,0,0,0.15)",whiteSpace:"nowrap"}}>Asistente IA</span>
-            <div style={{width:48,height:48,borderRadius:24,background:"#1C1C1E",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:"0 4px 12px rgba(0,0,0,0.3)"}}>🤖</div>
           </div>
           <div onClick={()=>{setOpen(false);onNewPago();}} style={{position:"absolute",bottom:72,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
             <span style={{background:"#FFF",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:600,color:"#16A34A",boxShadow:"0 2px 10px rgba(0,0,0,0.12)",whiteSpace:"nowrap"}}>Registrar Cobro</span>
@@ -2972,7 +2968,8 @@ export default function App() {
       </div>
 
       {/* FAB */}
-      <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onIa={()=>setIaOpen(true)} />
+      <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />
+      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:74,left:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",color:"#FFF",fontSize:24,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center"}}>🤖</button>
 
       {/* Side Menu */}
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} />
