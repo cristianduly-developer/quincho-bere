@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from "recharts";
 
 // ─── CONSTANTS ────────────────────────────────────────────
@@ -90,6 +91,8 @@ async function sbFetch(path, method, body, prefer) {
     const t=await res.text(); return t?JSON.parse(t):null;
   } catch(e) { console.error("SB fetch error:",path,e); return null; }
 }
+
+const supabase = createClient(SUPA_URL, SUPA_KEY);
 
 const sb = {
   async getAll(table) {
@@ -2792,40 +2795,33 @@ function GoogleLoginScreen({ onLogin }) {
   const [error, setError] = useState("");
 
   useEffect(()=>{
-    // Check hash and search params for OAuth token
-    const tryHash = window.location.hash || "";
-    const trySearch = window.location.search || "";
-    const allParams = new URLSearchParams(
-      tryHash.startsWith("#") ? tryHash.substring(1) : trySearch
-    );
-    const token = allParams.get("access_token");
-    if(token) {
-      setLoading(true);
-      window.history.replaceState(null, "", window.location.pathname);
-      handleToken(token);
-    }
+    // Handle OAuth callback - Supabase client handles PKCE automatically
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if(session?.user) {
+        setLoading(true);
+        await handleUser(session.user);
+      }
+    });
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if(event === "SIGNED_IN" && session?.user) {
+        setLoading(true);
+        await handleUser(session.user);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  const handleToken = async (token) => {
+  const handleUser = async (authUser) => {
     try {
-      const userRes = await fetch("https://pmohyepcqfvkwijmljee.supabase.co/auth/v1/user", {
-        headers: { "apikey": SUPA_KEY, "Authorization": "Bearer "+token }
-      });
-      const authUser = await userRes.json();
       const email = authUser.email;
-
-      // Get profile from perfiles_usuarios
-      const profRes = await fetch("https://pmohyepcqfvkwijmljee.supabase.co/rest/v1/perfiles_usuarios?email=eq."+encodeURIComponent(email)+"&select=*", {
-        headers: { "apikey": SUPA_KEY, "Authorization": "Bearer "+token }
-      });
-      const profiles = await profRes.json();
-
+      const { data: profiles } = await supabase.from("perfiles_usuarios").select("*").eq("email", email);
       if(!profiles || profiles.length===0) {
         setError("Tu cuenta no está autorizada. Contactá al administrador.");
         setLoading(false);
+        await supabase.auth.signOut();
         return;
       }
-
       const profile = profiles[0];
       const user = {
         id: profile.id,
@@ -2833,20 +2829,21 @@ function GoogleLoginScreen({ onLogin }) {
         email: email,
         rol: profile.rol || "Empleado",
         estado: "Activo",
-        token: token,
       };
       localStorage.setItem("qb_user", JSON.stringify(user));
       onLogin(user);
     } catch(e) {
-      setError("Error al verificar acceso: "+e.message);
+      setError("Error: "+e.message);
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     setLoading(true);
-    const redirectTo = "https://quincho-bere.vercel.app";
-    window.location.href = "https://pmohyepcqfvkwijmljee.supabase.co/auth/v1/authorize?provider=google&redirect_to="+encodeURIComponent(redirectTo);
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: "https://quincho-bere.vercel.app" }
+    });
   };
 
   return (
