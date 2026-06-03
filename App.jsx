@@ -2749,6 +2749,145 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
   );
 }
 
+
+// ─── SUPABASE AUTH CLIENT ──────────────────────────────────
+const SUPA_URL = "https://pmohyepcqfvkwijmljee.supabase.co";
+const SUPA_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtb2h5ZXBjcWZ2a3dpam1samVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NjE5OTEsImV4cCI6MjA2MTUzNzk5MX0.sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
+
+const supabaseAuth = {
+  async signInWithGoogle() {
+    const redirectTo = window.location.origin;
+    const res = await fetch(SUPA_URL+"/auth/v1/authorize?provider=google&redirect_to="+encodeURIComponent(redirectTo), {
+      method: "GET",
+      headers: { "apikey": SUPA_KEY },
+    });
+    // Redirect to Google
+    window.location.href = SUPA_URL+"/auth/v1/authorize?provider=google&redirect_to="+encodeURIComponent(redirectTo);
+  },
+  async getSession() {
+    const hash = window.location.hash;
+    if(hash && hash.includes("access_token")) {
+      const params = new URLSearchParams(hash.substring(1));
+      const token = params.get("access_token");
+      if(token) {
+        localStorage.setItem("qb_access_token", token);
+        window.location.hash = "";
+        return token;
+      }
+    }
+    return localStorage.getItem("qb_access_token");
+  },
+  async getUser(token) {
+    const res = await fetch(SUPA_URL+"/auth/v1/user", {
+      headers: { "apikey": SUPA_KEY, "Authorization": "Bearer "+token }
+    });
+    if(!res.ok) return null;
+    return res.json();
+  },
+  signOut() {
+    localStorage.removeItem("qb_access_token");
+    localStorage.removeItem("qb_user");
+  }
+};
+
+function GoogleLoginScreen({ onLogin }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(()=>{
+    // Check if returning from Google OAuth
+    const hash = window.location.hash;
+    if(hash && hash.includes("access_token")) {
+      setLoading(true);
+      const params = new URLSearchParams(hash.substring(1));
+      const token = params.get("access_token");
+      if(token) {
+        localStorage.setItem("qb_access_token", token);
+        window.location.hash = "";
+        handleToken(token);
+      }
+    }
+  }, []);
+
+  const handleToken = async (token) => {
+    try {
+      const userRes = await fetch("https://pmohyepcqfvkwijmljee.supabase.co/auth/v1/user", {
+        headers: { "apikey": SUPA_KEY, "Authorization": "Bearer "+token }
+      });
+      const authUser = await userRes.json();
+      const email = authUser.email;
+
+      // Get profile from perfiles_usuarios
+      const profRes = await fetch("https://pmohyepcqfvkwijmljee.supabase.co/rest/v1/perfiles_usuarios?email=eq."+encodeURIComponent(email)+"&select=*", {
+        headers: { "apikey": SUPA_KEY, "Authorization": "Bearer "+token }
+      });
+      const profiles = await profRes.json();
+
+      if(!profiles || profiles.length===0) {
+        setError("Tu cuenta no está autorizada. Contactá al administrador.");
+        setLoading(false);
+        return;
+      }
+
+      const profile = profiles[0];
+      const user = {
+        id: profile.id,
+        nombre: profile.nombre || email.split("@")[0],
+        email: email,
+        rol: profile.rol || "Empleado",
+        estado: "Activo",
+        token: token,
+      };
+      localStorage.setItem("qb_user", JSON.stringify(user));
+      onLogin(user);
+    } catch(e) {
+      setError("Error al verificar acceso: "+e.message);
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    setLoading(true);
+    const redirectTo = window.location.origin + window.location.pathname;
+    window.location.href = "https://pmohyepcqfvkwijmljee.supabase.co/auth/v1/authorize?provider=google&redirect_to="+encodeURIComponent(redirectTo);
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:"#FFF",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{width:"100%",maxWidth:380,textAlign:"center"}}>
+        <div style={{fontSize:56,marginBottom:16}}>🏡</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:800,color:"#1C1C1E",marginBottom:4}}>El Quincho de Bere</div>
+        <div style={{fontSize:14,color:"#8B7355",marginBottom:40}}>Mar del Plata</div>
+
+        {error && (
+          <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#DC2626",fontSize:13}}>
+            {error}
+          </div>
+        )}
+
+        <button onClick={handleGoogleLogin} disabled={loading}
+          style={{width:"100%",padding:"14px 20px",background:loading?"#F3F4F6":"#FFF",border:"1.5px solid #E5E7EB",borderRadius:12,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:15,fontWeight:600,color:"#1C1C1E",fontFamily:"inherit",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",transition:"all 0.2s"}}>
+          {loading ? (
+            <span style={{color:"#8B7355"}}>Verificando acceso...</span>
+          ) : (
+            <>
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              Iniciar sesión con Google
+            </>
+          )}
+        </button>
+
+        <div style={{marginTop:16,fontSize:12,color:"#D1D5DB"}}>Solo usuarios autorizados pueden acceder</div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [tab,setTab]=useState("inicio");
   const [sideOpen,setSideOpen]=useState(false);
@@ -2811,6 +2950,9 @@ export default function App() {
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
       var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){} if(cu)setCurrentUser(cu);
+      // Check OAuth return
+      const hash=window.location.hash;
+      if(hash&&hash.includes("access_token")){const p=new URLSearchParams(hash.substring(1));const t=p.get("access_token");if(t){localStorage.setItem("qb_access_token",t);window.location.hash="";}}
     } catch(e) {
       console.error("Error cargando datos de Supabase:", e);
     } finally {
@@ -2967,7 +3109,7 @@ export default function App() {
 
   const PAGE_TITLES={inicio:"Inicio",reservas:"Reservas",clientes:"Clientes",gastos:"Gastos",recursos:"Espacios y Extras",reportes:"Reportes",config:"⚙️ Configuración",usuarios:"Usuarios"};
 
-  if(loaded&&!currentUser) return <LoginScreen usuarios={usuarios} onLogin={handleLogin} />;
+  if(loaded&&!currentUser) return <GoogleLoginScreen onLogin={handleLogin} />;
   if(!loaded) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#FDF8F3"}}>
       <div style={{textAlign:"center"}}>
