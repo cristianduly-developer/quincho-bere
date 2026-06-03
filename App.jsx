@@ -2284,6 +2284,47 @@ function GastosView({ gastos, onNewGasto }) {
 }
 
 
+
+function AddUsuarioForm({ usuarios, setUsuarios }) {
+  const [show, setShow] = useState(false);
+  const [form, setForm] = useState({nombre:"",email:"",rol:"Personal",pin:""});
+  const roles = ["Personal","Administrador"];
+
+  const handleSave = async () => {
+    if(!form.nombre||!form.pin||form.pin.length!==4) return alert("Completá nombre y PIN de 4 dígitos.");
+    const newU = {id:genId(),...form,estado:"Activo"};
+    const updated = [...usuarios, newU];
+    setUsuarios(updated);
+    await sb.upsert("usuarios", [mapUsuario(newU)]);
+    setForm({nombre:"",email:"",rol:"Personal",pin:""});
+    setShow(false);
+  };
+
+  if(!show) return (
+    <button onClick={()=>setShow(true)} style={{marginTop:12,width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar usuario</button>
+  );
+
+  return (
+    <div style={{marginTop:12,padding:14,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
+      <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E",marginBottom:10}}>Nuevo usuario</div>
+      <input placeholder="Nombre" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))}
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
+      <input placeholder="Email (opcional)" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))}
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
+      <select value={form.rol} onChange={e=>setForm(p=>({...p,rol:e.target.value}))}
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none",background:"#FFF"}}>
+        {roles.map(r=><option key={r} value={r}>{r}</option>)}
+      </select>
+      <input placeholder="PIN (4 dígitos)" type="password" maxLength={4} value={form.pin} onChange={e=>setForm(p=>({...p,pin:e.target.value}))}
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box",outline:"none"}} />
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>setShow(false)} style={{flex:1,padding:"9px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
+        <button onClick={handleSave} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
+      </div>
+    </div>
+  );
+}
+
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario }) {
   const [precios, setPrecios] = useState(config.precios);
   const [saved, setSaved] = useState(false);
@@ -2317,6 +2358,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
             )}
           </div>
         ))}
+        {currentUser?.rol==="Administrador" && <AddUsuarioForm usuarios={usuarios} setUsuarios={setUsuarios} />}
       </div>
       {/* PRECIOS */}
       <div style={{...card, marginBottom:16}}>
