@@ -1534,10 +1534,10 @@ function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes
 // ─── CALENDAR WIDGET ──────────────────────────────────────
 
 function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick }) {
-  const year=calDate.getFullYear(), month=calDate.getMonth();
+  const year=calDate.year, month=calDate.month;
   const firstDay=(new Date(year+"-"+String(month+1).padStart(2,"0")+"-01T12:00:00").getDay()+6)%7;
   const daysInMonth=new Date(year,month+1,0).getDate();
-  const todayStr=toDateStr(new Date());
+  const todayStr=toDateStr(new Date()); const today=new Date();
   const getDay = (day) => {
     const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
     let res=reservas.filter(r=>r.fecha===ds&&r.estado!=="cancelada");
@@ -1549,9 +1549,9 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
   return (
     <div style={{...card,overflow:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:"linear-gradient(135deg,#C4602B 0%,#9E4A1E 100%)",color:"#FFF"}}>
-        <button onClick={()=>setCalDate(d=>{ const y=d.getFullYear(),m=d.getMonth(); return new Date(m===0?y-1:y, m===0?11:m-1, 1); })} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
+        <button onClick={()=>setCalDate(d=>({year:d.month===0?d.year-1:d.year, month:d.month===0?11:d.month-1}))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
         <span style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif"}}>{MONTHS[month]} {year}</span>
-        <button onClick={()=>setCalDate(d=>{ const y=d.getFullYear(),m=d.getMonth(); return new Date(m===11?y+1:y, m===11?0:m+1, 1); })} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
+        <button onClick={()=>setCalDate(d=>({year:d.month===11?d.year+1:d.year, month:d.month===11?0:d.month+1}))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#FDF8F3",borderBottom:"1px solid #EDE0D0"}}>
         {DAYS_SHORT.map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#8B7355",padding:"6px 0",textTransform:"uppercase",letterSpacing:0.5}}>{d}</div>)}
@@ -2027,7 +2027,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
 
       {/* ── Calendario ── */}
       <div style={{marginBottom:16}}>
-        <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={calDate} setCalDate={setCalDate} onDayClick={onDayClick} />
+        <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={onDayClick} />
       </div>
 
       {/* ── Próximas reservas ── */}
@@ -2741,7 +2741,7 @@ export default function App() {
   const [sideOpen,setSideOpen]=useState(false);
   const [modal,setModal]=useState(null);
   const [selectedClientId,setSelectedClientId]=useState(null);
-  const [calDate,setCalDate]=useState(new Date());
+  const now0=new Date(); const [calYear,setCalYear]=useState(now0.getFullYear()); const [calMonth,setCalMonth]=useState(now0.getMonth());
 
   const [detailReserva,setDetailReserva]=useState(null);
   const [detailCliente,setDetailCliente]=useState(null);
@@ -3012,7 +3012,7 @@ export default function App() {
       </div>
 
       {/* Views */}
-      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={calDate} setCalDate={setCalDate} onDayClick={(ds,dr)=>setDayModal({date:ds,reservas:dr})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} />}
+      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr)=>setDayModal({date:ds,reservas:dr})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} />}
       {tab==="reservas" && <ReservasView reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} />}
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
       {tab==="gastos" && <GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} />}
