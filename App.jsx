@@ -39,6 +39,14 @@ const DEFAULT_USUARIOS = [
     rol:"Administrador", estado:"Activo", pin:"1733",
     permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
 ];
+
+const DEFAULT_CONFIG = {
+  precios: {
+    dia_semana:    { dia: 80000,  noche: 100000, completo: 160000 },
+    dia_finde:     { dia: 120000, noche: 150000, completo: 250000 },
+  },
+};
+
 const DEFAULT_SERVICIOS = [
   { id: "srv1", descripcion: "Servicio de Limpieza", precioActual: 15000 },
   { id: "srv2", descripcion: "DJ / Sonido",          precioActual: 30000 },
@@ -2204,6 +2212,97 @@ function GastosView({ gastos, onNewGasto }) {
   );
 }
 
+
+function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras }) {
+  const [precios, setPrecios] = useState(config.precios);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    saveConfig({...config, precios});
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 2000);
+  };
+
+  const updatePrecio = (tipo, turno, val) => {
+    setPrecios(p=>({...p, [tipo]:{...p[tipo],[turno]:Number(val)||0}}));
+  };
+
+  const turnoLabels = {dia:"☀️ Día", noche:"🌙 Tarde/Noche", completo:"⭐ Día Completo"};
+  const tipoLabels = {dia_semana:"Lunes a Viernes", dia_finde:"Sábado y Domingo"};
+
+  return (
+    <div style={{padding:"16px 16px 100px"}}>
+      <div style={{...card, marginBottom:16}}>
+        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>⚙️ Configuración de Precios</div>
+        <div style={{fontSize:12,color:"#8B7355",marginBottom:16}}>Los precios se usan como referencia al crear reservas.</div>
+        {Object.entries(tipoLabels).map(([tipo,tipoLabel])=>(
+          <div key={tipo} style={{marginBottom:20}}>
+            <div style={{fontWeight:700,fontSize:13,color:"#C4602B",marginBottom:10,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>{tipoLabel}</div>
+            {Object.entries(turnoLabels).map(([turno,turnoLabel])=>(
+              <div key={turno} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                <span style={{fontSize:13,color:"#5C4033",fontWeight:600}}>{turnoLabel}</span>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:12,color:"#8B7355"}}>$</span>
+                  <input type="number" value={precios[tipo][turno]}
+                    onChange={e=>updatePrecio(tipo,turno,e.target.value)}
+                    onFocus={e=>e.target.select()}
+                    style={{width:100,padding:"6px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",textAlign:"right",outline:"none"}} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+        <button onClick={handleSave} style={{width:"100%",padding:"12px",background:saved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s"}}>
+          {saved?"✅ Guardado":"💾 Guardar precios"}
+        </button>
+      </div>
+
+      <div style={{...card}}>
+        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>✨ Servicios Extras</div>
+        <div style={{fontSize:12,color:"#8B7355",marginBottom:12}}>Servicios adicionales disponibles para las reservas.</div>
+        {serviciosExtras.map(s=>(
+          <div key={s.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #F5EDE4"}}>
+            <div>
+              <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
+              <div style={{fontSize:12,color:"#8B7355"}}>{new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(s.precioActual)}</div>
+            </div>
+            <button onClick={async()=>{await sb.remove("servicios_extras",s.id);setServiciosExtras(prev=>prev.filter(x=>x.id!==s.id));}}
+              style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
+          </div>
+        ))}
+        <AddSrvForm serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />
+      </div>
+    </div>
+  );
+}
+
+function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
+  const [form, setForm] = useState({descripcion:"",precioActual:""});
+  const [show, setShow] = useState(false);
+  if(!show) return <button onClick={()=>setShow(true)} style={{marginTop:12,width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar servicio</button>;
+  return (
+    <div style={{marginTop:12,padding:12,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
+      <input placeholder="Nombre del servicio" value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))}
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
+      <input type="number" placeholder="Precio $" value={form.precioActual} onChange={e=>setForm(p=>({...p,precioActual:e.target.value}))}
+        onFocus={e=>e.target.select()}
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box",outline:"none"}} />
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>setShow(false)} style={{flex:1,padding:"8px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
+        <button onClick={async()=>{
+          if(!form.descripcion||!form.precioActual)return;
+          const newSrv={id:genId(),descripcion:form.descripcion,precioActual:Number(form.precioActual),activo:true};
+          const updated=[...serviciosExtras,newSrv];
+          setServiciosExtras(updated);
+          await sb.upsert("servicios_extras",[{id:newSrv.id,descripcion:newSrv.descripcion,precio_actual:newSrv.precioActual,activo:true,creado_en:new Date().toISOString()}]);
+          setForm({descripcion:"",precioActual:""});setShow(false);
+        }} style={{flex:2,padding:"8px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
+      </div>
+    </div>
+  );
+}
+
+
 function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtras }) {
   const [showResForm,setShowResForm]=useState(false);
   const [resForm,setResForm]=useState({nombre:"",capacidadMax:""});
@@ -2338,6 +2437,107 @@ function SideMenu({ open, onClose, onNavigate, tab }) {
 
 // ─── MAIN APP ─────────────────────────────────────────────
 
+
+function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras, config }) {
+  const [msgs, setMsgs] = useState([{role:"assistant",content:"¡Hola! Soy tu asistente del Quincho de Bere. Podés preguntarme sobre disponibilidad, reservas, clientes o pedirme que analice tus datos. ¿En qué te ayudo?"}]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const endRef = useRef(null);
+
+  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
+
+  const today = new Date().toISOString().slice(0,10);
+  const upcoming = reservas.filter(r=>r.fecha>=today&&r.estado!=="cancelada"&&r.estado!=="finalizada")
+    .sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const finesDisponibles = [];
+  for(let i=0;i<60;i++){
+    const d=new Date(); d.setDate(d.getDate()+i);
+    const ds=d.toISOString().slice(0,10);
+    const dow=d.getDay();
+    if(dow===6||dow===0){
+      const ocupado=reservas.some(r=>r.fecha===ds&&r.estado!=="cancelada"&&r.turno==="completo")||
+        (reservas.filter(r=>r.fecha===ds&&r.estado!=="cancelada").length>=2)||
+        bloqueos.some(b=>b.fecha===ds);
+      if(!ocupado)finesDisponibles.push(ds);
+    }
+  }
+
+  const systemPrompt = `Sos el asistente de gestión del Quincho de Bere, un espacio para eventos en Mar del Plata.
+Hoy es ${today}.
+
+RESERVAS PRÓXIMAS (${upcoming.length}):
+${upcoming.slice(0,10).map(r=>{
+  const c=clientes.find(x=>x.id===r.clienteId);
+  return `- ${r.fecha} | ${r.turno} | ${c?c.nombre+' '+c.apellido:'Sin cliente'} | Estado: ${r.estado} | $${r.montoPactado}`;
+}).join('
+')}
+
+FINES DE SEMANA DISPONIBLES (próximos):
+${finesDisponibles.slice(0,8).join(', ')}
+
+CLIENTES TOTALES: ${clientes.length}
+INGRESOS ESTE MES: $${pagos.filter(p=>p.fecha&&p.fecha.startsWith(today.slice(0,7))).reduce((s,p)=>s+p.monto,0)}
+
+Respondé de forma concisa y útil. Si te piden crear algo, explicá qué datos necesitan completar en la app.`;
+
+  const send = async () => {
+    if(!input.trim()||loading) return;
+    const userMsg = {role:"user",content:input};
+    setMsgs(m=>[...m,userMsg]);
+    setInput("");
+    setLoading(true);
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:1000,
+          system:systemPrompt,
+          messages:[...msgs,userMsg].filter(m=>m.role!=="assistant"||msgs.indexOf(m)>0).map(m=>({role:m.role,content:m.content}))
+        })
+      });
+      const data = await res.json();
+      const reply = data.content?.[0]?.text || "No pude procesar la respuesta.";
+      setMsgs(m=>[...m,{role:"assistant",content:reply}]);
+    } catch(e) {
+      setMsgs(m=>[...m,{role:"assistant",content:"Hubo un error al conectar con el asistente."}]);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+      <div style={{background:"#FFF",borderRadius:"20px 20px 0 0",height:"80vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{padding:"16px 20px",borderBottom:"1px solid #EDE0D0",display:"flex",justifyContent:"space-between",alignItems:"center",background:"linear-gradient(135deg,#C4602B,#9E4A1E)"}}>
+          <div>
+            <div style={{fontWeight:800,fontSize:17,color:"#FFF",fontFamily:"'Playfair Display',serif"}}>🤖 Asistente IA</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.8)"}}>Preguntame sobre el quincho</div>
+          </div>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",borderRadius:20,width:32,height:32,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:10}}>
+          {msgs.map((m,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+              <div style={{maxWidth:"80%",padding:"10px 14px",borderRadius:m.role==="user"?"16px 16px 4px 16px":"16px 16px 16px 4px",background:m.role==="user"?"#C4602B":"#F5EDE4",color:m.role==="user"?"#FFF":"#1C1C1E",fontSize:13,lineHeight:1.5,whiteSpace:"pre-wrap"}}>
+                {m.content}
+              </div>
+            </div>
+          ))}
+          {loading && <div style={{display:"flex",justifyContent:"flex-start"}}><div style={{padding:"10px 14px",borderRadius:"16px 16px 16px 4px",background:"#F5EDE4",color:"#8B7355",fontSize:13}}>Pensando...</div></div>}
+          <div ref={endRef} />
+        </div>
+        <div style={{padding:"12px 16px",borderTop:"1px solid #EDE0D0",display:"flex",gap:8,background:"#FFF"}}>
+          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
+            placeholder="¿Qué fines de semana hay libres?" disabled={loading}
+            style={{flex:1,padding:"10px 14px",borderRadius:20,border:"1.5px solid #EDE0D0",fontSize:14,fontFamily:"inherit",outline:"none",background:"#FDF8F3"}} />
+          <button onClick={send} disabled={loading||!input.trim()} style={{background:"#C4602B",border:"none",color:"#FFF",borderRadius:20,width:44,height:44,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",opacity:loading||!input.trim()?0.5:1}}>➤</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [tab,setTab]=useState("inicio");
   const [sideOpen,setSideOpen]=useState(false);
@@ -2357,6 +2557,7 @@ export default function App() {
   const [printData,setPrintData]=useState(null);
   const [ratingQueue,setRatingQueue]=useState([]);
   const [snoozedRatings,setSnoozedRatings]=useState(new Set());
+  const [iaOpen,setIaOpen]=useState(false);
   const lastActivityRef = useRef(Date.now());
   const [checkTick,setCheckTick]=useState(0);
   const [alertaActiva,setAlertaActiva]=useState(null);
@@ -2370,6 +2571,7 @@ export default function App() {
   const [recursos,setRecursos]=useState(DEFAULT_RECURSOS);
   const [extrasReserva,setExtrasReserva]=useState([]);
   const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
+  const [config,setConfig]=useState(DEFAULT_CONFIG);
   const [usuarios,setUsuarios]=useState(DEFAULT_USUARIOS);
   const [currentUser,setCurrentUser]=useState(null);
   const [tareas,setTareas]=useState([]);
@@ -2620,6 +2822,7 @@ export default function App() {
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
       {tab==="gastos" && <GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} />}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
+      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
       {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} />}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
       {tab==="reportes" && <ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} />}
@@ -2644,6 +2847,7 @@ export default function App() {
       {/* Modals */}
       {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} />}
       {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} />}
+      {iaOpen && <IAModal onClose={()=>setIaOpen(false)} reservas={reservas} clientes={clientes} pagos={pagos} bloqueos={bloqueos} serviciosExtras={serviciosExtras} config={config} />}
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} />}
       {modal==="gasto" && <GastoModal onClose={()=>setModal(null)} onSave={handleSaveGasto} />}
       {modal==="extra" && <ExtrasModal onClose={()=>{setModal(null);setExtraReservaId(null);}} onSave={handleSaveExtra} servicios={serviciosExtras} reservaId={extraReservaId} />}
