@@ -166,7 +166,7 @@ function printReserva(reserva,cliente,recurso,resExtras,resPagos){
   var te=resExtras.reduce(function(s,e){return s+(e.precioHistorico*e.cantidad);},0);
   var tp=resPagos.reduce(function(s,p){return s+p.monto;},0);
   var saldo=(reserva.montoPactado+te)-tp;
-  var hdr=pDiv('hdr',pDiv('',pDiv('logo','El Quincho de Bere')+pDiv('sub','Ficha de Evento'))+'<div>ID: '+reserva.id.slice(-8).toUpperCase()+'</div>');
+  var hdr=pDiv('hdr',pDiv('',pDiv('logo','El Quincho de Bere ✓')+pDiv('sub','Ficha de Evento'))+'<div>ID: '+reserva.id.slice(-8).toUpperCase()+'</div>');
   var body=hdr+pH2('Cliente')+pRow('Nombre',clientName(cliente));
   if(cliente&&cliente.whatsapp)body+=pRow('WhatsApp',cliente.whatsapp);
   if(cliente&&cliente.email)body+=pRow('Email',cliente.email);
@@ -2362,7 +2362,7 @@ function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtr
 
 // ─── FAB ─────────────────────────────────────────────────
 
-function FAB({ onNewPago, onNewGasto }) {
+function FAB({ onNewPago, onNewGasto, onIa }) {
   const [open,setOpen]=useState(false);
   return (
     <div style={{position:"fixed",bottom:74,right:20,zIndex:1500}}>
@@ -2371,6 +2371,10 @@ function FAB({ onNewPago, onNewGasto }) {
           <div onClick={()=>{setOpen(false);onNewGasto();}} style={{position:"absolute",bottom:130,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
             <span style={{background:"#FFF",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:600,color:"#DC2626",boxShadow:"0 2px 10px rgba(0,0,0,0.12)",whiteSpace:"nowrap"}}>Registrar Gasto</span>
             <div style={{width:48,height:48,borderRadius:24,background:"#DC2626",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(220,38,38,0.4)",fontSize:20,flexShrink:0}}>💸</div>
+          </div>
+          <div onClick={()=>{setOpen(false);onIa();}} style={{position:"absolute",bottom:188,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
+            <span style={{background:"#FFF",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:700,color:"#1C1C1E",boxShadow:"0 2px 8px rgba(0,0,0,0.15)",whiteSpace:"nowrap"}}>Asistente IA</span>
+            <div style={{width:48,height:48,borderRadius:24,background:"#1C1C1E",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:"0 4px 12px rgba(0,0,0,0.3)"}}>🤖</div>
           </div>
           <div onClick={()=>{setOpen(false);onNewPago();}} style={{position:"absolute",bottom:72,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
             <span style={{background:"#FFF",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:600,color:"#16A34A",boxShadow:"0 2px 10px rgba(0,0,0,0.12)",whiteSpace:"nowrap"}}>Registrar Cobro</span>
@@ -2403,6 +2407,7 @@ function SideMenu({ open, onClose, onNavigate, tab }) {
     {icon:"🏠",label:"Espacios y Extras",view:"recursos"},
     {icon:"📋",label:"Recordatorios",view:"recordatorios"},
     {icon:"👤",label:"Usuarios",view:"usuarios"},
+    {icon:"⚙️",label:"Configuración",view:"config"},
   ];
   return (
     <>
@@ -2832,7 +2837,7 @@ export default function App() {
       </div>
 
       {/* FAB */}
-      <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />
+      <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onIa={()=>setIaOpen(true)} />
 
       {/* Side Menu */}
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} />
