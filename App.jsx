@@ -1156,7 +1156,6 @@ function UsuariosView({ usuarios, setUsuarios, currentUser }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({nombre:"",email:"",rol:"Personal",estado:"Activo",pin:""});
   const save = async d => { setUsuarios(d); await sb.upsert("usuarios", d.map(mapUsuario)); };
-  const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
   if(currentUser?.rol!=="Administrador") return (
     <div style={{padding:"40px 20px",textAlign:"center",color:"#8B7355"}}>
       <div style={{fontSize:40,marginBottom:12}}>🔒</div>
@@ -2751,6 +2750,7 @@ export default function App() {
   const handleLogin=(user)=>{ setCurrentUser(user); db.set("currentUser",user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
   const handleLogout=()=>{ setCurrentUser(null); db.set("currentUser",null); try{localStorage.removeItem("qb_user");}catch(e){} };
   const saveConfig=(cfg)=>{setConfig(cfg);try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){}};
+  const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
   const saveC =async d=>{setClientes(d);await sb.upsert("clientes",d.map(mapCliente));};
   const saveR =async d=>{setReservas(d);await sb.upsert("reservas",d.map(mapReserva));};
   const saveP =async d=>{setPagos(d);await sb.upsert("pagos",d.map(mapPago));};
