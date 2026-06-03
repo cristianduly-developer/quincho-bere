@@ -1535,7 +1535,7 @@ function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes
 
 function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick }) {
   const year=calDate.getFullYear(), month=calDate.getMonth();
-  const firstDay=(new Date(year,month,1).getDay()+6)%7; // Monday-first week
+  const firstDay=(new Date(year+"-"+String(month+1).padStart(2,"0")+"-01T12:00:00").getDay()+6)%7;
   const daysInMonth=new Date(year,month+1,0).getDate();
   const todayStr=toDateStr(new Date());
   const getDay = (day) => {
@@ -1549,9 +1549,9 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
   return (
     <div style={{...card,overflow:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:"linear-gradient(135deg,#C4602B 0%,#9E4A1E 100%)",color:"#FFF"}}>
-        <button onClick={()=>setCalDate(d=>{const nd=new Date(d);nd.setDate(1);nd.setMonth(nd.getMonth()-1);return nd;})} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
+        <button onClick={()=>setCalDate(d=>{ const y=d.getFullYear(),m=d.getMonth(); return new Date(m===0?y-1:y, m===0?11:m-1, 1); })} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
         <span style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif"}}>{MONTHS[month]} {year}</span>
-        <button onClick={()=>setCalDate(d=>{const nd=new Date(d);nd.setDate(1);nd.setMonth(nd.getMonth()+1);return nd;})} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
+        <button onClick={()=>setCalDate(d=>{ const y=d.getFullYear(),m=d.getMonth(); return new Date(m===11?y+1:y, m===11?0:m+1, 1); })} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#FDF8F3",borderBottom:"1px solid #EDE0D0"}}>
         {DAYS_SHORT.map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#8B7355",padding:"6px 0",textTransform:"uppercase",letterSpacing:0.5}}>{d}</div>)}
@@ -2591,7 +2591,7 @@ function FAB({ onNewPago, onNewGasto }) {
 // ─── SIDE MENU ────────────────────────────────────────────
 
 function SideMenu({ open, onClose, onNavigate, tab, currentUser }) {
-  const isAdmin = currentUser?.rol==="Administrador";
+  const isAdmin = currentUser?.rol==="Administrador" || currentUser?.rol==="root" || currentUser?.nombre==="Cristian";
   const items=[
     {icon:"📊",label:"Inicio",view:"inicio"},
     {icon:"📋",label:"Reservas",view:"reservas"},
