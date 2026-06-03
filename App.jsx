@@ -2792,17 +2792,17 @@ function GoogleLoginScreen({ onLogin }) {
   const [error, setError] = useState("");
 
   useEffect(()=>{
-    // Check if returning from Google OAuth
-    const hash = window.location.hash;
-    if(hash && hash.includes("access_token")) {
+    // Check hash and search params for OAuth token
+    const tryHash = window.location.hash || "";
+    const trySearch = window.location.search || "";
+    const allParams = new URLSearchParams(
+      tryHash.startsWith("#") ? tryHash.substring(1) : trySearch
+    );
+    const token = allParams.get("access_token") || localStorage.getItem("qb_access_token");
+    if(token) {
       setLoading(true);
-      const params = new URLSearchParams(hash.substring(1));
-      const token = params.get("access_token");
-      if(token) {
-        localStorage.setItem("qb_access_token", token);
-        window.location.hash = "";
-        handleToken(token);
-      }
+      window.history.replaceState(null, "", window.location.pathname);
+      handleToken(token);
     }
   }, []);
 
@@ -2947,9 +2947,12 @@ export default function App() {
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
       var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){} if(cu)setCurrentUser(cu);
-      // Check OAuth return
-      const hash=window.location.hash;
-      if(hash&&hash.includes("access_token")){const p=new URLSearchParams(hash.substring(1));const t=p.get("access_token");if(t){localStorage.setItem("qb_access_token",t);window.location.hash="";}}
+      // Check OAuth return from Google
+      const hashStr=window.location.hash||"";
+      const searchStr=window.location.search||"";
+      const oauthParams=new URLSearchParams(hashStr.startsWith("#")?hashStr.substring(1):searchStr);
+      const oauthToken=oauthParams.get("access_token");
+      if(oauthToken){localStorage.setItem("qb_access_token",oauthToken);window.history.replaceState(null,"",window.location.pathname);}
     } catch(e) {
       console.error("Error cargando datos de Supabase:", e);
     } finally {
