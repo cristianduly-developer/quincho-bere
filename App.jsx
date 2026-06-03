@@ -1534,47 +1534,61 @@ function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes
 // ─── CALENDAR WIDGET ──────────────────────────────────────
 
 function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick }) {
-  const year=calDate.year, month=calDate.month;
-  const firstDay=(new Date(year+"-"+String(month+1).padStart(2,"0")+"-01T12:00:00").getDay()+6)%7;
-  const daysInMonth=new Date(year,month+1,0).getDate();
-  const todayStr=toDateStr(new Date()); const today=new Date();
-  const getDay = (day) => {
-    const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    let res=reservas.filter(r=>r.fecha===ds&&r.estado!=="cancelada");
+  const year = calDate.year;
+  const month = calDate.month;
 
-    return res;
+  const [cells, setCells] = useState([]);
+
+  useEffect(() => {
+    // Reset absoluto antes de recalcular
+    const newCells = [];
+    const firstDayOfWeek = (new Date(year + "-" + String(month + 1).padStart(2, "0") + "-01T12:00:00").getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let i = 0; i < firstDayOfWeek; i++) newCells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) newCells.push(d);
+    setCells(newCells);
+  }, [year, month]);
+
+  const todayStr = toDateStr(new Date());
+  const getDay = (day) => {
+    const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return reservas.filter(r=>r.fecha===ds&&r.estado!=="cancelada");
   };
-  const getBloqueo = (day) => { const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`; return (bloqueos||[]).find(b=>b.fecha===ds); };
-  const cells=[]; for(let i=0;i<firstDay;i++)cells.push(null); for(let d=1;d<=daysInMonth;d++)cells.push(d);
+  const getBloqueo = (day) => {
+    const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return bloqueos.find(b=>b.fecha===ds);
+  };
+
   return (
     <div style={{...card,overflow:"hidden"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:"linear-gradient(135deg,#C4602B 0%,#9E4A1E 100%)",color:"#FFF"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:"linear-gradient(135deg,#C4602B,#9E4A1E)",borderRadius:"12px 12px 0 0"}}>
         <button onClick={()=>setCalDate(d=>({year:d.month===0?d.year-1:d.year, month:d.month===0?11:d.month-1}))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
-        <span style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif"}}>{MONTHS[month]} {year}</span>
+        <span style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif",color:"#FFF"}}>{MONTHS[month]} {year}</span>
         <button onClick={()=>setCalDate(d=>({year:d.month===11?d.year+1:d.year, month:d.month===11?0:d.month+1}))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#FDF8F3",borderBottom:"1px solid #EDE0D0"}}>
-        {DAYS_SHORT.map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#8B7355",padding:"6px 0",textTransform:"uppercase",letterSpacing:0.5}}>{d}</div>)}
+        {DAYS_SHORT.map(d=><div key={`header-${d}-${year}-${month}`} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#8B7355",padding:"6px 0"}}>{d}</div>)}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"1px",background:"#EDE0D0"}}>
         {cells.map((day,i)=>{
-          if(!day) return <div key={i} style={{background:"#FAFAF8",minHeight:54}} />;
+          if(!day) return <div key={`empty-${year}-${month}-${i}`} style={{background:"#FAFAF8",minHeight:54}} />;
           const ds2=`${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
           const dr=getDay(day), isToday=ds2===todayStr, isPast=ds2<todayStr;
+          const bloqueo=getBloqueo(day);
           return (
-            <div key={day} onClick={()=>{ const ds=`${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`; onDayClick(ds,dr); }}
-              style={{background:getBloqueo(day)?"#1F2937":isToday&&dr.length===0?"#FEF0E8":"#FFF",minHeight:60,cursor:isPast?"default":"pointer",borderTop:isToday?"2.5px solid #C4602B":"none",display:"flex",flexDirection:"column",overflow:"hidden",opacity:isPast?0.4:1,pointerEvents:isPast?"none":"auto"}}>
+            <div key={`day-${year}-${month}-${day}`} onClick={()=>onDayClick(ds2,dr)}
+              style={{background:bloqueo?"#1F2937":isToday&&dr.length===0?"#FEF0E8":"#FFF",minHeight:54,display:"flex",flexDirection:"column",cursor:"pointer",padding:"2px",opacity:isPast?0.4:1,pointerEvents:isPast?"none":"auto"}}>
               <div style={{textAlign:"center",padding:"2px 1px",flexShrink:0}}>
                 {isToday ? (
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-                    <div style={{width:22,height:22,borderRadius:11,background:"#C4602B",color:"#FFF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,boxShadow:"0 0 8px rgba(196,96,43,0.5)"}}>{day}</div>
+                    <div style={{width:22,height:22,borderRadius:11,background:"#C4602B",color:"#FFF",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800}}>{day}</div>
                     <div style={{fontSize:6,fontWeight:800,color:"#C4602B",letterSpacing:0.5}}>HOY</div>
                   </div>
                 ) : (
-                  <span style={{fontSize:10,fontWeight:500,color:getBloqueo(day)?"#9CA3AF":isPast?"#9CA3AF":"#374151"}}>{day}</span>
+                  <span style={{fontSize:10,fontWeight:500,color:bloqueo?"#9CA3AF":isPast?"#9CA3AF":"#1C1C1E"}}>{day}</span>
                 )}
               </div>
-              {getBloqueo(day)&&<div style={{padding:"1px 3px",fontSize:7,color:"#6B7280",textAlign:"center",lineHeight:1.2,overflow:"hidden"}}>🚫 {getBloqueo(day).motivo?.slice(0,12)}</div>}
+              {bloqueo&&<div style={{padding:"1px 3px",fontSize:7,color:"#6B7280",textAlign:"center"}}>🚫</div>}
               {dr.map((r,ri)=>{
                 const t=TURNOS[r.turno];
                 const cl=clientes&&clientes.find(x=>x.id===r.clienteId);
@@ -1583,11 +1597,11 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
                 if(isPast){ cellBg="#9CA3AF"; }
                 else if(r.estado==="pendiente"){ cellBg="#6B7280"; }
                 else if(r.estado==="senada"||r.estado==="confirmada"){
-                  cellBg=r.turno==="dia"?"#F59E0B":r.turno==="noche"?"#3B82F6":r.turno==="completo"?"#10B981":"#6B7280";
+                  cellBg=r.turno==="dia"?"#F59E0B":r.turno==="noche"?"#3B82F6":r.turno==="completo"?"#7C3AED":"#6B7280";
                 } else if(r.estado==="finalizada"){ cellBg="#9CA3AF"; }
                 else { cellBg="#6B7280"; }
                 return (
-                  <div key={ri} style={{flex:1,background:cellBg,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",minHeight:18,margin:"1px 1px 0"}}>
+                  <div key={`${year}-${month}-${day}-${ri}`} style={{flex:1,background:cellBg,display:"flex",alignItems:"center",gap:2,padding:"1px 3px",borderRadius:3,marginBottom:1}}>
                     <div style={{fontSize:10,lineHeight:1}}>{t?t.icon:""}</div>
                     <div style={{fontSize:8,fontWeight:800,color:"#FFF",lineHeight:1.1}}>{ini}</div>
                   </div>
@@ -1607,8 +1621,6 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
     </div>
   );
 }
-
-// ─── REPORTES VIEW ────────────────────────────────────────
 
 function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes }) {
   const [repDate, setRepDate] = useState(new Date());
