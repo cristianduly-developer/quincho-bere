@@ -2621,14 +2621,15 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
           system:systemPrompt,
-          messages:[...msgs,userMsg].filter(m=>m.role!=="assistant"||msgs.indexOf(m)>0).map(m=>({role:m.role,content:m.content}))
+          messages:[...msgs,userMsg].filter(m=>m.role!=="assistant").map(m=>({role:m.role,content:m.content}))
         })
       });
       const data = await res.json();
-      const reply = data.content?.[0]?.text || "No pude procesar la respuesta.";
+      if(data.error) throw new Error(data.error.message||JSON.stringify(data.error));
+      const reply = data.content?.[0]?.text || "Sin respuesta.";
       setMsgs(m=>[...m,{role:"assistant",content:reply}]);
     } catch(e) {
-      setMsgs(m=>[...m,{role:"assistant",content:"Hubo un error al conectar con el asistente."}]);
+      setMsgs(m=>[...m,{role:"assistant",content:"Error: "+e.message}]);
     }
     setLoading(false);
   };
@@ -2976,8 +2977,10 @@ export default function App() {
 
       {/* FAB */}
       <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />
-      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:144,right:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",color:"#FFF",fontSize:20,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:2}}>
-        <div style={{display:"flex",gap:3}}><div style={{width:5,height:5,borderRadius:3,background:"#FFF"}}></div><div style={{width:5,height:5,borderRadius:3,background:"#FFF"}}></div><div style={{width:5,height:5,borderRadius:3,background:"#FFF"}}></div></div>
+      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:144,right:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 3a7 7 0 110 14A7 7 0 0112 5zm0 2a5 5 0 100 10A5 5 0 0012 7zm-1 2h2v4h-2V9zm0 5h2v2h-2v-2z" fill="white"/>
+        </svg>
       </button>
 
       {/* Side Menu */}
