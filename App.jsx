@@ -2751,9 +2751,6 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
 
 
 // ─── SUPABASE AUTH CLIENT ──────────────────────────────────
-const SUPA_URL = "https://pmohyepcqfvkwijmljee.supabase.co";
-const SUPA_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtb2h5ZXBjcWZ2a3dpam1samVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU5NjE5OTEsImV4cCI6MjA2MTUzNzk5MX0.sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
-
 const supabaseAuth = {
   async signInWithGoogle() {
     const redirectTo = window.location.origin;
