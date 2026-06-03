@@ -1549,9 +1549,9 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
   return (
     <div style={{...card,overflow:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:"linear-gradient(135deg,#C4602B 0%,#9E4A1E 100%)",color:"#FFF"}}>
-        <button onClick={()=>setCalDate(new Date(year,month-1,1))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
+        <button onClick={()=>setCalDate(d=>new Date(d.getFullYear(),d.getMonth()-1,1))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
         <span style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif"}}>{MONTHS[month]} {year}</span>
-        <button onClick={()=>setCalDate(new Date(year,month+1,1))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
+        <button onClick={()=>setCalDate(d=>new Date(d.getFullYear(),d.getMonth()+1,1))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#FDF8F3",borderBottom:"1px solid #EDE0D0"}}>
         {DAYS_SHORT.map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#8B7355",padding:"6px 0",textTransform:"uppercase",letterSpacing:0.5}}>{d}</div>)}
@@ -2429,6 +2429,45 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
           </div>
         ))}
         <AddSrvForm serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />
+      </div>
+
+      {/* ESPACIOS */}
+      <div style={{...card, marginTop:16}}>
+        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>🏠 Espacios</div>
+        <div style={{fontSize:12,color:"#8B7355",marginBottom:12}}>Espacios disponibles para reservar.</div>
+        {recursos.map(r=>(
+          <div key={r.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
+            <div>
+              <div style={{fontWeight:600,fontSize:13}}>{r.nombre}</div>
+              {r.capacidadMax>0 && <div style={{fontSize:11,color:"#8B7355"}}>Capacidad: {r.capacidadMax} personas</div>}
+            </div>
+            <button onClick={()=>setRecursos(prev=>prev.filter(x=>x.id!==r.id))}
+              style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
+          </div>
+        ))}
+        <AddEspacioForm recursos={recursos} setRecursos={setRecursos} />
+      </div>
+    </div>
+  );
+}
+
+function AddEspacioForm({ recursos, setRecursos }) {
+  const [show, setShow] = useState(false);
+  const [form, setForm] = useState({nombre:"",capacidadMax:""});
+  if(!show) return <button onClick={()=>setShow(true)} style={{marginTop:12,width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar espacio</button>;
+  return (
+    <div style={{marginTop:12,padding:12,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
+      <input placeholder="Nombre del espacio" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))}
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
+      <input type="number" placeholder="Capacidad máxima" value={form.capacidadMax} onChange={e=>setForm(p=>({...p,capacidadMax:e.target.value}))}
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box",outline:"none"}} />
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={()=>setShow(false)} style={{flex:1,padding:"9px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
+        <button onClick={()=>{
+          if(!form.nombre) return;
+          setRecursos(prev=>[...prev,{id:genId(),nombre:form.nombre,capacidadMax:Number(form.capacidadMax)||0}]);
+          setForm({nombre:"",capacidadMax:""});setShow(false);
+        }} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
       </div>
     </div>
   );
