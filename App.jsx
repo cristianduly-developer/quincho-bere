@@ -2614,7 +2614,7 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
     setInput("");
     setLoading(true);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
+      const res = await fetch("/api/claude",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
@@ -2655,6 +2655,13 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
           <div ref={endRef} />
         </div>
         <div style={{padding:"12px 16px",borderTop:"1px solid #EDE0D0",display:"flex",gap:8,background:"#FFF"}}>
+          <button onClick={()=>{
+            if(!("webkitSpeechRecognition" in window))return alert("Tu navegador no soporta voz.");
+            const rec=new window.webkitSpeechRecognition();
+            rec.lang="es-AR";rec.continuous=false;rec.interimResults=false;
+            rec.onresult=(e)=>setInput(e.results[0][0].transcript);
+            rec.start();
+          }} style={{background:"#F3F4F6",border:"none",borderRadius:20,width:44,height:44,cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>🎤</button>
           <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
             placeholder="¿Qué fines de semana hay libres?" disabled={loading}
             style={{flex:1,padding:"10px 14px",borderRadius:20,border:"1.5px solid #EDE0D0",fontSize:14,fontFamily:"inherit",outline:"none",background:"#FDF8F3"}} />
@@ -2969,7 +2976,9 @@ export default function App() {
 
       {/* FAB */}
       <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />
-      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:74,left:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",color:"#FFF",fontSize:24,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center"}}>🤖</button>
+      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:144,right:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",color:"#FFF",fontSize:20,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:2}}>
+        <div style={{display:"flex",gap:3}}><div style={{width:5,height:5,borderRadius:3,background:"#FFF"}}></div><div style={{width:5,height:5,borderRadius:3,background:"#FFF"}}></div><div style={{width:5,height:5,borderRadius:3,background:"#FFF"}}></div></div>
+      </button>
 
       {/* Side Menu */}
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} />
