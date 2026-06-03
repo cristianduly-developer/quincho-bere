@@ -358,10 +358,22 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     estado:       reserva?.estado       || "pendiente",
     notas:        reserva?.notas        || "",
   });
+  const getPrecioTurno = (turno, fecha) => {
+    if(!config?.precios||!turno||!fecha) return "";
+    const d = new Date(fecha+"T12:00:00");
+    const dow = d.getDay();
+    const tipo = (dow===0||dow===6) ? "dia_finde" : "dia_semana";
+    return config.precios[tipo]?.[turno] || "";
+  };
   const set = k => v => setF(p => {
     if (k === "turno") {
       var h = TURNO_HORARIOS[v] || {};
-      return {...p, turno:v, horario:h.horario||p.horario, horarioFin:h.horarioFin||p.horarioFin};
+      const precio = !p.montoPactado ? getPrecioTurno(v, p.fecha) : p.montoPactado;
+      return {...p, turno:v, horario:h.horario||p.horario, horarioFin:h.horarioFin||p.horarioFin, montoPactado:precio};
+    }
+    if (k === "fecha") {
+      const precio = getPrecioTurno(p.turno, v);
+      return {...p, fecha:v, montoPactado:precio||p.montoPactado};
     }
     return {...p, [k]:v};
   });
@@ -1275,29 +1287,28 @@ function btnStyle(bg,color){
 // ─── PRINT MODAL ─────────────────────────────────────────
 
 function PrintModal({ data, onClose }) {
+  const handlePrint = () => {
+    const w = window.open("","_blank");
+    w.document.write("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>"+data.title+"</title></head><body>"+data.html+"</body></html>");
+    w.document.close();
+    setTimeout(()=>{ w.print(); },500);
+  };
   return (
-    <div style={{position:"fixed",inset:0,background:"#FFF",zIndex:9999,overflowY:"auto",fontFamily:"Arial,sans-serif"}}>
-      <style>{`@media print { .no-print { display: none !important; } }`}</style>
-      <div className="no-print" style={{
-        position:"sticky",top:0,background:"#FEF0E8",borderBottom:"2px solid #C4602B",
-        padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,flexWrap:"wrap",
-        boxShadow:"0 2px 8px rgba(0,0,0,0.1)",zIndex:1,
-      }}>
-        <span style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>🖨️ {data.title}</span>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:9999,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+      <div style={{background:"#FFF",borderRadius:"20px 20px 0 0",padding:"24px 20px",width:"100%",maxWidth:500}}>
+        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:16,fontFamily:"'Playfair Display',serif"}}>🖨️ {data.title}</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {data.waPhone&&data.waMsg&&(
             <a href={"https://wa.me/"+data.waPhone.replace(/\D/g,"")+"?text="+encodeURIComponent(data.waMsg)}
               target="_blank" rel="noreferrer"
-              style={{display:"flex",alignItems:"center",gap:6,background:"#25D366",color:"#FFF",borderRadius:8,padding:"8px 14px",fontWeight:700,fontSize:13,textDecoration:"none"}}>
-              💬 Enviar Recibo al Cliente
+              style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"#25D366",color:"#FFF",borderRadius:10,padding:"13px",fontWeight:700,fontSize:14,textDecoration:"none"}}>
+              💬 Enviar Recibo por WhatsApp
             </a>
           )}
-          <button onClick={()=>window.print()} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,padding:"8px 16px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>🖨️ Imprimir / PDF</button>
-          <button onClick={onClose} style={{background:"transparent",color:"#8B7355",border:"1.5px solid #EDE0D0",borderRadius:8,padding:"8px 14px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cerrar</button>
+          <button onClick={handlePrint} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"13px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>🖨️ Imprimir / Guardar PDF</button>
+          <button onClick={onClose} style={{background:"#F3F4F6",color:"#1C1C1E",border:"none",borderRadius:10,padding:"13px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cerrar</button>
         </div>
       </div>
-      <div style={{maxWidth:760,margin:"0 auto",padding:"30px 40px"}}
-        dangerouslySetInnerHTML={{__html:data.html}} />
     </div>
   );
 }
@@ -1606,69 +1617,81 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
     const mes = MONTHS[repDate.getMonth()];
     const anio = repDate.getFullYear();
     const prefix = anio+"-"+String(repDate.getMonth()+1).padStart(2,"0");
-    const reservasMes = reservas.filter(r=>r.fecha&&r.fecha.startsWith(prefix));
-    const pagosMes = pagos.filter(p=>p.fecha&&p.fecha.startsWith(prefix));
+    const reservasMes = reservas.filter(r=>r.fecha&&r.fecha.startsWith(prefix)&&r.estado!=="cancelada").sort((a,b)=>a.fecha.localeCompare(b.fecha));
     const gastosMes = gastos.filter(g=>g.fecha&&g.fecha.startsWith(prefix));
-    const totalCobrado = pagosMes.reduce((s,p)=>s+p.monto,0);
+    const totalCobrado = pagos.filter(p=>p.fecha&&p.fecha.startsWith(prefix)).reduce((s,p)=>s+p.monto,0);
     const totalGastos = gastosMes.reduce((s,g)=>s+g.monto,0);
     const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
 
-    let rows1="", rows2="", rows3="";
-    reservasMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(r=>{
+    // Turno summary
+    const porTurno = {};
+    reservasMes.forEach(r=>{ porTurno[r.turno]=(porTurno[r.turno]||0)+1; });
+    const turnoRows = Object.entries(porTurno).map(([t,n])=>"<tr><td>"+(TURNOS[t]?.label||t)+"</td><td style=\"text-align:center\">"+n+"</td></tr>").join("") || "<tr><td colspan=\"2\" style=\"color:#8B7355\">Sin datos</td></tr>";
+
+    // Extras del mes
+    const extrasMap = {};
+    reservasMes.forEach(r=>{ extrasReserva.filter(e=>e.reservaId===r.id).forEach(e=>{ extrasMap[e.descripcion]=(extrasMap[e.descripcion]||0)+(e.cantidad||1); }); });
+    const extrasRows = Object.entries(extrasMap).map(([d,n])=>"<tr><td>"+d+"</td><td style=\"text-align:center\">"+n+"</td></tr>").join("") || "<tr><td colspan=\"2\" style=\"color:#8B7355\">Sin extras</td></tr>";
+
+    // Gastos por categoria
+    const gastosCat = {};
+    gastosMes.forEach(g=>{ gastosCat[g.categoria||"Otros"]=(gastosCat[g.categoria||"Otros"]||0)+g.monto; });
+    const gastosCatRows = Object.entries(gastosCat).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([cat,monto])=>"<tr><td>"+cat+"</td><td style=\"text-align:right\">"+fmt(monto)+"</td></tr>").join("");
+
+    // Filas de reservas
+    const rowsRes = reservasMes.map(r=>{
       const c=clientes.find(x=>x.id===r.clienteId);
-      rows1+=`<tr><td>${fmtDate(r.fecha)}</td><td>${c?c.nombre+" "+c.apellido:"—"}</td><td>${TURNOS[r.turno]?.label||r.turno}</td><td>${STATUS[r.estado]?.label||r.estado}</td><td>${fmt(r.montoPactado)}</td></tr>`;
-    });
-    pagosMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(p=>{
-      const r=reservas.find(x=>x.id===p.reservaId);
-      const c=r?clientes.find(x=>x.id===r.clienteId):null;
-      rows2+=`<tr><td>${fmtDate(p.fecha)}</td><td>${c?c.nombre+" "+c.apellido:"—"}</td><td>${p.metodo||"—"}</td><td>${fmt(p.monto)}</td></tr>`;
-    });
-    gastosMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(g=>{
-      rows3+=`<tr><td>${fmtDate(g.fecha)}</td><td>${g.categoria||"—"}</td><td>${g.descripcion||"—"}</td><td>${g.metodo||"—"}</td><td>${fmt(g.monto)}</td></tr>`;
-    });
+      const tp=pagos.filter(p=>p.reservaId===r.id).reduce((s,p)=>s+p.monto,0);
+      const saldo=Math.max(0,r.montoPactado-tp);
+      const extrasR=extrasReserva.filter(e=>e.reservaId===r.id).map(e=>e.descripcion+(e.cantidad>1?" x"+e.cantidad:"")).join(", ")||"—";
+      return "<tr><td>"+fmtDate(r.fecha)+"</td>"
+        +"<td><b>"+(c?c.nombre+" "+c.apellido:"—")+"</b><br><small style=\"color:#8B7355\">"+(c?.whatsapp||"")+"</small></td>"
+        +"<td>"+(TURNOS[r.turno]?.label||r.turno)+"</td>"
+        +"<td style=\"font-size:10px\">"+extrasR+"</td>"
+        +"<td>"+fmt(r.montoPactado)+"</td>"
+        +"<td>"+fmt(tp)+"</td>"
+        +"<td style=\"color:"+(saldo>0?"#DC2626":"#16A34A")+"\">"+fmt(saldo)+"</td></tr>";
+    }).join("");
 
-    const html="<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>"+
-      "body{font-family:Arial,sans-serif;color:#1C1C1E;padding:30px;max-width:750px;margin:0 auto;font-size:13px;}"+
-      ".header{text-align:center;border-bottom:3px solid #C4602B;padding-bottom:15px;margin-bottom:20px;}"+
-      ".logo{font-size:22px;font-weight:bold;color:#C4602B;}"+
-      ".sub{color:#8B7355;font-size:12px;margin-top:3px;}"+
-      ".title{font-size:18px;font-weight:bold;margin-top:8px;}"+
-      ".boxes{display:flex;gap:10px;margin:15px 0;}"+
-      ".box{flex:1;background:#FDF8F3;border:1px solid #EDE0D0;border-radius:6px;padding:10px;text-align:center;}"+
-      ".num{font-size:16px;font-weight:bold;color:#C4602B;}"+
-      ".lbl{font-size:10px;color:#8B7355;margin-top:2px;}"+
-      "table{width:100%;border-collapse:collapse;margin-top:15px;font-size:12px;}"+
-      "th{background:#C4602B;color:#FFF;padding:6px 8px;text-align:left;}"+
-      "td{padding:5px 8px;border-bottom:1px solid #F0E8E0;}"+
-      "tr:nth-child(even){background:#FDF8F3;}"+
-      ".footer{text-align:center;margin-top:20px;color:#8B7355;font-size:10px;border-top:1px solid #EDE0D0;padding-top:10px;}"+
-      "</style></head><body>"+
-      "<div class=\"header\">"+
-        "<div class=\"logo\">🏡 El Quincho de Bere</div>"+
-        "<div class=\"sub\">Mar del Plata, Argentina</div>"+
-        "<div class=\"title\">Reporte — "+mes+" "+anio+"</div>"+
-      "</div>"+
-      "<div class=\"boxes\">"+
-        "<div class=\"box\"><div class=\"num\">"+reservasMes.length+"</div><div class=\"lbl\">Reservas</div></div>"+
-        "<div class=\"box\"><div class=\"num\">"+fmt(totalCobrado)+"</div><div class=\"lbl\">Cobrado</div></div>"+
-        "<div class=\"box\"><div class=\"num\">"+fmt(totalGastos)+"</div><div class=\"lbl\">Gastos</div></div>"+
-        "<div class=\"box\"><div class=\"num\" style=\"color:"+(totalCobrado-totalGastos>=0?"#16A34A":"#DC2626")+"\">"+ fmt(totalCobrado-totalGastos)+"</div><div class=\"lbl\">Balance</div></div>"+
-      "</div>"+
-      (reservasMes.length>0?"<table><tr><th>Fecha</th><th>Cliente</th><th>Turno</th><th>Estado</th><th>Cobrado</th><th>Saldo</th></tr>"+
-        reservasMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(r=>{
-          const c=clientes.find(x=>x.id===r.clienteId);
-          const tp=pagos.filter(p=>p.reservaId===r.id).reduce((s,p)=>s+p.monto,0);
-          const saldo=Math.max(0,r.montoPactado-tp);
-          return "<tr><td>"+fmtDate(r.fecha)+"</td><td>"+(c?c.nombre+" "+c.apellido:"—")+"</td><td>"+(TURNOS[r.turno]?.label||r.turno)+"</td><td>"+(STATUS[r.estado]?.label||r.estado)+"</td><td>"+fmt(tp)+"</td><td>"+fmt(saldo)+"</td></tr>";
-        }).join("")+"</table>":"<p style='color:#8B7355'>Sin reservas este mes.</p>")+
-      (gastosMes.length>0?"<br><table><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th></tr>"+
-        gastosMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(g=>
-          "<tr><td>"+fmtDate(g.fecha)+"</td><td>"+(g.categoria||"—")+"</td><td>"+(g.descripcion||"—")+"</td><td>"+fmt(g.monto)+"</td></tr>"
-        ).join("")+"</table>":"")+
-      "<div class=\"footer\">Generado el "+new Date().toLocaleDateString("es-AR")+" — El Quincho de Bere</div>"+
-      "</body></html>";
+    const css = "*{box-sizing:border-box;margin:0;padding:0}"
+      +"body{font-family:Georgia,serif;color:#1C1C1E;padding:28px;max-width:820px;margin:0 auto;font-size:12px;line-height:1.5}"
+      +".hdr{text-align:center;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #C4602B}"
+      +".logo{font-size:22px;font-weight:bold;color:#C4602B}"
+      +".sub{color:#8B7355;font-size:11px;margin-top:3px}"
+      +".ttl{font-size:19px;font-weight:bold;margin-top:8px}"
+      +".kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}"
+      +".kpi{background:#FDF8F3;border:1px solid #EDE0D0;border-radius:7px;padding:10px;text-align:center}"
+      +".knum{font-size:14px;font-weight:bold;color:#C4602B}"
+      +".klbl{font-size:9px;color:#8B7355;margin-top:2px;text-transform:uppercase;letter-spacing:.4px}"
+      +".two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}"
+      +".sec{margin-bottom:18px}"
+      +".stitle{font-size:11px;font-weight:bold;color:#C4602B;padding:5px 0;border-bottom:2px solid #EDE0D0;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}"
+      +"table{width:100%;border-collapse:collapse;font-size:11px}"
+      +"th{background:#C4602B;color:#FFF;padding:6px 7px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.3px}"
+      +"td{padding:5px 7px;border-bottom:1px solid #F0E8E0;vertical-align:top}"
+      +"tr:nth-child(even) td{background:#FDF8F3}"
+      +".ft{text-align:center;margin-top:20px;color:#8B7355;font-size:9px;border-top:1px solid #EDE0D0;padding-top:10px}";
 
-        const w=window.open("","_blank");
+    const html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>"+css+"</style></head><body>"
+      +"<div class=\"hdr\"><div class=\"logo\">🏡 El Quincho de Bere</div><div class=\"sub\">Mar del Plata, Argentina</div><div class=\"ttl\">Reporte Mensual — "+mes+" "+anio+"</div></div>"
+      +"<div class=\"kpis\">"
+        +"<div class=\"kpi\"><div class=\"knum\">"+reservasMes.length+"</div><div class=\"klbl\">Reservas</div></div>"
+        +"<div class=\"kpi\"><div class=\"knum\">"+fmt(totalCobrado)+"</div><div class=\"klbl\">Total cobrado</div></div>"
+        +"<div class=\"kpi\"><div class=\"knum\">"+fmt(totalGastos)+"</div><div class=\"klbl\">Total gastos</div></div>"
+        +"<div class=\"kpi\"><div class=\"knum\" style=\"color:"+(totalCobrado-totalGastos>=0?"#16A34A":"#DC2626")+"\">"+fmt(totalCobrado-totalGastos)+"</div><div class=\"klbl\">Balance neto</div></div>"
+      +"</div>"
+      +"<div class=\"two\">"
+        +"<div class=\"sec\"><div class=\"stitle\">📊 Alquileres por turno</div><table><tr><th>Turno</th><th style=\"text-align:center\">Cant.</th></tr>"+turnoRows+"</table></div>"
+        +"<div class=\"sec\"><div class=\"stitle\">✨ Extras contratados</div><table><tr><th>Servicio</th><th style=\"text-align:center\">Cant.</th></tr>"+extrasRows+"</table></div>"
+      +"</div>"
+      +(reservasMes.length>0
+        ?"<div class=\"sec\"><div class=\"stitle\">📅 Detalle de reservas</div><table><tr><th>Fecha</th><th>Cliente / Tel.</th><th>Turno</th><th>Extras</th><th>Pactado</th><th>Cobrado</th><th>Saldo</th></tr>"+rowsRes+"</table></div>"
+        :"<p style=\"color:#8B7355;padding:10px 0\">Sin reservas este mes.</p>")
+      +(gastosCatRows?"<div class=\"sec\"><div class=\"stitle\">💸 Gastos por categoría</div><table><tr><th>Categoría</th><th style=\"text-align:right\">Total</th></tr>"+gastosCatRows+"<tr><td style=\"font-weight:bold\">TOTAL</td><td style=\"text-align:right;font-weight:bold\">"+fmt(totalGastos)+"</td></tr></table></div>":"")
+      +"<div class=\"ft\">Generado el "+new Date().toLocaleDateString("es-AR",{day:"2-digit",month:"long",year:"numeric"})+" · El Quincho de Bere</div>"
+      +"</body></html>";
+
+    const w=window.open("","_blank");
     w.document.write(html);
     w.document.close();
     setTimeout(()=>w.print(),600);
@@ -2528,18 +2551,18 @@ function FAB({ onNewPago, onNewGasto }) {
 
 // ─── SIDE MENU ────────────────────────────────────────────
 
-function SideMenu({ open, onClose, onNavigate, tab }) {
+function SideMenu({ open, onClose, onNavigate, tab, currentUser }) {
+  const items=[
+  const isAdmin = currentUser?.rol==="Administrador";
   const items=[
     {icon:"📊",label:"Inicio",view:"inicio"},
     {icon:"📋",label:"Reservas",view:"reservas"},
     {icon:"👥",label:"Clientes",view:"clientes"},
-    {icon:"📈",label:"Reportes",view:"reportes"},
-    {icon:"💸",label:"Gastos",view:"gastos"},
+    ...(isAdmin?[{icon:"📈",label:"Reportes",view:"reportes"}]:[]),
+    ...(isAdmin?[{icon:"💸",label:"Gastos",view:"gastos"}]:[]),
     {icon:"📋",label:"Recordatorios",view:"recordatorios"},
-    {icon:"⚙️",label:"Configuración",view:"config"},
+    ...(isAdmin?[{icon:"⚙️",label:"Configuración",view:"config"}]:[]),
   ];
-  return (
-    <>
       {open && <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:900}} />}
       <div style={{position:"fixed",top:0,left:0,bottom:0,width:265,background:"#1E0E08",zIndex:1000,transform:open?"translateX(0)":"translateX(-100%)",transition:"transform 0.25s ease",display:"flex",flexDirection:"column"}}>
         <div style={{padding:"52px 20px 24px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
