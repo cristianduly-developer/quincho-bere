@@ -2845,7 +2845,7 @@ function GoogleLoginScreen({ onLogin }) {
 
   const handleGoogleLogin = () => {
     setLoading(true);
-    const redirectTo = window.location.origin + window.location.pathname;
+    const redirectTo = "https://quincho-bere.vercel.app";
     window.location.href = "https://pmohyepcqfvkwijmljee.supabase.co/auth/v1/authorize?provider=google&redirect_to="+encodeURIComponent(redirectTo);
   };
 
