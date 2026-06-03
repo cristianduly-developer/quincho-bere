@@ -2233,7 +2233,7 @@ function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtr
       {serviciosExtras.map(s=>(
         <div key={s.id} style={{...card,padding:"12px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div><div style={{fontWeight:600,fontSize:14}}>{s.descripcion}</div><div style={{fontSize:12,color:"#16A34A",fontWeight:700,marginTop:2}}>{fmtCurrency(s.precioActual)}</div></div>
-          <Btn small variant="danger" onClick={()=>saveSrv(serviciosExtras.filter(x=>x.id!==s.id))}>🗑️</Btn>
+          <Btn small variant="danger" onClick={async()=>{await sb.remove("servicios_extras",s.id);saveSrv(serviciosExtras.filter(x=>x.id!==s.id));}}>🗑️</Btn>
         </div>
       ))}
 
@@ -2392,7 +2392,7 @@ export default function App() {
       if(g&&g.length)setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
       if(rc&&rc.length)setRecursos(rc);
       if(er&&er.length)setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
-      if(se&&se.length)setServiciosExtras(se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})));
+      setServiciosExtras(se&&se.length?se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})):[]);
       if(t&&t.length)setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
       if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",pin:x.pin||"",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
