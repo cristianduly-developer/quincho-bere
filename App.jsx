@@ -2552,7 +2552,6 @@ function FAB({ onNewPago, onNewGasto }) {
 // ─── SIDE MENU ────────────────────────────────────────────
 
 function SideMenu({ open, onClose, onNavigate, tab, currentUser }) {
-  const items=[
   const isAdmin = currentUser?.rol==="Administrador";
   const items=[
     {icon:"📊",label:"Inicio",view:"inicio"},
