@@ -3017,7 +3017,7 @@ export default function App() {
   },[loaded]);
 
   const handleLogin=(user)=>{ setCurrentUser(user); db.set("currentUser",user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
-  const handleLogout=()=>{ setCurrentUser(null); db.set("currentUser",null); try{localStorage.removeItem("qb_user");}catch(e){} };
+  const handleLogout=async()=>{ try{await supabase.auth.signOut();}catch(e){} setCurrentUser(null); db.set("currentUser",null); try{localStorage.removeItem("qb_user");localStorage.removeItem("qb_access_token");}catch(e){} };
   const saveConfig=(cfg)=>{setConfig(cfg);try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){}};
   const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
   const saveC =async d=>{setClientes(d);await sb.upsert("clientes",d.map(mapCliente));};
