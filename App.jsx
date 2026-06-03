@@ -1156,6 +1156,7 @@ function UsuariosView({ usuarios, setUsuarios, currentUser }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({nombre:"",email:"",rol:"Personal",estado:"Activo",pin:""});
   const save = async d => { setUsuarios(d); await sb.upsert("usuarios", d.map(mapUsuario)); };
+  const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
   if(currentUser?.rol!=="Administrador") return (
     <div style={{padding:"40px 20px",textAlign:"center",color:"#8B7355"}}>
       <div style={{fontSize:40,marginBottom:12}}>🔒</div>
@@ -1599,7 +1600,75 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
 
 // ─── REPORTES VIEW ────────────────────────────────────────
 
-function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras }) {
+function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes }) {
+  const [repDate, setRepDate] = useState(new Date());
+
+  const generarPDF = () => {
+    const mes = MONTHS[repDate.getMonth()];
+    const anio = repDate.getFullYear();
+    const prefix = anio+"-"+String(repDate.getMonth()+1).padStart(2,"0");
+    const reservasMes = reservas.filter(r=>r.fecha&&r.fecha.startsWith(prefix));
+    const pagosMes = pagos.filter(p=>p.fecha&&p.fecha.startsWith(prefix));
+    const gastosMes = gastos.filter(g=>g.fecha&&g.fecha.startsWith(prefix));
+    const totalCobrado = pagosMes.reduce((s,p)=>s+p.monto,0);
+    const totalGastos = gastosMes.reduce((s,g)=>s+g.monto,0);
+    const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+
+    let rows1="", rows2="", rows3="";
+    reservasMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(r=>{
+      const c=clientes.find(x=>x.id===r.clienteId);
+      rows1+=`<tr><td>${fmtDate(r.fecha)}</td><td>${c?c.nombre+" "+c.apellido:"—"}</td><td>${TURNOS[r.turno]?.label||r.turno}</td><td>${STATUS[r.estado]?.label||r.estado}</td><td>${fmt(r.montoPactado)}</td></tr>`;
+    });
+    pagosMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(p=>{
+      const r=reservas.find(x=>x.id===p.reservaId);
+      const c=r?clientes.find(x=>x.id===r.clienteId):null;
+      rows2+=`<tr><td>${fmtDate(p.fecha)}</td><td>${c?c.nombre+" "+c.apellido:"—"}</td><td>${p.metodo||"—"}</td><td>${fmt(p.monto)}</td></tr>`;
+    });
+    gastosMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).forEach(g=>{
+      rows3+=`<tr><td>${fmtDate(g.fecha)}</td><td>${g.categoria||"—"}</td><td>${g.descripcion||"—"}</td><td>${g.metodo||"—"}</td><td>${fmt(g.monto)}</td></tr>`;
+    });
+
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+      body{font-family:Georgia,serif;color:#1C1C1E;padding:40px;max-width:800px;margin:0 auto;}
+      .header{text-align:center;border-bottom:3px solid #C4602B;padding-bottom:20px;margin-bottom:30px;}
+      .logo{font-size:26px;font-weight:bold;color:#C4602B;}
+      h2{color:#1C1C1E;font-size:20px;margin:0 0 5px;}
+      .sub{color:#8B7355;font-size:13px;}
+      .boxes{display:flex;gap:15px;margin:20px 0;}
+      .box{flex:1;background:#FDF8F3;border:1px solid #EDE0D0;border-radius:8px;padding:12px;text-align:center;}
+      .num{font-size:20px;font-weight:bold;color:#C4602B;}
+      .lbl{font-size:11px;color:#8B7355;margin-top:3px;}
+      .sec{margin-top:25px;}
+      .sec-title{font-size:15px;font-weight:bold;color:#C4602B;border-bottom:1px solid #EDE0D0;padding-bottom:6px;margin-bottom:12px;}
+      table{width:100%;border-collapse:collapse;font-size:12px;}
+      th{background:#C4602B;color:#FFF;padding:7px 8px;text-align:left;}
+      td{padding:6px 8px;border-bottom:1px solid #F5EDE4;}
+      tr:nth-child(even){background:#FDF8F3;}
+      .footer{text-align:center;margin-top:30px;color:#8B7355;font-size:11px;border-top:1px solid #EDE0D0;padding-top:15px;}
+    </style></head><body>
+    <div class="header">
+      <div class="logo">🏡 El Quincho de Bere</div>
+      <div class="sub">Mar del Plata, Argentina</div>
+      <h2>Reporte — ${mes} ${anio}</h2>
+    </div>
+    <div class="boxes">
+      <div class="box"><div class="num">${reservasMes.length}</div><div class="lbl">Reservas</div></div>
+      <div class="box"><div class="num">${fmt(totalCobrado)}</div><div class="lbl">Cobrado</div></div>
+      <div class="box"><div class="num">${fmt(totalGastos)}</div><div class="lbl">Gastos</div></div>
+      <div class="box"><div class="num" style="color:${totalCobrado-totalGastos>=0?"#16A34A":"#DC2626"}">${fmt(totalCobrado-totalGastos)}</div><div class="lbl">Balance</div></div>
+    </div>
+    ${rows1?`<div class="sec"><div class="sec-title">📅 Reservas</div><table><tr><th>Fecha</th><th>Cliente</th><th>Turno</th><th>Estado</th><th>Monto</th></tr>${rows1}</table></div>`:""}
+    ${rows2?`<div class="sec"><div class="sec-title">💰 Cobros</div><table><tr><th>Fecha</th><th>Cliente</th><th>Método</th><th>Monto</th></tr>${rows2}</table></div>`:""}
+    ${rows3?`<div class="sec"><div class="sec-title">💸 Gastos</div><table><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Método</th><th>Monto</th></tr>${rows3}</table></div>`:""}
+    <div class="footer">Generado el ${new Date().toLocaleDateString("es-AR")} — El Quincho de Bere</div>
+    </body></html>`;
+
+    const w=window.open("","_blank");
+    w.document.write(html);
+    w.document.close();
+    setTimeout(()=>w.print(),600);
+  };
+
   const now = new Date();
   const [selYear,  setSelYear]  = useState(now.getFullYear());
   const [selMonth, setSelMonth] = useState(now.getMonth());
@@ -1657,6 +1726,9 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras 
 
   return (
     <div style={{padding:"16px 16px 100px"}}>
+
+      {/* PDF Button */}
+      <button onClick={generarPDF} style={{width:"100%",padding:"13px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>📄 Generar PDF / Imprimir reporte</button>
 
       {/* Selector mes/año */}
       <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
@@ -2213,7 +2285,7 @@ function GastosView({ gastos, onNewGasto }) {
 }
 
 
-function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras }) {
+function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario }) {
   const [precios, setPrecios] = useState(config.precios);
   const [saved, setSaved] = useState(false);
 
@@ -2232,6 +2304,22 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras })
 
   return (
     <div style={{padding:"16px 16px 100px"}}>
+      {/* USUARIOS */}
+      <div style={{...card, marginBottom:16}}>
+        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:12,fontFamily:"'Playfair Display',serif"}}>👤 Usuarios</div>
+        {usuarios.map(u=>(
+          <div key={u.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
+            <div>
+              <div style={{fontWeight:600,fontSize:13}}>{u.nombre}</div>
+              <div style={{fontSize:11,color:"#8B7355"}}>{u.rol} — PIN: {u.pin||"—"}</div>
+            </div>
+            {currentUser?.rol==="Administrador" && u.id!==currentUser.id && (
+              <button onClick={()=>removeUsuario(u.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
+            )}
+          </div>
+        ))}
+      </div>
+      {/* PRECIOS */}
       <div style={{...card, marginBottom:16}}>
         <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>⚙️ Configuración de Precios</div>
         <div style={{fontSize:12,color:"#8B7355",marginBottom:16}}>Los precios se usan como referencia al crear reservas.</div>
@@ -2404,9 +2492,7 @@ function SideMenu({ open, onClose, onNavigate, tab }) {
     {icon:"👥",label:"Clientes",view:"clientes"},
     {icon:"📈",label:"Reportes",view:"reportes"},
     {icon:"💸",label:"Gastos",view:"gastos"},
-    {icon:"🏠",label:"Espacios y Extras",view:"recursos"},
     {icon:"📋",label:"Recordatorios",view:"recordatorios"},
-    {icon:"👤",label:"Usuarios",view:"usuarios"},
     {icon:"⚙️",label:"Configuración",view:"config"},
   ];
   return (
@@ -2664,6 +2750,7 @@ export default function App() {
 
   const handleLogin=(user)=>{ setCurrentUser(user); db.set("currentUser",user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
   const handleLogout=()=>{ setCurrentUser(null); db.set("currentUser",null); try{localStorage.removeItem("qb_user");}catch(e){} };
+  const saveConfig=(cfg)=>{setConfig(cfg);try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){}};
   const saveC =async d=>{setClientes(d);await sb.upsert("clientes",d.map(mapCliente));};
   const saveR =async d=>{setReservas(d);await sb.upsert("reservas",d.map(mapReserva));};
   const saveP =async d=>{setPagos(d);await sb.upsert("pagos",d.map(mapPago));};
@@ -2750,7 +2837,7 @@ export default function App() {
     setDetailCliente(null);
   };
 
-  const PAGE_TITLES={inicio:"Inicio",reservas:"Reservas",clientes:"Clientes",gastos:"Gastos",recursos:"Espacios y Extras",reportes:"Reportes"};
+  const PAGE_TITLES={inicio:"Inicio",reservas:"Reservas",clientes:"Clientes",gastos:"Gastos",recursos:"Espacios y Extras",reportes:"Reportes",config:"⚙️ Configuración",usuarios:"Usuarios"};
 
   if(loaded&&!currentUser) return <LoginScreen usuarios={usuarios} onLogin={handleLogin} />;
   if(!loaded) return (
@@ -2820,10 +2907,10 @@ export default function App() {
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
       {tab==="gastos" && <GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} />}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
-      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
+      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} />}
       {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} />}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
-      {tab==="reportes" && <ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} />}
+      {tab==="reportes" && <ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} />}
 
       {/* Bottom Tab Bar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
