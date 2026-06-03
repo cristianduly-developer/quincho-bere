@@ -2562,6 +2562,8 @@ function SideMenu({ open, onClose, onNavigate, tab, currentUser }) {
     {icon:"📋",label:"Recordatorios",view:"recordatorios"},
     ...(isAdmin?[{icon:"⚙️",label:"Configuración",view:"config"}]:[]),
   ];
+  return (
+    <>
       {open && <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:900}} />}
       <div style={{position:"fixed",top:0,left:0,bottom:0,width:265,background:"#1E0E08",zIndex:1000,transform:open?"translateX(0)":"translateX(-100%)",transition:"transform 0.25s ease",display:"flex",flexDirection:"column"}}>
         <div style={{padding:"52px 20px 24px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
