@@ -359,21 +359,24 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     notas:        reserva?.notas        || "",
   });
   const getPrecioTurno = (turno, fecha) => {
-    if(!config?.precios||!turno||!fecha) return "";
-    const d = new Date(fecha+"T12:00:00");
-    const dow = d.getDay();
-    const tipo = (dow===0||dow===6) ? "dia_finde" : "dia_semana";
-    return config.precios[tipo]?.[turno] || "";
+    try {
+      if(!config?.precios||!turno||!fecha) return "";
+      const d = new Date(fecha+"T12:00:00");
+      const dow = d.getDay();
+      const tipo = (dow===0||dow===6) ? "dia_finde" : "dia_semana";
+      return config.precios[tipo]?.[turno] || "";
+    } catch(e) { return ""; }
   };
   const set = k => v => setF(p => {
     if (k === "turno") {
       var h = TURNO_HORARIOS[v] || {};
-      const precio = !p.montoPactado ? getPrecioTurno(v, p.fecha) : p.montoPactado;
+      const precioSugerido = getPrecioTurno(v, p.fecha);
+      const precio = precioSugerido || p.montoPactado || "";
       return {...p, turno:v, horario:h.horario||p.horario, horarioFin:h.horarioFin||p.horarioFin, montoPactado:precio};
     }
     if (k === "fecha") {
       const precio = getPrecioTurno(p.turno, v);
-      return {...p, fecha:v, montoPactado:precio||p.montoPactado};
+      return {...p, fecha:v, montoPactado:precio||p.montoPactado||""};
     }
     return {...p, [k]:v};
   });
@@ -3045,10 +3048,12 @@ export default function App() {
 
       {/* FAB */}
       <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />
-      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:144,right:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 3a7 7 0 110 14A7 7 0 0112 5zm0 2a5 5 0 100 10A5 5 0 0012 7zm-1 2h2v4h-2V9zm0 5h2v2h-2v-2z" fill="white"/>
-        </svg>
+      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:144,right:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexDirection:"column",gap:1}}>
+        <div style={{display:"flex",gap:3,alignItems:"center"}}>
+          <span style={{fontSize:14,color:"#FFF"}}>✦</span>
+          <span style={{fontSize:18,color:"#FFF"}}>✦</span>
+          <span style={{fontSize:14,color:"#FFF"}}>✦</span>
+        </div>
       </button>
 
       {/* Side Menu */}
