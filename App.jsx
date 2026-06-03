@@ -2332,39 +2332,51 @@ function GastosView({ gastos, onNewGasto }) {
 
 function AddUsuarioForm({ usuarios, setUsuarios }) {
   const [show, setShow] = useState(false);
-  const [form, setForm] = useState({nombre:"",email:"",rol:"Personal",pin:""});
-  const roles = ["Personal","Administrador"];
+  const [form, setForm] = useState({nombre:"",email:"",rol:"Empleado"});
+  const [saving, setSaving] = useState(false);
+  const roles = ["Empleado","Administrador"];
 
   const handleSave = async () => {
-    if(!form.nombre||!form.pin||form.pin.length!==4) return alert("Completá nombre y PIN de 4 dígitos.");
-    const newU = {id:genId(),...form,estado:"Activo"};
-    const updated = [...usuarios, newU];
-    setUsuarios(updated);
-    await sb.upsert("usuarios", [mapUsuario(newU)]);
-    setForm({nombre:"",email:"",rol:"Personal",pin:""});
-    setShow(false);
+    if(!form.email||!form.email.includes("@")) return alert("El Gmail es obligatorio.");
+    if(!form.nombre) return alert("El nombre es obligatorio.");
+    setSaving(true);
+    try {
+      // Save to perfiles_usuarios (used for Google OAuth access control)
+      await sb.upsert("perfiles_usuarios", [{
+        email: form.email.toLowerCase().trim(),
+        nombre: form.nombre,
+        rol: form.rol,
+        activo: true,
+        creado_en: new Date().toISOString()
+      }]);
+      setForm({nombre:"",email:"",rol:"Empleado"});
+      setShow(false);
+      alert("✅ Usuario autorizado. Podrá ingresar con su Gmail de Google.");
+    } catch(e) {
+      alert("Error al guardar: "+e.message);
+    }
+    setSaving(false);
   };
 
   if(!show) return (
-    <button onClick={()=>setShow(true)} style={{marginTop:12,width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar usuario</button>
+    <button onClick={()=>setShow(true)} style={{marginTop:12,width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Autorizar nuevo usuario</button>
   );
 
   return (
     <div style={{marginTop:12,padding:14,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
-      <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E",marginBottom:10}}>Nuevo usuario</div>
+      <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E",marginBottom:4}}>Autorizar acceso</div>
+      <div style={{fontSize:11,color:"#8B7355",marginBottom:12}}>El usuario podrá entrar con su cuenta de Google.</div>
       <input placeholder="Nombre" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))}
         style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
-      <input placeholder="Email (opcional)" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))}
+      <input placeholder="Gmail (obligatorio)" type="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))}
         style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
       <select value={form.rol} onChange={e=>setForm(p=>({...p,rol:e.target.value}))}
-        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none",background:"#FFF"}}>
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box",outline:"none",background:"#FFF"}}>
         {roles.map(r=><option key={r} value={r}>{r}</option>)}
       </select>
-      <input placeholder="PIN (4 dígitos)" type="password" maxLength={4} value={form.pin} onChange={e=>setForm(p=>({...p,pin:e.target.value}))}
-        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box",outline:"none"}} />
       <div style={{display:"flex",gap:8}}>
         <button onClick={()=>setShow(false)} style={{flex:1,padding:"9px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
-        <button onClick={handleSave} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
+        <button onClick={handleSave} disabled={saving} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700,opacity:saving?0.6:1}}>{saving?"Guardando...":"Autorizar"}</button>
       </div>
     </div>
   );
@@ -2396,7 +2408,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
           <div key={u.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
             <div>
               <div style={{fontWeight:600,fontSize:13}}>{u.nombre}</div>
-              <div style={{fontSize:11,color:"#8B7355"}}>{u.rol} — PIN: {u.pin||"—"}</div>
+              <div style={{fontSize:11,color:"#8B7355"}}>{u.rol}{u.email?" · "+u.email:""}</div>
             </div>
             {currentUser?.rol==="Administrador" && u.id!==currentUser.id && (
               <button onClick={()=>removeUsuario(u.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
