@@ -1627,42 +1627,48 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
       rows3+=`<tr><td>${fmtDate(g.fecha)}</td><td>${g.categoria||"—"}</td><td>${g.descripcion||"—"}</td><td>${g.metodo||"—"}</td><td>${fmt(g.monto)}</td></tr>`;
     });
 
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-      body{font-family:Georgia,serif;color:#1C1C1E;padding:40px;max-width:800px;margin:0 auto;}
-      .header{text-align:center;border-bottom:3px solid #C4602B;padding-bottom:20px;margin-bottom:30px;}
-      .logo{font-size:26px;font-weight:bold;color:#C4602B;}
-      h2{color:#1C1C1E;font-size:20px;margin:0 0 5px;}
-      .sub{color:#8B7355;font-size:13px;}
-      .boxes{display:flex;gap:15px;margin:20px 0;}
-      .box{flex:1;background:#FDF8F3;border:1px solid #EDE0D0;border-radius:8px;padding:12px;text-align:center;}
-      .num{font-size:20px;font-weight:bold;color:#C4602B;}
-      .lbl{font-size:11px;color:#8B7355;margin-top:3px;}
-      .sec{margin-top:25px;}
-      .sec-title{font-size:15px;font-weight:bold;color:#C4602B;border-bottom:1px solid #EDE0D0;padding-bottom:6px;margin-bottom:12px;}
-      table{width:100%;border-collapse:collapse;font-size:12px;}
-      th{background:#C4602B;color:#FFF;padding:7px 8px;text-align:left;}
-      td{padding:6px 8px;border-bottom:1px solid #F5EDE4;}
-      tr:nth-child(even){background:#FDF8F3;}
-      .footer{text-align:center;margin-top:30px;color:#8B7355;font-size:11px;border-top:1px solid #EDE0D0;padding-top:15px;}
-    </style></head><body>
-    <div class="header">
-      <div class="logo">🏡 El Quincho de Bere</div>
-      <div class="sub">Mar del Plata, Argentina</div>
-      <h2>Reporte — ${mes} ${anio}</h2>
-    </div>
-    <div class="boxes">
-      <div class="box"><div class="num">${reservasMes.length}</div><div class="lbl">Reservas</div></div>
-      <div class="box"><div class="num">${fmt(totalCobrado)}</div><div class="lbl">Cobrado</div></div>
-      <div class="box"><div class="num">${fmt(totalGastos)}</div><div class="lbl">Gastos</div></div>
-      <div class="box"><div class="num" style="color:${totalCobrado-totalGastos>=0?"#16A34A":"#DC2626"}">${fmt(totalCobrado-totalGastos)}</div><div class="lbl">Balance</div></div>
-    </div>
-    ${rows1?`<div class="sec"><div class="sec-title">📅 Reservas</div><table><tr><th>Fecha</th><th>Cliente</th><th>Turno</th><th>Estado</th><th>Monto</th></tr>${rows1}</table></div>`:""}
-    ${rows2?`<div class="sec"><div class="sec-title">💰 Cobros</div><table><tr><th>Fecha</th><th>Cliente</th><th>Método</th><th>Monto</th></tr>${rows2}</table></div>`:""}
-    ${rows3?`<div class="sec"><div class="sec-title">💸 Gastos</div><table><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Método</th><th>Monto</th></tr>${rows3}</table></div>`:""}
-    <div class="footer">Generado el ${new Date().toLocaleDateString("es-AR")} — El Quincho de Bere</div>
-    </body></html>`;
+    const html="<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>"+
+      "body{font-family:Arial,sans-serif;color:#1C1C1E;padding:30px;max-width:750px;margin:0 auto;font-size:13px;}"+
+      ".header{text-align:center;border-bottom:3px solid #C4602B;padding-bottom:15px;margin-bottom:20px;}"+
+      ".logo{font-size:22px;font-weight:bold;color:#C4602B;}"+
+      ".sub{color:#8B7355;font-size:12px;margin-top:3px;}"+
+      ".title{font-size:18px;font-weight:bold;margin-top:8px;}"+
+      ".boxes{display:flex;gap:10px;margin:15px 0;}"+
+      ".box{flex:1;background:#FDF8F3;border:1px solid #EDE0D0;border-radius:6px;padding:10px;text-align:center;}"+
+      ".num{font-size:16px;font-weight:bold;color:#C4602B;}"+
+      ".lbl{font-size:10px;color:#8B7355;margin-top:2px;}"+
+      "table{width:100%;border-collapse:collapse;margin-top:15px;font-size:12px;}"+
+      "th{background:#C4602B;color:#FFF;padding:6px 8px;text-align:left;}"+
+      "td{padding:5px 8px;border-bottom:1px solid #F0E8E0;}"+
+      "tr:nth-child(even){background:#FDF8F3;}"+
+      ".footer{text-align:center;margin-top:20px;color:#8B7355;font-size:10px;border-top:1px solid #EDE0D0;padding-top:10px;}"+
+      "</style></head><body>"+
+      "<div class=\"header\">"+
+        "<div class=\"logo\">🏡 El Quincho de Bere</div>"+
+        "<div class=\"sub\">Mar del Plata, Argentina</div>"+
+        "<div class=\"title\">Reporte — "+mes+" "+anio+"</div>"+
+      "</div>"+
+      "<div class=\"boxes\">"+
+        "<div class=\"box\"><div class=\"num\">"+reservasMes.length+"</div><div class=\"lbl\">Reservas</div></div>"+
+        "<div class=\"box\"><div class=\"num\">"+fmt(totalCobrado)+"</div><div class=\"lbl\">Cobrado</div></div>"+
+        "<div class=\"box\"><div class=\"num\">"+fmt(totalGastos)+"</div><div class=\"lbl\">Gastos</div></div>"+
+        "<div class=\"box\"><div class=\"num\" style=\"color:"+(totalCobrado-totalGastos>=0?"#16A34A":"#DC2626")+"\">"+ fmt(totalCobrado-totalGastos)+"</div><div class=\"lbl\">Balance</div></div>"+
+      "</div>"+
+      (reservasMes.length>0?"<table><tr><th>Fecha</th><th>Cliente</th><th>Turno</th><th>Estado</th><th>Cobrado</th><th>Saldo</th></tr>"+
+        reservasMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(r=>{
+          const c=clientes.find(x=>x.id===r.clienteId);
+          const tp=pagos.filter(p=>p.reservaId===r.id).reduce((s,p)=>s+p.monto,0);
+          const saldo=Math.max(0,r.montoPactado-tp);
+          return "<tr><td>"+fmtDate(r.fecha)+"</td><td>"+(c?c.nombre+" "+c.apellido:"—")+"</td><td>"+(TURNOS[r.turno]?.label||r.turno)+"</td><td>"+(STATUS[r.estado]?.label||r.estado)+"</td><td>"+fmt(tp)+"</td><td>"+fmt(saldo)+"</td></tr>";
+        }).join("")+"</table>":"<p style='color:#8B7355'>Sin reservas este mes.</p>")+
+      (gastosMes.length>0?"<br><table><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Monto</th></tr>"+
+        gastosMes.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(g=>
+          "<tr><td>"+fmtDate(g.fecha)+"</td><td>"+(g.categoria||"—")+"</td><td>"+(g.descripcion||"—")+"</td><td>"+fmt(g.monto)+"</td></tr>"
+        ).join("")+"</table>":"")+
+      "<div class=\"footer\">Generado el "+new Date().toLocaleDateString("es-AR")+" — El Quincho de Bere</div>"+
+      "</body></html>";
 
-    const w=window.open("","_blank");
+        const w=window.open("","_blank");
     w.document.write(html);
     w.document.close();
     setTimeout(()=>w.print(),600);
