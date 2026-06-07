@@ -410,19 +410,9 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
         <Input label="Cant. invitados" type="number" value={f.cantInvitados} onChange={set("cantInvitados")} min="1" placeholder="0" onFocus={e=>e.target.select()} />
       </div>
       <Input label="Monto pactado ($)" type="number" value={f.montoPactado} onChange={set("montoPactado")} required placeholder="0" />
-      {isEdit ? (
-        <Field label="Estado">
-          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            {Object.entries(STATUS).filter(([k])=>["pendiente","senada","confirmada"].includes(k)).map(([k,v])=>(
-              <button key={k} onClick={()=>set("estado")(k)} style={{padding:"6px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",color:f.estado===k?"#FFF":v.color,background:f.estado===k?v.color:v.bg,border:`1.5px solid ${v.border}`,fontFamily:"inherit"}}>{v.label}</button>
-            ))}
-          </div>
-        </Field>
-      ) : (
-        <div style={{padding:"8px 12px",background:"#F3F4F6",borderRadius:8,marginBottom:14,fontSize:12,color:"#6B7280"}}>
-          🔒 Estado inicial: <strong>Pendiente</strong> — cambia automáticamente con los cobros
-        </div>
-      )}
+      <div style={{padding:"8px 12px",background:"#F3F4F6",borderRadius:8,marginBottom:14,fontSize:12,color:"#6B7280"}}>
+        🔒 Estado: <strong>{STATUS[f.estado]?.label||"Pendiente"}</strong> — cambia automáticamente con los cobros
+      </div>
       <TextArea label="Notas" value={f.notas} onChange={set("notas")} placeholder="Detalles del evento, requerimientos especiales..." />
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
@@ -3072,10 +3062,11 @@ export default function App() {
     if(res){
       const tot=newPagos.filter(p=>p.reservaId===data.reservaId).reduce((s,p)=>s+p.monto,0);
       const totalEvento=res.montoPactado+getTotalExtras(res.id,extrasReserva);
-      if(tot>=totalEvento&&(res.estado==="pendiente"||res.estado==="senada"))
-        saveR(reservas.map(r=>r.id===data.reservaId?{...r,estado:"confirmada"}:r));
-      else if(res.estado==="pendiente")
-        saveR(reservas.map(r=>r.id===data.reservaId?{...r,estado:"senada"}:r));
+      if(["pendiente","senada","confirmada"].includes(res.estado)){
+        const newEstado=tot===0?"pendiente":tot>=totalEvento?"confirmada":"senada";
+        if(newEstado!==res.estado)
+          saveR(reservas.map(r=>r.id===data.reservaId?{...r,estado:newEstado}:r));
+      }
     }
     if(shouldPrint){
       var res2=reservas.find(r=>r.id===data.reservaId);
