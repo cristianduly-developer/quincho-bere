@@ -32,14 +32,7 @@ const EXPENSE_CATS = ["Mantenimiento", "Limpieza", "Servicios", "Insumos","Otros
 const CAT_COLORS = { Mantenimiento: "#6366F1", Limpieza: "#06B6D4", Servicios: "#F59E0B", Insumos: "#8B5CF6" };
 
 const DEFAULT_RECURSOS = [{ id: "rec1", nombre: "Quincho Principal", capacidadMax: 100 }];
-const DEFAULT_USUARIOS = [
-  { id:"root", nombre:"Cristian", apellido:"Manzo", email:"cristianduly@gmail.com", whatsapp:"", puesto:"Propietario",
-    rol:"Administrador", estado:"Activo", pin:"1303",
-    permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
-  { id:"u1", nombre:"Aye", apellido:"", email:"admin@aye", whatsapp:"", puesto:"Administradora",
-    rol:"Administrador", estado:"Activo", pin:"1733",
-    permisoRoot:true, verFinanzas:true, modificarCaja:true, gestionOperativa:true },
-];
+const DEFAULT_USUARIOS = [];
 
 const DEFAULT_CONFIG = {
   precios: {
@@ -345,7 +338,7 @@ function Avatar({ nombre }) {
 
 // ─── MODALS ───────────────────────────────────────────────
 
-function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config }) {
+function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config, saving }) {
   const isEdit = !!reserva;
   const initTurno = reserva?.turno || initialTurno || "dia";
   const initH = !reserva ? (TURNO_HORARIOS[initTurno] || {}) : {};
@@ -357,16 +350,17 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     horario:      reserva?.horario      || initH.horario  || "",
     horarioFin:   reserva?.horarioFin   || initH.horarioFin || "",
     cantInvitados:reserva?.cantInvitados||35,
-    montoPactado: reserva?.montoPactado || (()=>{ try{ if(!config?.precios) return ""; const fd=reserva?.fecha||initialDate||toDateStr(new Date()); const d=new Date(fd+"T12:00:00"); const dow=d.getDay(); const tipo=(dow===0||dow===6)?"dia_finde":"dia_semana"; return config.precios[tipo]?.[initTurno]||""; }catch(e){return "";} })(),
+    montoPactado: reserva?.montoPactado || (()=>{ try{ if(!config?.precios) return ""; const fd=reserva?.fecha||initialDate||toDateStr(new Date()); const [fy,fm,fd2]=fd.split("-").map(Number); const t2=[0,3,2,5,0,3,5,1,4,6,2,4]; let yr2=fy; if(fm<3)yr2--; const dow=(yr2+Math.floor(yr2/4)-Math.floor(yr2/100)+Math.floor(yr2/400)+t2[fm-1]+fd2)%7; const tipo=(dow===0||dow===6)?"dia_finde":"dia_semana"; return config.precios[tipo]?.[initTurno]||""; }catch(e){return "";} })(),
     estado:       reserva?.estado       || "pendiente",
     notas:        reserva?.notas        || "",
   });
   const getPrecioTurno = (turno, fecha) => {
     try {
       if(!config?.precios||!turno||!fecha) return "";
-      const d = new Date(fecha+"T12:00:00");
-      const dow = d.getDay();
-      const tipo = (dow===0||dow===6) ? "dia_finde" : "dia_semana";
+      const [y,m,d]=fecha.split("-").map(Number);
+      const t=[0,3,2,5,0,3,5,1,4,6,2,4]; let yr=y; if(m<3)yr--;
+      const dow=(yr+Math.floor(yr/4)-Math.floor(yr/100)+Math.floor(yr/400)+t[m-1]+d)%7;
+      const tipo=(dow===0||dow===6)?"dia_finde":"dia_semana";
       return config.precios[tipo]?.[turno] || "";
     } catch(e) { return ""; }
   };
@@ -416,12 +410,13 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
       <TextArea label="Notas" value={f.notas} onChange={set("notas")} placeholder="Detalles del evento, requerimientos especiales..." />
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-        <Btn onClick={()=>{
+        <Btn disabled={saving} onClick={()=>{
+          if(saving) return;
           if(!f.clienteId) return alert("Seleccioná un cliente antes de guardar la reserva.");
           if(!f.fecha||!f.montoPactado) return alert("Completá fecha y monto pactado.");
-          if(f.fecha < toDateStr(new Date())) return alert("No podés registrar una reserva en una fecha pasada.");
+          if(!isEdit&&f.fecha < toDateStr(new Date())) return alert("No podés registrar una reserva en una fecha pasada.");
           onSave({...f, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||0});
-        }}>{isEdit?"Guardar cambios":"Crear reserva"}</Btn>
+        }}>{saving?"Guardando...":(isEdit?"Guardar cambios":"Crear reserva")}</Btn>
       </div>
     </BottomModal>
   );
@@ -493,6 +488,7 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
 
   const doSave = (print) => {
     if(!f.reservaId||!f.monto) return alert("Seleccioná una reserva e ingresá el monto.");
+    if(Number(f.monto)<=0) return alert("El monto debe ser mayor a cero.");
     onSave({...f, monto:Number(f.monto), comprobante:comprobante||null}, print);
   };
 
@@ -553,6 +549,7 @@ function GastoModal({ onClose, onSave }) {
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn onClick={()=>{
           if(!f.concepto||!f.monto)return alert("Completá concepto y monto.");
+          if(Number(f.monto)<=0)return alert("El monto debe ser mayor a cero.");
           onSave({...f,monto:Number(f.monto)});
         }}>Registrar gasto</Btn>
       </div>
@@ -2621,7 +2618,7 @@ function FAB({ onNewPago, onNewGasto }) {
 // ─── SIDE MENU ────────────────────────────────────────────
 
 function SideMenu({ open, onClose, onNavigate, tab, currentUser }) {
-  const isAdmin = currentUser?.rol==="Administrador" || currentUser?.rol==="root" || currentUser?.nombre==="Cristian";
+  const isAdmin = currentUser?.rol==="Administrador";
   const items=[
     {icon:"📊",label:"Inicio",view:"inicio"},
     {icon:"📋",label:"Reservas",view:"reservas"},
@@ -2961,7 +2958,12 @@ export default function App() {
       if(perfiles)setPerfilesUsuarios(perfiles);
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
-      var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){} if(cu)setCurrentUser(cu);
+      var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
+      if(cu?.email){
+        const {data:cuProfiles}=await supabase.from("perfiles_usuarios").select("*").eq("email",cu.email).eq("activo",true);
+        if(cuProfiles?.length){ setCurrentUser({...cu,rol:cuProfiles[0].rol}); }
+        else{ localStorage.removeItem("qb_user"); }
+      }
       // Check OAuth return from Google
       const hashStr=window.location.hash||"";
       const searchStr=window.location.search||"";
@@ -3038,25 +3040,31 @@ export default function App() {
   const handleLogout=async()=>{ try{await supabase.auth.signOut();}catch(e){} setCurrentUser(null); db.set("currentUser",null); try{localStorage.removeItem("qb_user");localStorage.removeItem("qb_access_token");}catch(e){} };
   const saveConfig=(cfg)=>{setConfig(cfg);try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){}};
   const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
-  const saveC =async d=>{setClientes(d);await sb.upsert("clientes",d.map(mapCliente));};
-  const saveR =async d=>{setReservas(d);await sb.upsert("reservas",d.map(mapReserva));};
-  const saveP =async d=>{setPagos(d);await sb.upsert("pagos",d.map(mapPago));};
-  const saveG =async d=>{setGastos(d);await sb.upsert("gastos",d.map(mapGasto));};
-  const saveER=async d=>{setExtrasReserva(d);await sb.upsert("extras_reserva",d.map(mapExtra));};
+  const saveC =async d=>{const prev=clientes;setClientes(d);const r=await sb.upsert("clientes",d.map(mapCliente));if(!r){setClientes(prev);alert("Error al guardar cliente. Intentá de nuevo.");}};
+  const saveR =async d=>{const prev=reservas;setReservas(d);const r=await sb.upsert("reservas",d.map(mapReserva));if(!r){setReservas(prev);alert("Error al guardar reserva. Intentá de nuevo.");}};
+  const saveP =async d=>{const prev=pagos;setPagos(d);const r=await sb.upsert("pagos",d.map(mapPago));if(!r){setPagos(prev);alert("Error al guardar pago. Intentá de nuevo.");}};
+  const saveG =async d=>{const prev=gastos;setGastos(d);const r=await sb.upsert("gastos",d.map(mapGasto));if(!r){setGastos(prev);alert("Error al guardar gasto. Intentá de nuevo.");}};
+  const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);alert("Error al guardar extra. Intentá de nuevo.");}};
   const saveTareas=async d=>{setTareas(d);await sb.upsert("tareas",d.map(mapTarea));};
   const saveBloqueos=async d=>{setBloqueos(d);await sb.upsert("bloqueos",d.map(mapBloqueo));}; // DBService layer
   const saveRecordatorios=async d=>{setRecordatorios(d);await sb.upsert("recordatorios",d.map(mapRecordatorio));};
 
-  const handleSaveReserva=(data)=>{
-    if(!editReserva){
-      const conflict=reservas.find(r=>r.fecha===data.fecha&&r.estado!=="cancelada"&&(r.turno===data.turno||r.turno==="completo"||data.turno==="completo"));
-      if(conflict){const c=clientes.find(x=>x.id===conflict.clienteId);return alert("Conflicto: ya existe una reserva de "+clientName(c)+" en ese dia y turno.");}
-      const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turno||b.turno==="completo"||data.turno==="completo"));
-      if(bloqueoConflict)return alert("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.");
-    }
-    if(editReserva) saveR(reservas.map(r=>r.id===editReserva.id?{...r,...data}:r));
-    else saveR([...reservas,{id:genId(),...data,creadoEn:new Date().toISOString(),fechaCreacion:toDateStr(new Date()),creadoPor:currentUser?.nombre||"",recordatorioEnviado:false,postEventoProcesado:false}]);
-    setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);
+  const [savingReserva,setSavingReserva]=useState(false);
+  const handleSaveReserva=async(data)=>{
+    if(savingReserva) return;
+    setSavingReserva(true);
+    try{
+      if(!editReserva){
+        const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id").eq("fecha",data.fecha).neq("estado","cancelada");
+        const conflict=dbConflicts?.find(r=>r.turno===data.turno||r.turno==="completo"||data.turno==="completo");
+        if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);return alert("Conflicto: ya existe una reserva de "+clientName(c)+" en ese dia y turno.");}
+        const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turno||b.turno==="completo"||data.turno==="completo"));
+        if(bloqueoConflict)return alert("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.");
+      }
+      if(editReserva) await saveR(reservas.map(r=>r.id===editReserva.id?{...r,...data}:r));
+      else await saveR([...reservas,{id:genId(),...data,creadoEn:new Date().toISOString(),fechaCreacion:toDateStr(new Date()),creadoPor:currentUser?.nombre||"",recordatorioEnviado:false,postEventoProcesado:false}]);
+      setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);
+    } finally { setSavingReserva(false); }
   };
   const handleSaveCliente=(data)=>{
     if(editCliente) saveC(clientes.map(c=>c.id===editCliente.id?{...c,...data}:c));
@@ -3220,7 +3228,7 @@ export default function App() {
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} />
 
       {/* Modals */}
-      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} />}
+      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} />}
       {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} />}
       {iaOpen && <IAModal onClose={()=>setIaOpen(false)} reservas={reservas} clientes={clientes} pagos={pagos} bloqueos={bloqueos} serviciosExtras={serviciosExtras} config={config} />}
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} />}
