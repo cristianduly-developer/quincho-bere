@@ -2926,7 +2926,7 @@ export default function App() {
   const [recursos,setRecursos]=useState(DEFAULT_RECURSOS);
   const [extrasReserva,setExtrasReserva]=useState([]);
   const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
-  const [config,setConfig]=useState(()=>{ try{ const s=localStorage.getItem("quincho_config"); if(s) return JSON.parse(s); }catch(e){} return DEFAULT_CONFIG; });
+  const [config,setConfig]=useState(()=>{ try{ const s=localStorage.getItem("quincho_config"); if(s) return JSON.parse(s); }catch(e){} return DEFAULT_CONFIG; }); // fallback inicial, se pisa con Supabase al cargar
   const [usuarios,setUsuarios]=useState(DEFAULT_USUARIOS);
   const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
   const [currentUser,setCurrentUser]=useState(null);
@@ -2956,6 +2956,9 @@ export default function App() {
       // Load perfiles_usuarios for Google OAuth users
       const {data:perfiles}=await supabase.from("perfiles_usuarios").select("*").order("creado_en",{ascending:true});
       if(perfiles)setPerfilesUsuarios(perfiles);
+      // Cargar config desde Supabase (fuente de verdad)
+      const {data:cfgData}=await supabase.from("config").select("precios").eq("id","main").single();
+      if(cfgData?.precios){ const cfg={...DEFAULT_CONFIG,precios:cfgData.precios}; setConfig(cfg); try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){} }
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
       var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
@@ -3038,7 +3041,11 @@ export default function App() {
 
   const handleLogin=(user)=>{ setCurrentUser(user); db.set("currentUser",user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
   const handleLogout=async()=>{ try{await supabase.auth.signOut();}catch(e){} setCurrentUser(null); db.set("currentUser",null); try{localStorage.removeItem("qb_user");localStorage.removeItem("qb_access_token");}catch(e){} };
-  const saveConfig=(cfg)=>{setConfig(cfg);try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){}};
+  const saveConfig=async(cfg)=>{
+    setConfig(cfg);
+    try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){}
+    await supabase.from("config").upsert({id:"main",precios:cfg.precios,actualizado_en:new Date().toISOString()});
+  };
   const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
   const saveC =async d=>{const prev=clientes;setClientes(d);const r=await sb.upsert("clientes",d.map(mapCliente));if(!r){setClientes(prev);alert("Error al guardar cliente. Intentá de nuevo.");}};
   const saveR =async d=>{const prev=reservas;setReservas(d);const r=await sb.upsert("reservas",d.map(mapReserva));if(!r){setReservas(prev);alert("Error al guardar reserva. Intentá de nuevo.");}};
