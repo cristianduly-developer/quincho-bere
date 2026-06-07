@@ -2048,7 +2048,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
 
       {/* ── Próximas reservas ── */}
       {/* Post-event fidelization */}
-      {reservas.filter(r=>{
+      {now.getHours()>=8&&now.getHours()<21&&reservas.filter(r=>{
         const yest=new Date(now); yest.setDate(yest.getDate()-1);
         return r.fecha===toDateStr(yest)&&r.estado==="finalizada"&&!r.postEventoProcesado;
       }).map(r=>{
@@ -2073,7 +2073,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           </div>
         );
       })}
-      {tmReservas.length>0&&(
+      {now.getHours()>=8&&now.getHours()<21&&tmReservas.length>0&&(
         <div id="reminders-section" style={{...card,padding:"14px 16px",marginBottom:16,border:"2px solid #25D366"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div>
