@@ -2098,10 +2098,10 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           })}
         </div>
       )}
-      {upcoming.slice(0,4).length>0 && (
+      {upcoming.slice(1,5).length>0 && (
         <div style={{marginBottom:16}}>
           <div style={{fontSize:12,fontWeight:700,color:"#5C4033",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Próximas reservas</div>
-          {upcoming.slice(0,4).map(r=>{
+          {upcoming.slice(1,5).map(r=>{
             const c=clientes.find(x=>x.id===r.clienteId);
             const saldo=getSaldo(r,extrasReserva,pagos);
             return (
