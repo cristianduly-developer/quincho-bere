@@ -1921,6 +1921,15 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
       boxShadow:enCurso?"0 4px 16px rgba(22,163,74,0.35)":"0 4px 16px rgba(196,96,43,0.35)",
     }}>
       {enCurso && <div style={{fontSize:11,fontWeight:800,color:"#FFF",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>🟢 EVENTO EN CURSO</div>}
+      {enCurso&&(nextEvento.estado==="pendiente"||nextEvento.estado==="senada")&&saldo>0&&(
+        <div style={{background:"#DC2626",borderRadius:8,padding:"8px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:16}}>🚨</span>
+          <div>
+            <div style={{fontSize:12,fontWeight:800,color:"#FFF"}}>SALDO PENDIENTE: {fmtCurrency(saldo)}</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.85)"}}>El cliente aún no abonó el total del evento</div>
+          </div>
+        </div>
+      )}
       {!enCurso && <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>🗓 Próximo evento</div>}
       <div style={{fontWeight:800,fontSize:20,color:"#FFF",fontFamily:"'Playfair Display',serif",marginBottom:4}}>{clientName(c)}</div>
       <div style={{fontSize:13,color:"rgba(255,255,255,0.85)",marginBottom:8}}>
