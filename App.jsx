@@ -413,7 +413,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
       {isEdit ? (
         <Field label="Estado">
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            {Object.entries(STATUS).filter(([k])=>["pendiente","cancelada"].includes(k)).map(([k,v])=>(
+            {Object.entries(STATUS).filter(([k])=>["pendiente","senada","confirmada"].includes(k)).map(([k,v])=>(
               <button key={k} onClick={()=>set("estado")(k)} style={{padding:"6px 12px",borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",color:f.estado===k?"#FFF":v.color,background:f.estado===k?v.color:v.bg,border:`1.5px solid ${v.border}`,fontFamily:"inherit"}}>{v.label}</button>
             ))}
           </div>
