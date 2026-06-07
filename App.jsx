@@ -2589,7 +2589,7 @@ function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtr
 function FAB({ onNewPago, onNewGasto }) {
   const [open,setOpen]=useState(false);
   return (
-    <div style={{position:"fixed",bottom:62,right:20,zIndex:1500}}>
+    <div style={{position:"fixed",bottom:82,right:20,zIndex:1500}}>
       {open && (
         <>
           <div onClick={()=>{setOpen(false);onNewGasto();}} style={{position:"absolute",bottom:130,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
