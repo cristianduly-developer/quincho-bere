@@ -3223,13 +3223,6 @@ export default function App() {
 
       {/* FAB */}
       <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />
-      <button onClick={()=>setIaOpen(true)} style={{position:"fixed",bottom:74,right:20,zIndex:1500,width:52,height:52,borderRadius:26,background:"linear-gradient(135deg,#1C1C1E,#3D3D3D)",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",display:"flex",alignItems:"center",justifyContent:"center",padding:0,flexDirection:"column",gap:1}}>
-        <div style={{display:"flex",gap:3,alignItems:"center"}}>
-          <span style={{fontSize:14,color:"#FFF"}}>✦</span>
-          <span style={{fontSize:18,color:"#FFF"}}>✦</span>
-          <span style={{fontSize:14,color:"#FFF"}}>✦</span>
-        </div>
-      </button>
 
       {/* Side Menu */}
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} />
@@ -3237,7 +3230,6 @@ export default function App() {
       {/* Modals */}
       {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} />}
       {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} />}
-      {iaOpen && <IAModal onClose={()=>setIaOpen(false)} reservas={reservas} clientes={clientes} pagos={pagos} bloqueos={bloqueos} serviciosExtras={serviciosExtras} config={config} />}
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} />}
       {modal==="gasto" && <GastoModal onClose={()=>setModal(null)} onSave={handleSaveGasto} />}
       {modal==="extra" && <ExtrasModal onClose={()=>{setModal(null);setExtraReservaId(null);}} onSave={handleSaveExtra} servicios={serviciosExtras} reservaId={extraReservaId} />}
