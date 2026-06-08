@@ -3140,22 +3140,25 @@ export default function App() {
   };
   const handleDeleteCliente=async(id)=>{
     const resIds=reservas.filter(r=>r.clienteId===id).map(r=>r.id);
+    // 1. Borrar recordatorios del cliente y de sus reservas
+    await supabase.from("recordatorios").delete().eq("cliente_id",id);
+    if(resIds.length) await supabase.from("recordatorios").delete().in("reserva_id",resIds);
+    // 2. Borrar pagos y extras de cada reserva
     for(const rid of resIds){
-      const {error:ep}=await supabase.from("pagos").delete().eq("reserva_id",rid);
-      if(ep){ alert("Error borrando pagos: "+ep.message); return; }
-      const {error:ee}=await supabase.from("extras_reserva").delete().eq("reserva_id",rid);
-      if(ee){ alert("Error borrando extras: "+ee.message); return; }
+      await supabase.from("pagos").delete().eq("reserva_id",rid);
+      await supabase.from("extras_reserva").delete().eq("reserva_id",rid);
     }
-    if(resIds.length){
-      const {error:er}=await supabase.from("reservas").delete().in("id",resIds);
-      if(er){ alert("Error borrando reservas: "+er.message); return; }
-    }
+    // 3. Borrar reservas
+    if(resIds.length) await supabase.from("reservas").delete().in("id",resIds);
+    // 4. Borrar cliente
     const {error}=await supabase.from("clientes").delete().eq("id",id);
-    if(error){ alert("Error borrando cliente: "+error.message); return; }
+    if(error){ alert("Error al eliminar el cliente: "+error.message); return; }
+    // 5. Actualizar estado local
     setReservas(prev=>prev.filter(r=>r.clienteId!==id));
     setPagos(prev=>prev.filter(p=>!resIds.includes(p.reservaId)));
     setExtrasReserva(prev=>prev.filter(e=>!resIds.includes(e.reservaId)));
-    setClientes(clientes.filter(c=>c.id!==id));
+    setRecordatorios(prev=>prev.filter(r=>r.clienteId!==id&&!resIds.includes(r.reservaId)));
+    setClientes(prev=>prev.filter(c=>c.id!==id));
     setDetailCliente(null);
   };
 
