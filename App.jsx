@@ -2873,12 +2873,20 @@ export default function App() {
       // ── PASO 1: verificar auth ANTES de cargar datos ──
       const { data:{ session } } = await supabase.auth.getSession();
       var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
-      // Sin sesión válida → limpiar y mostrar login sin cargar datos
-      if(!session?.user || !cu?.email || session.user.email!==cu.email){
+
+      // Sin sesión de Supabase → show login (el LocalStorage sin sesión no vale nada)
+      if(!session?.user){
         try{ localStorage.removeItem("qb_user"); }catch(e){}
-        if(session) await supabase.auth.signOut();
-        return; // setLoaded(true) en finally → muestra login
+        return;
       }
+      // Sesión existe pero el email guardado NO coincide → posible token viejo, limpiar
+      if(cu?.email && cu.email !== session.user.email){
+        try{ localStorage.removeItem("qb_user"); }catch(e){}
+        cu = null;
+      }
+      // Sesión existe pero sin localStorage → GoogleLoginScreen va a manejar el login
+      if(!cu?.email) return;
+
       // ── PASO 2: verificar perfil activo en DB ──
       const {data:cuProfiles}=await supabase.from("perfiles_usuarios").select("*").eq("email",cu.email).eq("activo",true);
       if(!cuProfiles?.length){
