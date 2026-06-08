@@ -83,32 +83,23 @@ const supabase = createClient(SUPA_URL, SUPA_KEY);
 
 const sb = {
   async getAll(table) {
-    return await sbFetch(table+"?select=*&order=creado_en.asc","GET",null,null) || [];
+    const { data } = await supabase.from(table).select("*").order("creado_en", { ascending: true });
+    return data || [];
   },
   async upsert(table, rows) {
-    const arr=Array.isArray(rows)?rows:[rows];
-    if(!arr.length) return null;
-    return await sbFetch(table, "POST", arr, "resolution=merge-duplicates,return=representation");
+    const arr = Array.isArray(rows) ? rows : [rows];
+    if (!arr.length) return true;
+    const { error } = await supabase.from(table).upsert(arr);
+    if (error) { console.error("SB upsert error:", table, error); return null; }
+    return true;
   },
   async remove(table, id) {
-    return await sbFetch(table+"?id=eq."+id, "DELETE", null, null);
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if (error) { console.error("SB remove error:", table, error); return null; }
+    return true;
   },
 };
 
-// Session-only storage (currentUser, etc.)
-const db = {
-  _m:{},
-  async get(k){ return this._m[k]||null; },
-  async set(k,v){ this._m[k]=v; },
-};
-
-const KEYS = {
-  clientes:"clientes", reservas:"reservas", pagos:"pagos",
-  gastos:"gastos", recursos:"recursos",
-  extrasReserva:"extras_reserva", serviciosExtras:"servicios_extras",
-  tareas:"tareas", usuarios:"usuarios",
-  bloqueos:"bloqueos", recordatorios:"recordatorios",
-};
 
 
 
@@ -203,44 +194,6 @@ function mapTarea(t){ return {id:t.id,descripcion:t.descripcion||"",estado:t.est
 function mapRecordatorio(r){ return {id:r.id,reserva_id:r.reservaId||null,cliente_id:r.clienteId||null,tipo:r.tipo||"",nota:r.nota||"",fecha_alerta:r.fechaAlerta,hora_alerta:r.horaAlerta||"09:00",estado:r.estado||"Pendiente",creado_en:r.creadoEn||new Date().toISOString()}; }
 function mapUsuario(u){ return {id:u.id,nombre:u.nombre||"",apellido:u.apellido||"",email:u.email||"",whatsapp:u.whatsapp||"",puesto:u.puesto||"",rol:u.rol||"Personal",estado:u.estado||"Activo",permiso_root:!!u.permisoRoot,ver_finanzas:!!u.verFinanzas,modificar_caja:!!u.modificarCaja,gestion_operativa:!!u.gestionOperativa}; }
 
-// ─── DB SERVICE LAYER ─────────────────────────────────────
-// Para migrar a Supabase/Firebase: reemplaza cada metodo con el SDK.
-const DBService = {
-  async save(key, data) {
-    try {
-      // TODO: await supabase.from(key.replace("q:","")).upsert(data)
-      await db.set(key, data);
-      return { ok:true };
-    } catch(e) { console.error("[DBService]",key,e); return { ok:false,error:e }; }
-  },
-  async saveReservas(d)      { return this.save(KEYS.reservas,d); },
-  async saveClientes(d)      { return this.save(KEYS.clientes,d); },
-  async savePagos(d)         { return this.save(KEYS.pagos,d); },
-  async saveGastos(d)        { return this.save(KEYS.gastos,d); },
-  async saveBloqueos(d)      { return this.save(KEYS.bloqueos,d); },
-  async saveUsuarios(d)      { return this.save(KEYS.usuarios,d); },
-  async saveExtrasReserva(d) { return this.save(KEYS.extrasReserva,d); },
-  async saveTareas(d)        { return this.save(KEYS.tareas,d); },
-  async saveRecordatorios(d) { return this.save(KEYS.recordatorios,d); },
-  // Auth mock - reemplazar con Google OAuth
-  async mockAuth(email, usuarios) {
-    // TODO: const { data } = await supabase.auth.signInWithOAuth({ provider:"google" })
-    if(!email) throw new Error("Ingresa tu email para continuar.");
-    var u=usuarios.find(x=>x.email.toLowerCase()===email.toLowerCase()&&x.estado==="Activo");
-    if(!u) throw new Error("Acceso denegado: correo no registrado o usuario inactivo.");
-    return u;
-  },
-  async loadAll() {
-    // TODO: Reemplazar con listeners en tiempo real (onSnapshot / realtime subscriptions)
-    const [c,r,p,g,rc,er,se,t,u,bl,rec,cu]=await Promise.all([
-      db.get(KEYS.clientes),db.get(KEYS.reservas),db.get(KEYS.pagos),db.get(KEYS.gastos),
-      db.get(KEYS.recursos),db.get(KEYS.extrasReserva),db.get(KEYS.serviciosExtras),
-      db.get(KEYS.tareas),db.get(KEYS.usuarios),db.get(KEYS.bloqueos),
-      db.get(KEYS.recordatorios),db.get(KEYS.currentUser),
-    ]);
-    return {c,r,p,g,rc,er,se,t,u,bl,rec,cu};
-  },
-};
 
 // ─── SHARED STYLES ────────────────────────────────────────
 
@@ -408,6 +361,8 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
           if(saving) return;
           if(!f.clienteId) return alert("Seleccioná un cliente antes de guardar la reserva.");
           if(!f.fecha||!f.montoPactado) return alert("Completá fecha y monto pactado.");
+          if(Number(f.montoPactado)<=0) return alert("El monto pactado debe ser mayor a cero.");
+          if(Number(f.cantInvitados)<=0) return alert("Ingresá la cantidad de invitados (mínimo 1).");
           if(!isEdit&&f.fecha < toDateStr(new Date())) return alert("No podés registrar una reserva en una fecha pasada.");
           onSave({...f, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||0});
         }}>{saving?"Guardando...":(isEdit?"Guardar cambios":"Crear reserva")}</Btn>
@@ -437,7 +392,11 @@ function ClienteModal({ onClose, onSave, cliente }) {
       <TextArea label="Notas internas" value={f.notasInternas} onChange={set("notasInternas")} placeholder="Comportamiento, preferencias..." rows={2} />
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-        <Btn onClick={()=>{if(!f.nombre)return alert("El nombre es obligatorio.");onSave(f);}}>
+        <Btn onClick={()=>{
+          if(!f.nombre)return alert("El nombre es obligatorio.");
+          if(f.whatsapp&&!/^[\d\s+\-().]{7,20}$/.test(f.whatsapp))return alert("El WhatsApp ingresado no parece válido. Ejemplo: +54 223 1234567");
+          onSave(f);
+        }}>
           {cliente?"Guardar":"Agregar cliente"}
         </Btn>
       </div>
@@ -586,6 +545,8 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
           const srv = servicios.find(s=>s.id===f.servicioId);
           const desc = f.servicioId==="custom"?f.descripcion:srv?.descripcion;
           if(!desc||!f.cantidad||!f.precioHistorico)return alert("Completá todos los campos.");
+          if(Number(f.cantidad)<=0) return alert("La cantidad debe ser mayor a cero.");
+          if(Number(f.precioHistorico)<=0) return alert("El precio debe ser mayor a cero.");
           onSave({reservaId,servicioId:f.servicioId!=="custom"?f.servicioId:null,descripcion:desc,cantidad:Number(f.cantidad),precioHistorico:Number(f.precioHistorico)});
         }}>Agregar Extra</Btn>
       </div>
@@ -1119,7 +1080,7 @@ function LoginScreen({ usuarios, onLogin }) {
             <div style={{fontSize:12,fontWeight:700,color:"#5C4033",textAlign:"center",marginBottom:14,textTransform:"uppercase",letterSpacing:0.5}}>¿Quién está ingresando?</div>
             {active.map(u=>(
               <button key={u.id} onClick={()=>{setSelectedUser(u);setPin("");setErr("");}} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 18px",background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:12,cursor:"pointer",marginBottom:10,fontFamily:"inherit",boxShadow:"0 2px 8px rgba(196,96,43,0.08)"}}>
-                <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:18,flexShrink:0,fontFamily:"'Playfair Display',serif"}}>{u.nombre[0].toUpperCase()}</div>
+                <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:18,flexShrink:0,fontFamily:"'Playfair Display',serif"}}>{(u.nombre?.charAt(0)||"?").toUpperCase()}</div>
                 <div style={{textAlign:"left"}}><div style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>{u.nombre} {u.apellido||""}</div><div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{u.puesto||u.rol}</div></div>
                 <div style={{marginLeft:"auto",fontSize:18,color:"#C4602B"}}>→</div>
               </button>
@@ -1128,7 +1089,7 @@ function LoginScreen({ usuarios, onLogin }) {
         ) : (
           <>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,padding:"12px 16px",background:"#FFF",borderRadius:12,border:"1.5px solid #EDE0D0"}}>
-              <div style={{width:40,height:40,borderRadius:20,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:16,fontFamily:"'Playfair Display',serif"}}>{selectedUser.nombre[0].toUpperCase()}</div>
+              <div style={{width:40,height:40,borderRadius:20,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:16,fontFamily:"'Playfair Display',serif"}}>{(selectedUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
               <div style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>{selectedUser.nombre} {selectedUser.apellido||""}</div>
             </div>
             <div style={{fontSize:12,fontWeight:700,color:"#5C4033",textAlign:"center",marginBottom:12,textTransform:"uppercase",letterSpacing:0.5}}>Ingresá tu PIN</div>
@@ -1169,7 +1130,7 @@ function UsuariosView({ usuarios, setUsuarios, currentUser }) {
       </div>
       {usuarios.map(u=>(
         <div key={u.id} style={{...card,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:42,height:42,borderRadius:21,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:17,flexShrink:0,fontFamily:"'Playfair Display',serif"}}>{u.nombre[0].toUpperCase()}</div>
+          <div style={{width:42,height:42,borderRadius:21,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:17,flexShrink:0,fontFamily:"'Playfair Display',serif"}}>{(u.nombre?.charAt(0)||"?").toUpperCase()}</div>
           <div style={{flex:1}}>
             <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{u.nombre}</div>
             <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>{u.email} · {u.rol}</div>
@@ -1431,7 +1392,7 @@ function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes
   const proximos= pending.filter(r=>r.fechaAlerta>today);
   const historial=recordatorios.filter(r=>r.estado!=="Pendiente");
 
-  const save=d=>{setRecordatorios(d);DBService.saveRecordatorios(d);};
+  const save=d=>setRecordatorios(d);
   const markDone=(id)=>save(recordatorios.map(r=>r.id===id?{...r,estado:"Procesado"}:r));
   const snooze=(id,hours)=>{
     const d=new Date(); d.setHours(d.getHours()+hours);
@@ -2526,7 +2487,7 @@ function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtr
   const [resForm,setResForm]=useState({nombre:"",capacidadMax:""});
   const [showSrvForm,setShowSrvForm]=useState(false);
   const [srvForm,setSrvForm]=useState({descripcion:"",precioActual:""});
-  const saveRec = async d=>{setRecursos(d); await db.set(KEYS.recursos,d);};
+  const saveRec = d=>setRecursos(d);
   const saveSrv = async d=>{setServiciosExtras(d); await sb.upsert("servicios_extras", d.map(x=>({id:x.id,descripcion:x.descripcion||"",precio_actual:x.precioActual||0,activo:x.activo!==false,creado_en:x.creadoEn||new Date().toISOString()})));};
   return (
     <div style={{padding:"16px 16px 100px"}}>
@@ -3037,8 +2998,8 @@ export default function App() {
     };
   },[loaded]);
 
-  const handleLogin=(user)=>{ setCurrentUser(user); db.set("currentUser",user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
-  const handleLogout=async()=>{ try{await supabase.auth.signOut();}catch(e){} setCurrentUser(null); db.set("currentUser",null); try{localStorage.removeItem("qb_user");localStorage.removeItem("qb_access_token");}catch(e){} };
+  const handleLogin=(user)=>{ setCurrentUser(user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
+  const handleLogout=async()=>{ try{await supabase.auth.signOut();}catch(e){} setCurrentUser(null); try{localStorage.removeItem("qb_user");localStorage.removeItem("qb_access_token");}catch(e){} };
   const saveConfig=async(cfg)=>{
     setConfig(cfg);
     try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){}
@@ -3142,8 +3103,22 @@ export default function App() {
     setRatingQueue(q=>q.filter(r=>r.id!==reservaId));
   };
   const handleDeleteCliente=async(id)=>{
+    // Obtener reservas del cliente para cascada
+    const resIds=reservas.filter(r=>r.clienteId===id).map(r=>r.id);
+    // Eliminar pagos y extras de esas reservas
+    for(const rid of resIds){
+      await supabase.from("pagos").delete().eq("reserva_id",rid);
+      await supabase.from("extras_reserva").delete().eq("reserva_id",rid);
+    }
+    // Eliminar reservas del cliente
+    if(resIds.length) await supabase.from("reservas").delete().in("id",resIds);
+    // Eliminar cliente
     const {error}=await supabase.from("clientes").delete().eq("id",id);
     if(error){ alert("Error al eliminar el cliente. Intentá de nuevo."); return; }
+    // Actualizar estado local
+    setReservas(prev=>prev.filter(r=>r.clienteId!==id));
+    setPagos(prev=>prev.filter(p=>!resIds.includes(p.reservaId)));
+    setExtrasReserva(prev=>prev.filter(e=>!resIds.includes(e.reservaId)));
     setClientes(clientes.filter(c=>c.id!==id));
     setDetailCliente(null);
   };
@@ -3153,10 +3128,12 @@ export default function App() {
   if(loaded&&!currentUser) return <GoogleLoginScreen onLogin={handleLogin} />;
   if(!loaded) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#FDF8F3"}}>
+      <style>{`@keyframes qb-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
       <div style={{textAlign:"center"}}>
         <div style={{fontSize:56,marginBottom:16}}>🏠</div>
         <div style={{fontSize:20,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display', serif"}}>El Quincho de Bere</div>
-        <div style={{fontSize:13,color:"#8B7355",marginTop:8}}>Cargando datos...</div>
+        <div style={{margin:"18px auto 0",width:32,height:32,border:"3px solid #EDE0D0",borderTop:"3px solid #C4602B",borderRadius:"50%",animation:"qb-spin 0.8s linear infinite"}}></div>
+        <div style={{fontSize:12,color:"#8B7355",marginTop:10}}>Cargando datos...</div>
       </div>
     </div>
   );
@@ -3188,7 +3165,7 @@ export default function App() {
         {currentUser&&(
           <div style={{position:"relative",flexShrink:0}} id="root-menu-wrap">
             <button onClick={()=>setShowRootMenu(m=>!m)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",cursor:"pointer",padding:4,fontFamily:"inherit"}}>
-              <div style={{width:30,height:30,borderRadius:15,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:13,fontFamily:"'Playfair Display',serif"}}>{currentUser.nombre[0].toUpperCase()}</div>
+              <div style={{width:30,height:30,borderRadius:15,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:13,fontFamily:"'Playfair Display',serif"}}>{(currentUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
               <span style={{fontSize:11,color:"#5C4033",fontWeight:700,maxWidth:60,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser.nombre}</span>
               <span style={{fontSize:10,color:"#8B7355"}}>▾</span>
             </button>
