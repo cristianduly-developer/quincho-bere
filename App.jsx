@@ -2721,42 +2721,6 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
 }
 
 
-// ─── SUPABASE AUTH CLIENT ──────────────────────────────────
-const supabaseAuth = {
-  async signInWithGoogle() {
-    const redirectTo = window.location.origin;
-    const res = await fetch(SUPA_URL+"/auth/v1/authorize?provider=google&redirect_to="+encodeURIComponent(redirectTo), {
-      method: "GET",
-      headers: { "apikey": SUPA_KEY },
-    });
-    // Redirect to Google
-    window.location.href = SUPA_URL+"/auth/v1/authorize?provider=google&redirect_to="+encodeURIComponent(redirectTo);
-  },
-  async getSession() {
-    const hash = window.location.hash;
-    if(hash && hash.includes("access_token")) {
-      const params = new URLSearchParams(hash.substring(1));
-      const token = params.get("access_token");
-      if(token) {
-        localStorage.setItem("qb_access_token", token);
-        window.location.hash = "";
-        return token;
-      }
-    }
-    return localStorage.getItem("qb_access_token");
-  },
-  async getUser(token) {
-    const res = await fetch(SUPA_URL+"/auth/v1/user", {
-      headers: { "apikey": SUPA_KEY, "Authorization": "Bearer "+token }
-    });
-    if(!res.ok) return null;
-    return res.json();
-  },
-  signOut() {
-    localStorage.removeItem("qb_access_token");
-    localStorage.removeItem("qb_user");
-  }
-};
 
 function GoogleLoginScreen({ onLogin }) {
   const [loading, setLoading] = useState(false);
@@ -3022,7 +2986,17 @@ export default function App() {
   },[loaded]);
 
   const handleLogin=(user)=>{ setCurrentUser(user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
-  const handleLogout=async()=>{ try{await supabase.auth.signOut();}catch(e){} setCurrentUser(null); try{localStorage.removeItem("qb_user");localStorage.removeItem("qb_access_token");}catch(e){} };
+  const handleLogout=async()=>{
+    try{ await supabase.auth.signOut(); }catch(e){}
+    setCurrentUser(null);
+    try{
+      // Limpiar todo rastro de sesión local
+      localStorage.removeItem("qb_user");
+      localStorage.removeItem("qb_access_token");
+      // La SDK de Supabase guarda la sesión bajo esta clave
+      localStorage.removeItem(`sb-${SUPA_URL.split("//")[1].split(".")[0]}-auth-token`);
+    }catch(e){}
+  };
   const saveConfig=async(cfg)=>{
     setConfig(cfg);
     try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){}
