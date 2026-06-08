@@ -783,11 +783,8 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   );
 }
 
-function ClienteDetail({ cliente, reservas, pagos, onClose, onEdit, onDelete }) {
-  const [confirmDeleteCli,setConfirmDeleteCli]=useState(false);
+function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
   const cr = reservas.filter(r=>r.clienteId===cliente.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  const resIds = cr.map(r=>r.id);
-  const totalPagosCliente = (pagos||[]).filter(p=>resIds.includes(p.reservaId)).reduce((s,p)=>s+p.monto,0);
   const totalMonto = cr.reduce((s,r)=>s+r.montoPactado,0);
   const avg = getClientAvg(cliente.id, reservas);
   const notas = cr.filter(r=>r.calificacion?.nota).map(r=>({...r.calificacion,fecha:r.fecha}));
@@ -853,23 +850,8 @@ function ClienteDetail({ cliente, reservas, pagos, onClose, onEdit, onDelete }) 
           <StatusBadge estado={r.estado} />
         </div>
       ))}
-      {confirmDeleteCli && (
-        <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:10,padding:"12px 16px",marginBottom:10}}>
-          <div style={{fontWeight:700,fontSize:13,color:"#DC2626",marginBottom:6}}>⚠️ ¿Eliminar a {clientName(cliente)}?</div>
-          <div style={{fontSize:12,color:"#5C4033",marginBottom:6}}>Esta acción <strong>no se puede deshacer</strong> y eliminará:</div>
-          <ul style={{fontSize:12,color:"#5C4033",margin:"0 0 10px 16px",padding:0}}>
-            <li>{cr.length} reserva{cr.length!==1?"s":""}</li>
-            {totalPagosCliente>0 && <li>{fmtCurrency(totalPagosCliente)} en cobros registrados</li>}
-          </ul>
-          <div style={{display:"flex",gap:8}}>
-            <Btn small variant="ghost" onClick={()=>setConfirmDeleteCli(false)}>Cancelar</Btn>
-            <Btn small variant="danger" onClick={onDelete}>Sí, eliminar todo</Btn>
-          </div>
-        </div>
-      )}
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}>
         <Btn small variant="secondary" onClick={onEdit}>✏️ Editar</Btn>
-        {!confirmDeleteCli&&<Btn small variant="danger" onClick={()=>setConfirmDeleteCli(true)}>🗑️ Eliminar</Btn>}
         <Btn small variant="ghost" onClick={onClose}>Cerrar</Btn>
       </div>
     </BottomModal>
@@ -2964,7 +2946,7 @@ export default function App() {
         else{ localStorage.removeItem("qb_user"); }
       }
       // Cargar config desde Supabase DESPUÉS de autenticar
-      const {data:cfgData}=await supabase.from("config").select("precios").eq("id","main").single();
+      const {data:cfgData}=await supabase.from("config").select("precios").eq("id","main").maybeSingle();
       if(cfgData?.precios){ const cfg={...DEFAULT_CONFIG,precios:cfgData.precios}; setConfig(cfg); try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){} }
       // Limpiar hash OAuth de la URL si quedó visible
       if(window.location.hash&&window.location.hash.includes("access_token")){
@@ -3318,10 +3300,9 @@ export default function App() {
         onNewPago={()=>{setPagoReservaId(detailReserva.id);setDetailReserva(null);setModal("pago");}}
         onNewExtra={()=>{setExtraReservaId(detailReserva.id);setDetailReserva(null);setModal("extra");}}
       />}
-      {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas} pagos={pagos}
+      {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas}
         onClose={()=>setDetailCliente(null)}
-        onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}}
-        onDelete={()=>handleDeleteCliente(detailCliente.id)} />}
+        onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}} />}
       {currentUser && alertaActiva && <AlertaRecordatorioModal
         alerta={alertaActiva}
         clientes={clientes}
