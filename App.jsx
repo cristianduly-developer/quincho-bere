@@ -416,17 +416,31 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
     fecha: toDateStr(new Date()), metodo:"Transferencia", notas:"",
   });
   const [comprobante, setComprobante] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const handleResChange = (rid) => {
     setF(p=>({...p, reservaId:rid, monto: calcSaldo(rid)}));
   };
-  const handleFile = (e) => {
+  const handleFile = async (e) => {
     const file = e.target.files[0];
     if(!file) return;
     if(file.size > 3*1024*1024) return alert("La imagen no puede superar 3MB.");
-    const reader = new FileReader();
-    reader.onload = (ev) => setComprobante(ev.target.result);
-    reader.readAsDataURL(file);
+    setUploadingFile(true);
+    const ext = file.name.split('.').pop()||'jpg';
+    const fileName = `${genId()}.${ext}`;
+    const { data: upData, error: upErr } = await supabase.storage
+      .from('comprobantes')
+      .upload(fileName, file, { cacheControl:'3600', upsert:false });
+    if(!upErr && upData) {
+      const { data:{ publicUrl } } = supabase.storage.from('comprobantes').getPublicUrl(fileName);
+      setComprobante(publicUrl);
+    } else {
+      // Fallback a base64 si el bucket no existe todavía
+      const reader = new FileReader();
+      reader.onload = ev => setComprobante(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+    setUploadingFile(false);
   };
 
   const resOpts = [{value:"",label:"— Seleccionar reserva —"},
@@ -461,10 +475,10 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
       <TextArea label="Notas" value={f.notas} onChange={v=>setF(p=>({...p,notas:v}))} rows={2} placeholder="Referencia, número de comprobante..." />
       <div style={{marginBottom:14}}>
         <label style={{display:"block",fontSize:11,fontWeight:700,color:"#5C4033",marginBottom:8,textTransform:"uppercase",letterSpacing:0.6}}>📎 Foto del comprobante (opcional)</label>
-        <label style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,cursor:"pointer"}}>
-          <span style={{fontSize:22}}>📷</span>
-          <span style={{fontSize:13,color:"#C4602B",fontWeight:600}}>Sacar foto o elegir imagen</span>
-          <input type="file" accept="image/*" capture="environment" onChange={handleFile} style={{display:"none"}} />
+        <label style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,cursor:uploadingFile?"not-allowed":"pointer",opacity:uploadingFile?0.6:1}}>
+          <span style={{fontSize:22}}>{uploadingFile?"⏳":"📷"}</span>
+          <span style={{fontSize:13,color:"#C4602B",fontWeight:600}}>{uploadingFile?"Subiendo imagen...":"Sacar foto o elegir imagen"}</span>
+          <input type="file" accept="image/*" capture="environment" onChange={handleFile} style={{display:"none"}} disabled={uploadingFile} />
         </label>
         {comprobante && (
           <div style={{marginTop:10,position:"relative"}}>
@@ -769,7 +783,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   );
 }
 
-function ClienteDetail({ cliente, reservas, onClose, onEdit, onDelete }) {
+function ClienteDetail({ cliente, reservas, pagos, onClose, onEdit, onDelete }) {
   const [confirmDeleteCli,setConfirmDeleteCli]=useState(false);
   const cr = reservas.filter(r=>r.clienteId===cliente.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const totalMonto = cr.reduce((s,r)=>s+r.montoPactado,0);
@@ -837,16 +851,24 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onDelete }) {
           <StatusBadge estado={r.estado} />
         </div>
       ))}
-      {confirmDeleteCli&&(
-        <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:10,padding:"12px 16px",marginBottom:10}}>
-          <div style={{fontWeight:700,fontSize:13,color:"#DC2626",marginBottom:6}}>⚠️ ¿Eliminar este cliente?</div>
-          <div style={{fontSize:12,color:"#5C4033",marginBottom:10}}>Se borrará permanentemente del sistema.</div>
-          <div style={{display:"flex",gap:8}}>
-            <Btn small variant="ghost" onClick={()=>setConfirmDeleteCli(false)}>Cancelar</Btn>
-            <Btn small variant="danger" onClick={onDelete}>Sí, eliminar</Btn>
+      {confirmDeleteCli&&(()=>{
+        const resIds=cr.map(r=>r.id);
+        const totalPagosCliente=pagos.filter(p=>resIds.includes(p.reservaId)).reduce((s,p)=>s+p.monto,0);
+        return (
+          <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:10,padding:"12px 16px",marginBottom:10}}>
+            <div style={{fontWeight:700,fontSize:13,color:"#DC2626",marginBottom:6}}>⚠️ ¿Eliminar a {clientName(cliente)}?</div>
+            <div style={{fontSize:12,color:"#5C4033",marginBottom:6}}>Esta acción <strong>no se puede deshacer</strong> y eliminará:</div>
+            <ul style={{fontSize:12,color:"#5C4033",margin:"0 0 10px 16px",padding:0}}>
+              <li>{cr.length} reserva{cr.length!==1?"s":""}</li>
+              {totalPagosCliente>0&&<li>{fmtCurrency(totalPagosCliente)} en cobros registrados</li>}
+            </ul>
+            <div style={{display:"flex",gap:8}}>
+              <Btn small variant="ghost" onClick={()=>setConfirmDeleteCli(false)}>Cancelar</Btn>
+              <Btn small variant="danger" onClick={onDelete}>Sí, eliminar todo</Btn>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}>
         <Btn small variant="secondary" onClick={onEdit}>✏️ Editar</Btn>
         {!confirmDeleteCli&&<Btn small variant="danger" onClick={()=>setConfirmDeleteCli(true)}>🗑️ Eliminar</Btn>}
@@ -2890,6 +2912,22 @@ export default function App() {
   const [bloqueoModal,setBloqueoModal]=useState(null);
   const [loaded,setLoaded]=useState(false);
 
+  // Detectar sesión expirada mientras la app está abierta
+  useEffect(()=>{
+    const { data:{ subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if(event === "SIGNED_OUT") {
+        setCurrentUser(prev => {
+          if(prev) {
+            try{ localStorage.removeItem("qb_user"); }catch(e){}
+            alert("Tu sesión expiró. Por favor, iniciá sesión nuevamente.");
+          }
+          return null;
+        });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   useEffect(()=>{
     (async()=>{
     try {
@@ -3279,7 +3317,7 @@ export default function App() {
         onNewPago={()=>{setPagoReservaId(detailReserva.id);setDetailReserva(null);setModal("pago");}}
         onNewExtra={()=>{setExtraReservaId(detailReserva.id);setDetailReserva(null);setModal("extra");}}
       />}
-      {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas}
+      {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas} pagos={pagos}
         onClose={()=>setDetailCliente(null)}
         onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}}
         onDelete={()=>handleDeleteCliente(detailCliente.id)} />}
