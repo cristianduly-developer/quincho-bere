@@ -63,21 +63,6 @@ const getSaldo        = (res, extrasReserva, pagos) => (res.montoPactado + getTo
 const SUPA_URL = "https://pmohyepcqfvkwijmljee.supabase.co";
 const SUPA_KEY = "sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
 
-async function sbFetch(path, method, body, prefer) {
-  try {
-    const headers = {
-      "apikey": SUPA_KEY,
-      "Authorization": "Bearer " + SUPA_KEY,
-      "Content-Type": "application/json",
-    };
-    if(prefer) headers["Prefer"] = prefer;
-    const opts = { method: method||"GET", headers };
-    if(body) opts.body = JSON.stringify(body);
-    const res = await fetch(SUPA_URL + "/rest/v1/" + path, opts);
-    if(!res.ok){ const e=await res.text(); console.error("SB error:",path,e); return null; }
-    const t=await res.text(); return t?JSON.parse(t):null;
-  } catch(e) { console.error("SB fetch error:",path,e); return null; }
-}
 
 const supabase = createClient(SUPA_URL, SUPA_KEY);
 
@@ -102,6 +87,16 @@ const sb = {
 
 
 
+
+function AccesoDenegado() {
+  return (
+    <div style={{padding:"60px 24px",textAlign:"center",color:"#8B7355"}}>
+      <div style={{fontSize:44,marginBottom:12}}>🔒</div>
+      <div style={{fontWeight:700,fontSize:16,color:"#1C1C1E",marginBottom:8}}>Acceso restringido</div>
+      <div style={{fontSize:13}}>Solo los administradores pueden ver esta sección.</div>
+    </div>
+  );
+}
 
 function LogoSVG({ size=48, color="#C4602B" }) {
   return (
@@ -2875,6 +2870,23 @@ export default function App() {
   useEffect(()=>{
     (async()=>{
     try {
+      // ── PASO 1: verificar auth ANTES de cargar datos ──
+      const { data:{ session } } = await supabase.auth.getSession();
+      var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
+      // Sin sesión válida → limpiar y mostrar login sin cargar datos
+      if(!session?.user || !cu?.email || session.user.email!==cu.email){
+        try{ localStorage.removeItem("qb_user"); }catch(e){}
+        if(session) await supabase.auth.signOut();
+        return; // setLoaded(true) en finally → muestra login
+      }
+      // ── PASO 2: verificar perfil activo en DB ──
+      const {data:cuProfiles}=await supabase.from("perfiles_usuarios").select("*").eq("email",cu.email).eq("activo",true);
+      if(!cuProfiles?.length){
+        localStorage.removeItem("qb_user"); await supabase.auth.signOut(); return;
+      }
+      setCurrentUser({...cu, rol:cuProfiles[0].rol});
+
+      // ── PASO 3: cargar datos (ya autenticado) ──
       const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:er},{data:se},{data:t},{data:u},{data:bl},{data:rec}]=await Promise.all([
         supabase.from("clientes").select("*").order("creado_en",{ascending:true}),
         supabase.from("reservas").select("*").order("creado_en",{ascending:true}),
@@ -2902,18 +2914,6 @@ export default function App() {
       if(perfiles)setPerfilesUsuarios(perfiles);
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
-      // Verificar usuario: requiere sesión activa en Supabase Auth + perfil habilitado
-      const { data:{ session } } = await supabase.auth.getSession();
-      var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
-      if(session?.user && cu?.email && session.user.email===cu.email){
-        const {data:cuProfiles}=await supabase.from("perfiles_usuarios").select("*").eq("email",cu.email).eq("activo",true);
-        if(cuProfiles?.length){ setCurrentUser({...cu,rol:cuProfiles[0].rol}); }
-        else{ localStorage.removeItem("qb_user"); await supabase.auth.signOut(); }
-      } else {
-        // Sin sesión válida → limpiar cualquier dato local stale
-        try{ localStorage.removeItem("qb_user"); }catch(e){}
-        if(session) await supabase.auth.signOut();
-      }
       // Cargar config desde Supabase DESPUÉS de autenticar
       const {data:cfgData}=await supabase.from("config").select("precios").eq("id","main").maybeSingle();
       if(cfgData?.precios){ const cfg={...DEFAULT_CONFIG,precios:cfgData.precios}; setConfig(cfg); try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){} }
@@ -3188,12 +3188,12 @@ export default function App() {
       {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr)=>setDayModal({date:ds,reservas:dr})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} />}
       {tab==="reservas" && <ReservasView reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} />}
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
-      {tab==="gastos" && <GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} />}
+      {tab==="gastos" && (isAdmin ? <GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} /> : <AccesoDenegado />)}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
-      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} />}
+      {tab==="config" && (isAdmin ? <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} /> : <AccesoDenegado />)}
       {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} />}
-      {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
-      {tab==="reportes" && <ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} />}
+      {tab==="usuarios" && (isAdmin ? <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} /> : <AccesoDenegado />)}
+      {tab==="reportes" && (isAdmin ? <ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} /> : <AccesoDenegado />)}
 
       {/* Bottom Tab Bar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
