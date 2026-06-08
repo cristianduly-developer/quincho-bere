@@ -41,13 +41,7 @@ const DEFAULT_CONFIG = {
   },
 };
 
-const DEFAULT_SERVICIOS = [
-  { id: "srv1", descripcion: "Servicio de Limpieza", precioActual: 15000 },
-  { id: "srv2", descripcion: "DJ / Sonido",          precioActual: 30000 },
-  { id: "srv3", descripcion: "Vajilla completa",     precioActual: 8000  },
-  { id: "srv4", descripcion: "Decoración",           precioActual: 20000 },
-  { id: "srv5", descripcion: "Catering",             precioActual: 50000 },
-];
+const DEFAULT_SERVICIOS = []; // servicios vienen siempre desde Supabase
 
 // ─── UTILS ────────────────────────────────────────────────
 
@@ -2912,7 +2906,6 @@ export default function App() {
   const [printData,setPrintData]=useState(null);
   const [ratingQueue,setRatingQueue]=useState([]);
   const [snoozedRatings,setSnoozedRatings]=useState(new Set());
-  const [iaOpen,setIaOpen]=useState(false);
   const lastActivityRef = useRef(Date.now());
   const [checkTick,setCheckTick]=useState(0);
   const [alertaActiva,setAlertaActiva]=useState(null);
@@ -2939,10 +2932,18 @@ export default function App() {
   useEffect(()=>{
     (async()=>{
     try {
-      const [c,r,p,g,rc,er,se,t,u,bl,rec]=await Promise.all([
-        sb.getAll("clientes"),sb.getAll("reservas"),sb.getAll("pagos"),sb.getAll("gastos"),
-        sb.getAll("recursos"),sb.getAll("extras_reserva"),sb.getAll("servicios_extras"),
-        sb.getAll("tareas"),sb.getAll("usuarios"),sb.getAll("bloqueos"),sb.getAll("recordatorios"),
+      const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:er},{data:se},{data:t},{data:u},{data:bl},{data:rec}]=await Promise.all([
+        supabase.from("clientes").select("*").order("creado_en",{ascending:true}),
+        supabase.from("reservas").select("*").order("creado_en",{ascending:true}),
+        supabase.from("pagos").select("*").order("creado_en",{ascending:true}),
+        supabase.from("gastos").select("*").order("creado_en",{ascending:true}),
+        supabase.from("recursos").select("*").order("creado_en",{ascending:true}),
+        supabase.from("extras_reserva").select("*").order("creado_en",{ascending:true}),
+        supabase.from("servicios_extras").select("*").order("creado_en",{ascending:true}),
+        supabase.from("tareas").select("*").order("creado_en",{ascending:true}),
+        supabase.from("usuarios").select("*").order("creado_en",{ascending:true}),
+        supabase.from("bloqueos").select("*").order("creado_en",{ascending:true}),
+        supabase.from("recordatorios").select("*").order("creado_en",{ascending:true}),
       ]);
       if(c&&c.length)setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
       if(r&&r.length)setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"dia",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
@@ -2956,25 +2957,22 @@ export default function App() {
       // Load perfiles_usuarios for Google OAuth users
       const {data:perfiles}=await supabase.from("perfiles_usuarios").select("*").order("creado_en",{ascending:true});
       if(perfiles)setPerfilesUsuarios(perfiles);
-      // Cargar config desde Supabase (fuente de verdad)
-      const {data:cfgData}=await supabase.from("config").select("precios").eq("id","main").single();
-      if(cfgData?.precios){ const cfg={...DEFAULT_CONFIG,precios:cfgData.precios}; setConfig(cfg); try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){} }
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
+      // Verificar usuario primero
       var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
       if(cu?.email){
         const {data:cuProfiles}=await supabase.from("perfiles_usuarios").select("*").eq("email",cu.email).eq("activo",true);
         if(cuProfiles?.length){ setCurrentUser({...cu,rol:cuProfiles[0].rol}); }
         else{ localStorage.removeItem("qb_user"); }
       }
-      // Check OAuth return from Google
-      const hashStr=window.location.hash||"";
-      const searchStr=window.location.search||"";
-      const oauthParams=new URLSearchParams(hashStr.startsWith("#")?hashStr.substring(1):searchStr);
-      const oauthToken=oauthParams.get("access_token");
-      if(oauthToken){localStorage.setItem("qb_access_token",oauthToken);window.history.replaceState(null,"",window.location.pathname);}
-      // Clear token if no user profile saved
-      else if(!localStorage.getItem("qb_user")){localStorage.removeItem("qb_access_token");}
+      // Cargar config desde Supabase DESPUÉS de autenticar
+      const {data:cfgData}=await supabase.from("config").select("precios").eq("id","main").single();
+      if(cfgData?.precios){ const cfg={...DEFAULT_CONFIG,precios:cfgData.precios}; setConfig(cfg); try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){} }
+      // Limpiar hash OAuth de la URL si quedó visible
+      if(window.location.hash&&window.location.hash.includes("access_token")){
+        window.history.replaceState(null,"",window.location.pathname);
+      }
     } catch(e) {
       console.error("Error cargando datos de Supabase:", e);
     } finally {
@@ -2990,7 +2988,7 @@ export default function App() {
     const todayStr=toDateStr(now);
     const curTime=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
     const toClose=reservas.filter(r=>{
-      if(r.estado!=='confirmada'&&r.estado!=='senada') return false;
+      if(!['confirmada','senada','pendiente'].includes(r.estado)) return false;
       if(r.fecha<todayStr) return true;
       if(r.fecha===todayStr&&r.horarioFin&&curTime>=r.horarioFin) return true;
       return false;
@@ -3052,11 +3050,12 @@ export default function App() {
   const saveP =async d=>{const prev=pagos;setPagos(d);const r=await sb.upsert("pagos",d.map(mapPago));if(!r){setPagos(prev);alert("Error al guardar pago. Intentá de nuevo.");}};
   const saveG =async d=>{const prev=gastos;setGastos(d);const r=await sb.upsert("gastos",d.map(mapGasto));if(!r){setGastos(prev);alert("Error al guardar gasto. Intentá de nuevo.");}};
   const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);alert("Error al guardar extra. Intentá de nuevo.");}};
-  const saveTareas=async d=>{setTareas(d);await sb.upsert("tareas",d.map(mapTarea));};
-  const saveBloqueos=async d=>{setBloqueos(d);await sb.upsert("bloqueos",d.map(mapBloqueo));}; // DBService layer
-  const saveRecordatorios=async d=>{setRecordatorios(d);await sb.upsert("recordatorios",d.map(mapRecordatorio));};
+  const saveTareas=async d=>{const prev=tareas;setTareas(d);const r=await sb.upsert("tareas",d.map(mapTarea));if(!r){setTareas(prev);alert("Error al guardar tarea. Intentá de nuevo.");}};
+  const saveBloqueos=async d=>{const prev=bloqueos;setBloqueos(d);const r=await sb.upsert("bloqueos",d.map(mapBloqueo));if(!r){setBloqueos(prev);alert("Error al guardar bloqueo. Intentá de nuevo.");}};
+  const saveRecordatorios=async d=>{const prev=recordatorios;setRecordatorios(d);const r=await sb.upsert("recordatorios",d.map(mapRecordatorio));if(!r){setRecordatorios(prev);alert("Error al guardar recordatorio. Intentá de nuevo.");}};
 
   const [savingReserva,setSavingReserva]=useState(false);
+  const [savingPago,setSavingPago]=useState(false);
   const handleSaveReserva=async(data)=>{
     if(savingReserva) return;
     setSavingReserva(true);
@@ -3078,10 +3077,13 @@ export default function App() {
     else saveC([...clientes,{id:genId(),...data,creadoEn:new Date().toISOString()}]);
     setModal(null);setEditCliente(null);
   };
-  const handleSavePago=(data,shouldPrint)=>{
+  const handleSavePago=async(data,shouldPrint)=>{
+    if(savingPago) return;
+    setSavingPago(true);
+    try{
     const newP={id:genId(),...data,creadoEn:new Date().toISOString(),creadoPor:currentUser?.nombre||""};
     const newPagos=[...pagos,newP];
-    saveP(newPagos);
+    await saveP(newPagos);
     const res=reservas.find(r=>r.id===data.reservaId);
     if(res){
       const tot=newPagos.filter(p=>p.reservaId===data.reservaId).reduce((s,p)=>s+p.monto,0);
@@ -3109,14 +3111,19 @@ export default function App() {
       setPrintData(docData);
     }
     setModal(null);setPagoReservaId(null);
+    }finally{setSavingPago(false);}
   };
   const handleSaveGasto=(data)=>{saveG([...gastos,{id:genId(),...data,creadoEn:new Date().toISOString()}]);setModal(null);};
   const handleSaveExtra=(data)=>{saveER([...extrasReserva,{id:genId(),...data,creadoEn:new Date().toISOString()}]);setModal(null);setExtraReservaId(null);};
   const handleDeleteReserva=async(id)=>{
-    await sb.remove("reservas", id);
-    setReservas(reservas.filter(r=>r.id!==id));
-    setPagos(pagos.filter(p=>p.reservaId!==id));
-    setExtrasReserva(extrasReserva.filter(e=>e.reservaId!==id));
+    const prevReservas=reservas; const prevPagos=pagos; const prevExtras=extrasReserva;
+    const {error}=await supabase.from("reservas").delete().eq("id",id);
+    if(error){ alert("Error al eliminar la reserva. Intentá de nuevo."); return; }
+    await supabase.from("pagos").delete().eq("reserva_id",id);
+    await supabase.from("extras_reserva").delete().eq("reserva_id",id);
+    setReservas(prevReservas.filter(r=>r.id!==id));
+    setPagos(prevPagos.filter(p=>p.reservaId!==id));
+    setExtrasReserva(prevExtras.filter(e=>e.reservaId!==id));
     setDetailReserva(null);
   };
   const handleBloquear=(date,{turno,motivo})=>{
@@ -3135,7 +3142,8 @@ export default function App() {
     setRatingQueue(q=>q.filter(r=>r.id!==reservaId));
   };
   const handleDeleteCliente=async(id)=>{
-    await sb.remove("clientes", id);
+    const {error}=await supabase.from("clientes").delete().eq("id",id);
+    if(error){ alert("Error al eliminar el cliente. Intentá de nuevo."); return; }
     setClientes(clientes.filter(c=>c.id!==id));
     setDetailCliente(null);
   };
