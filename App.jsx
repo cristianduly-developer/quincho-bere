@@ -2938,12 +2938,17 @@ export default function App() {
       if(perfiles)setPerfilesUsuarios(perfiles);
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
-      // Verificar usuario primero
+      // Verificar usuario: requiere sesión activa en Supabase Auth + perfil habilitado
+      const { data:{ session } } = await supabase.auth.getSession();
       var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
-      if(cu?.email){
+      if(session?.user && cu?.email && session.user.email===cu.email){
         const {data:cuProfiles}=await supabase.from("perfiles_usuarios").select("*").eq("email",cu.email).eq("activo",true);
         if(cuProfiles?.length){ setCurrentUser({...cu,rol:cuProfiles[0].rol}); }
-        else{ localStorage.removeItem("qb_user"); }
+        else{ localStorage.removeItem("qb_user"); await supabase.auth.signOut(); }
+      } else {
+        // Sin sesión válida → limpiar cualquier dato local stale
+        try{ localStorage.removeItem("qb_user"); }catch(e){}
+        if(session) await supabase.auth.signOut();
       }
       // Cargar config desde Supabase DESPUÉS de autenticar
       const {data:cfgData}=await supabase.from("config").select("precios").eq("id","main").maybeSingle();
