@@ -2247,7 +2247,6 @@ function ClientesView({ clientes, reservas, onClienteClick, onNewCliente }) {
 }
 
 function GastosView({ gastos, onNewGasto }) {
-  // DEBUG v4
   const nowG = new Date();
   const [filterCat,setFilterCat]=useState("all");
   const [filterYear,setFilterYear]=useState(nowG.getFullYear());
