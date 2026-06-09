@@ -25,12 +25,13 @@ export default defineConfig({
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
+        cacheId: 'qb-v3',
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/pmohyepcqfvkwijmljee\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
-            options: { cacheName: 'supabase-cache', networkTimeoutSeconds: 10 },
+            options: { cacheName: 'supabase-cache-v3', networkTimeoutSeconds: 10 },
           },
         ],
       },
