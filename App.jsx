@@ -1647,6 +1647,7 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
       +"</body></html>";
 
     const w=window.open("","_blank");
+    if(!w){ alert("Tu navegador bloqueó la ventana emergente. Habilitá los pop-ups para este sitio y volvé a intentarlo."); return; }
     w.document.write(html);
     w.document.close();
     setTimeout(()=>w.print(),600);
