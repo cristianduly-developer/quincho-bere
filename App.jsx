@@ -2867,6 +2867,7 @@ export default function App() {
   const [usuarios,setUsuarios]=useState(DEFAULT_USUARIOS);
   const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
   const [currentUser,setCurrentUser]=useState(null);
+  const isAdmin = currentUser?.rol === "Administrador";
   const [tareas,setTareas]=useState([]);
   const [bloqueos,setBloqueos]=useState([]);
   const [recordatorios,setRecordatorios]=useState([]);
