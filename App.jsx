@@ -2831,7 +2831,8 @@ function GoogleLoginScreen({ onLogin }) {
 }
 
 export default function App() {
-  const [tab,setTab]=useState("inicio");
+  const [tab,setTabRaw]=useState("inicio");
+  const setTab = (t) => { setTabRaw(t); window.scrollTo(0,0); };
   const [sideOpen,setSideOpen]=useState(false);
   const [modal,setModal]=useState(null);
   const [selectedClientId,setSelectedClientId]=useState(null);
