@@ -1,6 +1,25 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Component } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from "recharts";
+
+// ─── ERROR BOUNDARY ───────────────────────────────────────
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(e) { return { error: e }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{padding:"40px 24px",textAlign:"center",color:"#DC2626"}}>
+          <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
+          <div style={{fontWeight:700,fontSize:15,marginBottom:8}}>Error en esta sección</div>
+          <div style={{fontSize:12,color:"#8B7355",wordBreak:"break-word",background:"#FDF8F3",padding:"12px",borderRadius:8,textAlign:"left",marginTop:8}}>
+            {String(this.state.error?.message || this.state.error)}
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ─── CONSTANTS ────────────────────────────────────────────
 
@@ -3197,12 +3216,12 @@ export default function App() {
       {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr)=>setDayModal({date:ds,reservas:dr})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} />}
       {tab==="reservas" && <ReservasView reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} />}
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
-      {tab==="gastos" && (isAdmin ? <GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} /> : <AccesoDenegado />)}
+      {tab==="gastos" && (isAdmin ? <ErrorBoundary><GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} /></ErrorBoundary> : <AccesoDenegado />)}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
       {tab==="config" && (isAdmin ? <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} /> : <AccesoDenegado />)}
       {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} />}
       {tab==="usuarios" && (isAdmin ? <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} /> : <AccesoDenegado />)}
-      {tab==="reportes" && (isAdmin ? <ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} /> : <AccesoDenegado />)}
+      {tab==="reportes" && (isAdmin ? <ErrorBoundary><ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} /></ErrorBoundary> : <AccesoDenegado />)}
 
       {/* Bottom Tab Bar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
