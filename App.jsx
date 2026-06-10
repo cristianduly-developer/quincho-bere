@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Component } from "react";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
 
 // ─── ERROR BOUNDARY ───────────────────────────────────────
 class ErrorBoundary extends Component {
