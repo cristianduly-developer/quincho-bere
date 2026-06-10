@@ -2994,24 +2994,36 @@ export default function App() {
   // Interval: re-check every 60 seconds
   useEffect(()=>{
     if(!loaded) return;
-    // Track user activity
+    const INACTIVITY_MS = 30*60*1000;
     const updateActivity = () => { lastActivityRef.current = Date.now(); };
     window.addEventListener('click', updateActivity);
     window.addEventListener('touchstart', updateActivity);
     window.addEventListener('keydown', updateActivity);
 
+    // Chequear al volver de background (mobile/tab suspendida)
+    const onVisible = () => {
+      if(document.visibilityState === 'visible') {
+        if(Date.now() - lastActivityRef.current > INACTIVITY_MS) {
+          handleLogout();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    // Chequeo periódico como fallback (cuando la tab está activa)
     const interval=setInterval(()=>{
       setCheckTick(t=>t+1);
-      // Auto-logout after 30 min of inactivity
-      if(Date.now() - lastActivityRef.current > 30*60*1000) {
+      if(Date.now() - lastActivityRef.current > INACTIVITY_MS) {
         handleLogout();
       }
     }, 60000);
+
     return ()=>{
       clearInterval(interval);
       window.removeEventListener('click', updateActivity);
       window.removeEventListener('touchstart', updateActivity);
       window.removeEventListener('keydown', updateActivity);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   },[loaded]);
 
