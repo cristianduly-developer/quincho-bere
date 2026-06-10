@@ -163,31 +163,31 @@ function printReserva(reserva,cliente,recurso,resExtras,resPagos){
   var tp=resPagos.reduce(function(s,p){return s+p.monto;},0);
   var saldo=(reserva.montoPactado+te)-tp;
   var hdr=pDiv('hdr',pDiv('',pDiv('logo','El Quincho de Bere ✓')+pDiv('sub','Ficha de Evento'))+'<div>ID: '+reserva.id.slice(-8).toUpperCase()+'</div>');
-  var body=hdr+pH2('Cliente')+pRow('Nombre',clientName(cliente));
-  if(cliente&&cliente.whatsapp)body+=pRow('WhatsApp',cliente.whatsapp);
-  if(cliente&&cliente.email)body+=pRow('Email',cliente.email);
-  if(cliente&&cliente.localidad)body+=pRow('Localidad',cliente.localidad);
+  var body=hdr+pH2('Cliente')+pRow('Nombre',escHtml(clientName(cliente)));
+  if(cliente&&cliente.whatsapp)body+=pRow('WhatsApp',escHtml(cliente.whatsapp));
+  if(cliente&&cliente.email)body+=pRow('Email',escHtml(cliente.email));
+  if(cliente&&cliente.localidad)body+=pRow('Localidad',escHtml(cliente.localidad));
   body+=pH2('Evento')+pRow('Fecha',fmtDate(reserva.fecha));
-  if(TURNOS[reserva.turno])body+=pRow('Turno',TURNOS[reserva.turno].label);
-  if(reserva.horario)body+=pRow('Inicio',reserva.horario+' hs');
-  if(reserva.horarioFin)body+=pRow('Fin',reserva.horarioFin+' hs');
+  if(TURNOS[reserva.turno])body+=pRow('Turno',escHtml(TURNOS[reserva.turno].label));
+  if(reserva.horario)body+=pRow('Inicio',escHtml(reserva.horario)+' hs');
+  if(reserva.horarioFin)body+=pRow('Fin',escHtml(reserva.horarioFin)+' hs');
   if(reserva.cantInvitados>0)body+=pRow('Invitados',reserva.cantInvitados+' personas');
-  if(recurso)body+=pRow('Espacio',recurso.nombre);
-  if(reserva.notas)body+=pRow('Notas',reserva.notas);
-  if(resExtras.length>0){body+=pH2('Extras');resExtras.forEach(function(e){body+=pRow(e.descripcion+' x'+e.cantidad,fmtCurrency(e.cantidad*e.precioHistorico));});}
+  if(recurso)body+=pRow('Espacio',escHtml(recurso.nombre));
+  if(reserva.notas)body+=pRow('Notas',escHtml(reserva.notas));
+  if(resExtras.length>0){body+=pH2('Extras');resExtras.forEach(function(e){body+=pRow(escHtml(e.descripcion)+' x'+e.cantidad,fmtCurrency(e.cantidad*e.precioHistorico));});}
   body+=pH2('Resumen')+pRow('Monto pactado',fmtCurrency(reserva.montoPactado));
   if(te>0)body+=pRow('+ Extras',fmtCurrency(te));
   body+=pRow('Total',fmtCurrency(reserva.montoPactado+te))+pRow('Cobrado',fmtCurrency(tp),'pos')+'<div class="total"><span>'+(saldo>0?'Saldo pendiente':'Pagado')+'</span><span class="'+(saldo>0?'neg':'pos')+'">'+fmtCurrency(Math.abs(saldo))+'</span></div>';
-  if(resPagos.length>0){body+=pH2('Cobros');resPagos.forEach(function(p){body+=pRow(fmtDate(p.fecha)+' - '+p.metodo,'+'+fmtCurrency(p.monto),'pos');});}
-  return buildDoc('Ficha '+clientName(cliente),body);
+  if(resPagos.length>0){body+=pH2('Cobros');resPagos.forEach(function(p){body+=pRow(fmtDate(p.fecha)+' - '+escHtml(p.metodo),'+'+fmtCurrency(p.monto),'pos');});}
+  return buildDoc('Ficha '+escHtml(clientName(cliente)),body);
 }
 
 function printRecibo(pago,reserva,cliente){
   var hdr=pDiv('hdr',pDiv('',pDiv('logo','El Quincho de Bere')+pDiv('sub','Comprobante de Pago'))+'<div><b>N '+pago.id.slice(-6).toUpperCase()+'</b><br>'+new Date().toLocaleDateString('es-AR')+'</div>');
-  var texto='Recibi de '+clientName(cliente)+' la suma de '+fmtCurrency(pago.monto)+' en concepto de pago para la reserva del dia '+fmtDate(reserva?reserva.fecha:'-')+' en el Quincho de Bere. Metodo: '+pago.metodo+'.';
-  if(pago.notas)texto+=' Ref: '+pago.notas;
+  var texto='Recibi de '+escHtml(clientName(cliente))+' la suma de '+fmtCurrency(pago.monto)+' en concepto de pago para la reserva del dia '+fmtDate(reserva?reserva.fecha:'-')+' en el Quincho de Bere. Metodo: '+escHtml(pago.metodo)+'.';
+  if(pago.notas)texto+=' Ref: '+escHtml(pago.notas);
   var firma=pDiv('firma',pDiv('fitem',pDiv('fline','Firma prestador'))+pDiv('fitem',pDiv('fline','Conformidad cliente')));
-  return buildDoc('Recibo '+clientName(cliente),hdr+pDiv('box',texto)+pH2('Detalle')+pRow('Cliente',clientName(cliente))+pRow('Monto',fmtCurrency(pago.monto),'pos')+pRow('Metodo',pago.metodo)+pRow('Fecha',fmtDate(pago.fecha))+firma);
+  return buildDoc('Recibo '+escHtml(clientName(cliente)),hdr+pDiv('box',texto)+pH2('Detalle')+pRow('Cliente',escHtml(clientName(cliente)))+pRow('Monto',fmtCurrency(pago.monto),'pos')+pRow('Metodo',escHtml(pago.metodo))+pRow('Fecha',fmtDate(pago.fecha))+firma);
 }
 
 function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,porCobrar){
@@ -2851,6 +2851,8 @@ export default function App() {
   const [ratingQueue,setRatingQueue]=useState([]);
   const [snoozedRatings,setSnoozedRatings]=useState(new Set());
   const lastActivityRef = useRef(Date.now());
+  const reservasRef = useRef([]);
+  const recordatoriosRef = useRef([]);
   const [checkTick,setCheckTick]=useState(0);
   const [alertaActiva,setAlertaActiva]=useState(null);
   const [shownAlerts,setShownAlerts]=useState(new Set());
@@ -2939,7 +2941,7 @@ export default function App() {
       if(er&&er.length)setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
       setServiciosExtras(se&&se.length?se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})):[]);
       if(t&&t.length)setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
-      if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",pin:x.pin||"",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
+      if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
       // Load perfiles_usuarios solo para admins (contiene emails de todos los usuarios)
       if(cuProfiles[0].rol==="Administrador"){
         const {data:perfiles}=await supabase.from("perfiles_usuarios").select("*").order("creado_en",{ascending:true});
@@ -2962,21 +2964,28 @@ export default function App() {
     })();
   },[]);
 
+  // Mantener refs actualizados para el effect de auto-cierre (evita dependencias circulares)
+  useEffect(()=>{ reservasRef.current = reservas; }, [reservas]);
+  useEffect(()=>{ recordatoriosRef.current = recordatorios; }, [recordatorios]);
+
   // Auto-close events + detect unrated (runs on load + every minute)
+  // Usa refs en lugar de estado directo para evitar loop: saveR → reservas cambia → effect re-corre → saveR → ...
   useEffect(()=>{
     if(!loaded) return;
     const now=new Date();
     const todayStr=toDateStr(now);
     const curTime=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-    const toClose=reservas.filter(r=>{
+    const res=reservasRef.current;
+    const recs=recordatoriosRef.current;
+    const toClose=res.filter(r=>{
       if(!['confirmada','senada','pendiente'].includes(r.estado)) return false;
       if(r.fecha<todayStr) return true;
       if(r.fecha===todayStr&&r.horarioFin&&curTime>=r.horarioFin) return true;
       return false;
     });
-    var current=reservas;
+    var current=res;
     if(toClose.length>0){
-      current=reservas.map(r=>toClose.some(x=>x.id===r.id)?{...r,estado:'finalizada'}:r);
+      current=res.map(r=>toClose.some(x=>x.id===r.id)?{...r,estado:'finalizada'}:r);
       saveR(current);
     }
     const needsRating=current.filter(r=>r.estado==='finalizada'&&!r.calificacion&&r.clienteId&&!snoozedRatings.has(r.id));
@@ -2985,14 +2994,14 @@ export default function App() {
     const now2=new Date();
     const today2=toDateStr(now2);
     const curT=String(now2.getHours()).padStart(2,'0')+':'+String(now2.getMinutes()).padStart(2,'0');
-    const due=recordatorios.find(r=>
+    const due=recs.find(r=>
       r.estado==='Pendiente'&&
       r.fechaAlerta===today2&&
       r.horaAlerta<=curT&&
       !shownAlerts.has(r.id)
     );
     if(due) setAlertaActiva(due);
-  },[loaded,checkTick,reservas,recordatorios]);
+  },[loaded,checkTick]);
 
   // Interval: re-check every 60 seconds
   useEffect(()=>{
@@ -3117,7 +3126,11 @@ export default function App() {
     }finally{setSavingPago(false);}
   };
   const handleSaveGasto=(data)=>{saveG([...gastos,{id:genId(),...data,creadoEn:new Date().toISOString()}]);setModal(null);};
-  const handleSaveExtra=(data)=>{saveER([...extrasReserva,{id:genId(),...data,creadoEn:new Date().toISOString()}]);setModal(null);setExtraReservaId(null);};
+  const handleSaveExtra=(data)=>{
+    const res=reservas.find(r=>r.id===data.reservaId);
+    if(res&&['cancelada','finalizada'].includes(res.estado)){alert("No se puede agregar un extra a una reserva "+res.estado+".");return;}
+    saveER([...extrasReserva,{id:genId(),...data,creadoEn:new Date().toISOString()}]);setModal(null);setExtraReservaId(null);
+  };
   const handleDeleteReserva=async(id)=>{
     const prevReservas=reservas; const prevPagos=pagos; const prevExtras=extrasReserva;
     const {error}=await supabase.from("reservas").delete().eq("id",id);
