@@ -440,8 +440,11 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
     const file = e.target.files[0];
     if(!file) return;
     if(file.size > 3*1024*1024) return alert("La imagen no puede superar 3MB.");
+    const ALLOWED_TYPES = ["image/jpeg","image/png","image/webp","image/gif","application/pdf"];
+    if(!ALLOWED_TYPES.includes(file.type)) return alert("Solo se permiten imágenes (JPG, PNG, WEBP) o PDF.");
     setUploadingFile(true);
-    const ext = file.name.split('.').pop()||'jpg';
+    const EXT_MAP = {"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif","application/pdf":"pdf"};
+    const ext = EXT_MAP[file.type] || 'jpg';
     const fileName = `${genId()}.${ext}`;
     const { data: upData, error: upErr } = await supabase.storage
       .from('comprobantes')
@@ -2929,7 +2932,7 @@ export default function App() {
         supabase.from("extras_reserva").select("*").order("creado_en",{ascending:true}),
         supabase.from("servicios_extras").select("*").order("creado_en",{ascending:true}),
         supabase.from("tareas").select("*").order("creado_en",{ascending:true}),
-        supabase.from("usuarios").select("*").order("creado_en",{ascending:true}),
+        cuProfiles[0].rol==="Administrador" ? supabase.from("usuarios").select("*").order("creado_en",{ascending:true}) : Promise.resolve({data:[]}),
         supabase.from("bloqueos").select("*").order("creado_en",{ascending:true}),
         supabase.from("recordatorios").select("*").order("creado_en",{ascending:true}),
       ]);
@@ -3091,6 +3094,8 @@ export default function App() {
   };
   const handleSavePago=async(data,shouldPrint)=>{
     if(savingPago) return;
+    const resCheck=reservas.find(r=>r.id===data.reservaId);
+    if(resCheck&&['cancelada','finalizada'].includes(resCheck.estado)){alert("No se puede registrar un pago en una reserva "+resCheck.estado+".");return;}
     setSavingPago(true);
     try{
     const newP={id:genId(),...data,creadoEn:new Date().toISOString(),creadoPor:currentUser?.nombre||""};
