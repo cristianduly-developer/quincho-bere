@@ -2766,9 +2766,9 @@ function GoogleLoginScreen({ onLogin }) {
   const handleUser = async (authUser) => {
     try {
       const email = authUser.email;
-      const { data: profiles } = await supabase.from("perfiles_usuarios").select("*").eq("email", email);
+      const { data: profiles } = await supabase.from("perfiles_usuarios").select("*").eq("email", email).eq("activo", true);
       if(!profiles || profiles.length===0) {
-        setError("Tu cuenta no está autorizada. Contactá al administrador.");
+        setError("Tu cuenta no está autorizada o fue deshabilitada. Contactá al administrador.");
         setLoading(false);
         await supabase.auth.signOut();
         return;
