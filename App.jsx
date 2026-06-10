@@ -64,7 +64,8 @@ const DEFAULT_SERVICIOS = []; // servicios vienen siempre desde Supabase
 
 // ─── UTILS ────────────────────────────────────────────────
 
-const genId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+const genId = () => crypto.randomUUID();
+const escHtml = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const fmtCurrency = (n = 0) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
 const fmtDate = (d) => { if (!d) return "—"; const [y, m, day] = d.split("-"); return `${day}/${m}/${y}`; };
 const toDateStr = (date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
@@ -1619,9 +1620,9 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
       const saldo=Math.max(0,r.montoPactado-tp);
       const extrasR=extrasReserva.filter(e=>e.reservaId===r.id).map(e=>e.descripcion+(e.cantidad>1?" x"+e.cantidad:"")).join(", ")||"—";
       return "<tr><td>"+fmtDate(r.fecha)+"</td>"
-        +"<td><b>"+(c?c.nombre+" "+c.apellido:"—")+"</b><br><small style=\"color:#8B7355\">"+(c?.whatsapp||"")+"</small></td>"
-        +"<td>"+(TURNOS[r.turno]?.label||r.turno)+"</td>"
-        +"<td style=\"font-size:10px\">"+extrasR+"</td>"
+        +"<td><b>"+(c?escHtml(c.nombre)+" "+escHtml(c.apellido):"—")+"</b><br><small style=\"color:#8B7355\">"+escHtml(c?.whatsapp||"")+"</small></td>"
+        +"<td>"+escHtml(TURNOS[r.turno]?.label||r.turno)+"</td>"
+        +"<td style=\"font-size:10px\">"+escHtml(extrasR)+"</td>"
         +"<td>"+fmt(r.montoPactado)+"</td>"
         +"<td>"+fmt(tp)+"</td>"
         +"<td style=\"color:"+(saldo>0?"#DC2626":"#16A34A")+"\">"+fmt(saldo)+"</td></tr>";
@@ -2939,9 +2940,11 @@ export default function App() {
       setServiciosExtras(se&&se.length?se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})):[]);
       if(t&&t.length)setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
       if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",pin:x.pin||"",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
-      // Load perfiles_usuarios for Google OAuth users
-      const {data:perfiles}=await supabase.from("perfiles_usuarios").select("*").order("creado_en",{ascending:true});
-      if(perfiles)setPerfilesUsuarios(perfiles);
+      // Load perfiles_usuarios solo para admins (contiene emails de todos los usuarios)
+      if(cuProfiles[0].rol==="Administrador"){
+        const {data:perfiles}=await supabase.from("perfiles_usuarios").select("*").order("creado_en",{ascending:true});
+        if(perfiles)setPerfilesUsuarios(perfiles);
+      }
       if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
       // Cargar config desde Supabase DESPUÉS de autenticar
@@ -3061,7 +3064,7 @@ export default function App() {
     setSavingReserva(true);
     try{
       if(!editReserva){
-        const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id").eq("fecha",data.fecha).neq("estado","cancelada");
+        const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id,turno").eq("fecha",data.fecha).neq("estado","cancelada");
         const conflict=dbConflicts?.find(r=>r.turno===data.turno||r.turno==="completo"||data.turno==="completo");
         if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);return alert("Conflicto: ya existe una reserva de "+clientName(c)+" en ese dia y turno.");}
         const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turno||b.turno==="completo"||data.turno==="completo"));
@@ -3119,8 +3122,11 @@ export default function App() {
     const prevReservas=reservas; const prevPagos=pagos; const prevExtras=extrasReserva;
     const {error}=await supabase.from("reservas").delete().eq("id",id);
     if(error){ alert("Error al eliminar la reserva. Intentá de nuevo."); return; }
-    await supabase.from("pagos").delete().eq("reserva_id",id);
-    await supabase.from("extras_reserva").delete().eq("reserva_id",id);
+    const [{error:ep},{error:ee}]=await Promise.all([
+      supabase.from("pagos").delete().eq("reserva_id",id),
+      supabase.from("extras_reserva").delete().eq("reserva_id",id),
+    ]);
+    if(ep||ee) console.error("Error limpiando datos asociados a reserva eliminada",ep||ee);
     setReservas(prevReservas.filter(r=>r.id!==id));
     setPagos(prevPagos.filter(p=>p.reservaId!==id));
     setExtrasReserva(prevExtras.filter(e=>e.reservaId!==id));
@@ -3269,7 +3275,7 @@ export default function App() {
         pagos={pagos}
         extrasReserva={extrasReserva}
         serviciosExtras={serviciosExtras}
-        canModifyCaja={currentUser?.modificarCaja !== false}
+        canModifyCaja={isAdmin || currentUser?.modificarCaja === true}
         onShowPDF={setPrintData}
         onClose={()=>setDetailReserva(null)}
         onEdit={(overrideData)=>{
@@ -3282,7 +3288,7 @@ export default function App() {
           }
         }}
         onDelete={()=>handleDeleteReserva(detailReserva.id)}
-        onCancel={currentUser?.modificarCaja!==false ? (withRefund)=>{
+        onCancel={(isAdmin || currentUser?.modificarCaja===true) ? (withRefund)=>{
           if(withRefund){
             const hp=pagos.filter(p=>p.reservaId===detailReserva.id).reduce((s,p)=>s+p.monto,0);
             var c2=clientes.find(x=>x.id===detailReserva.clienteId);
