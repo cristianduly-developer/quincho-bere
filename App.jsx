@@ -987,7 +987,7 @@ function EditPagoModal({ pago, onClose, onSave }) {
 function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueo, onBloquear, canBloquear, turnosRecurso, espacioFiltro }) {
   // Abre directo en reserva; si hay bloqueo abre en modo bloqueo
   const [mode, setMode] = useState(bloqueo ? "bloqueo" : "reserva");
-  const [bTurno, setBTurno] = useState("completo");
+  const [bTurno, setBTurno] = useState(usaTurnosCustom&&!modoAgenda&&turnosDelEspacio[0]?.id ? turnosDelEspacio[0].id : "completo");
   const [bMotivo, setBMotivo] = useState("");
   const [confirmUnblock, setConfirmUnblock] = useState(false);
 
@@ -1246,18 +1246,52 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
             /* Nuevo bloqueo */
             <div>
               <div style={{...lbl, marginBottom:10}}>Alcance del bloqueo</div>
-              <div style={{display:"flex",gap:0,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0",marginBottom:14}}>
-                {Object.entries(TURNOS).map(([k,v]) => (
-                  <button key={k} onClick={()=>setBTurno(k)} style={{
-                    flex:1,padding:"9px 4px",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",
-                    fontFamily:"inherit",textAlign:"center",
-                    background:bTurno===k?"#374151":"#FDF8F3",
-                    color:bTurno===k?"#FFF":"#374151",
-                  }}>
-                    {v.icon}<div style={{fontSize:9,marginTop:2}}>{v.label}</div>
+
+              {usaTurnosCustom ? (
+                /* Turnos del espacio + opción día completo */
+                <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+                  {/* Día completo siempre disponible */}
+                  <button onClick={()=>setBTurno("completo")}
+                    style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:8,border:`1.5px solid ${bTurno==="completo"?"#374151":"#EDE0D0"}`,background:bTurno==="completo"?"#1F2937":"#FDF8F3",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                    <span style={{fontSize:20}}>🚫</span>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13,color:bTurno==="completo"?"#FFF":"#1C1C1E"}}>Día completo</div>
+                      <div style={{fontSize:11,color:bTurno==="completo"?"#9CA3AF":"#8B7355"}}>Bloquea todos los turnos del día</div>
+                    </div>
                   </button>
-                ))}
-              </div>
+                  {/* Turnos individuales (solo modo fijo ≤4, no tiene sentido bloquear slots sueltos en cancha) */}
+                  {!modoAgenda && turnosDelEspacio.map(t=>{
+                    const sel = bTurno===t.id;
+                    const h = parseInt((t.horaInicio||"12").split(":")[0]);
+                    const icon = h<12?"☀️":h<18?"🌤️":h<21?"🌆":"🌙";
+                    return (
+                      <button key={t.id} onClick={()=>setBTurno(t.id)}
+                        style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:8,border:`1.5px solid ${sel?"#374151":"#EDE0D0"}`,background:sel?"#1F2937":"#FDF8F3",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                        <span style={{fontSize:20}}>{icon}</span>
+                        <div>
+                          <div style={{fontWeight:700,fontSize:13,color:sel?"#FFF":"#1C1C1E"}}>{t.nombre}</div>
+                          <div style={{fontSize:11,color:sel?"#9CA3AF":"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Turnos genéricos */
+                <div style={{display:"flex",gap:0,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0",marginBottom:14}}>
+                  {Object.entries(TURNOS).map(([k,v]) => (
+                    <button key={k} onClick={()=>setBTurno(k)} style={{
+                      flex:1,padding:"9px 4px",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",
+                      fontFamily:"inherit",textAlign:"center",
+                      background:bTurno===k?"#374151":"#FDF8F3",
+                      color:bTurno===k?"#FFF":"#374151",
+                    }}>
+                      {v.icon}<div style={{fontSize:9,marginTop:2}}>{v.label}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div style={{marginBottom:16}}>
                 <div style={{...lbl, marginBottom:6}}>Motivo del bloqueo *</div>
                 <input value={bMotivo} onChange={e=>setBMotivo(e.target.value)}
