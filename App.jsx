@@ -345,9 +345,11 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     return esFinde(fecha) ? (t.precioFinde||"") : (t.precioSemana||"");
   };
 
-  const initRecursoId = reserva?.recursoId || recursos[0]?.id || "";
+  // Si initialTurno es un UUID de turno custom, detectar el espacio automáticamente
+  const turnoDeInitial = initialTurno ? (turnosRecurso||[]).find(t=>t.id===initialTurno) : null;
+  const initRecursoId = reserva?.recursoId || turnoDeInitial?.recursoId || recursos[0]?.id || "";
   const initTurnosEspacio = getTurnosEspacio(initRecursoId);
-  const initTurnoId = reserva?.turnoId || (initTurnosEspacio[0]?.id) || reserva?.turno || initialTurno || "";
+  const initTurnoId = reserva?.turnoId || initialTurno || (initTurnosEspacio[0]?.id) || "";
 
   const getInitMonto = () => {
     if(reserva?.montoPactado) return reserva.montoPactado;
@@ -1132,59 +1134,58 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
               {turnosDelEspacio.map(t=>{
                 const busy = isOccCustom(t.id);
                 const res = dayRes.find(r=>r.turnoId===t.id);
-                const isDayBloqueado = !!bloqueo && bloqueo.turno==="completo";
-                const finalBusy = busy || isDayBloqueado;
+                const bloqueado = isSlotBloqueado(t.id); // incluye bloqueo completo Y por slot
+                const finalBusy = busy || bloqueado;
                 const esFinde = (()=>{try{const d=new Date(date+"T12:00:00");const dow=d.getDay();return dow===0||dow===6;}catch(e){return false;}})();
                 const precio = esFinde ? t.precioFinde : t.precioSemana;
 
                 if(modoAgenda) {
-                  // Vista agenda compacta — una fila por slot
                   const cli = res ? clientes.find(c=>c.id===res.clienteId) : null;
                   return (
                     <button key={t.id}
                       onClick={()=>{ if(busy&&res){onReservaClick(res);onClose();}else if(!finalBusy){onNewReserva(date,t.id,t);onClose();} }}
                       style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderRadius:7,
-                        border:`1px solid ${finalBusy?"#FECACA":"#EDE0D0"}`,
-                        background:isDayBloqueado?"#1F2937":busy?"#FEF2F2":"#FFF",
+                        border:`1px solid ${bloqueado?"#374151":busy?"#FECACA":"#EDE0D0"}`,
+                        background:bloqueado?"#1F2937":busy?"#FEF2F2":"#FFF",
                         cursor:(busy&&res)||!finalBusy?"pointer":"default",fontFamily:"inherit",textAlign:"left"}}>
-                      <div style={{fontSize:11,fontWeight:700,color:"#8B7355",width:90,flexShrink:0}}>{t.horaInicio} – {t.horaFin}</div>
+                      <div style={{fontSize:11,fontWeight:700,color:bloqueado?"#9CA3AF":"#8B7355",width:90,flexShrink:0}}>{t.horaInicio} – {t.horaFin}</div>
                       {busy ? (
                         <div style={{flex:1,fontSize:12,fontWeight:700,color:"#DC2626"}}>{cli?clientName(cli):"🔴 Ocupado"}</div>
-                      ) : isDayBloqueado ? (
+                      ) : bloqueado ? (
                         <div style={{flex:1,fontSize:12,color:"#6B7280"}}>🚫 Bloqueado</div>
                       ) : (
                         <div style={{flex:1,fontSize:12,color:"#16A34A",fontWeight:600}}>✅ Disponible</div>
                       )}
-                      <div style={{fontSize:11,color:busy?"#DC2626":"#C4602B",fontWeight:700,flexShrink:0}}>{fmtCurrency(precio||0)}</div>
+                      <div style={{fontSize:11,color:busy?"#DC2626":bloqueado?"#6B7280":"#C4602B",fontWeight:700,flexShrink:0}}>{fmtCurrency(precio||0)}</div>
                     </button>
                   );
                 }
 
-                // Vista botones grandes (≤4 turnos — quincho, salón) — igual al estilo original
+                // Vista botones grandes (≤4 turnos)
                 const cli = res ? clientes.find(c=>c.id===res.clienteId) : null;
                 const h = parseInt((t.horaInicio||"12").split(":")[0]);
-                const icon = isDayBloqueado?"🚫":busy?"🔒":h<12?"☀️":h<18?"🌤️":h<21?"🌆":"🌙";
-                const bgColor = isDayBloqueado?"#1F2937":busy?"#F3F4F6":"#FFF8F5";
-                const borderColor = isDayBloqueado?"#374151":busy?"#E5E7EB":"#C4602B66";
-                const textColor = isDayBloqueado?"#6B7280":busy?"#9CA3AF":"#1C1C1E";
+                const icon = bloqueado?"🚫":busy?"🔒":h<12?"☀️":h<18?"🌤️":h<21?"🌆":"🌙";
+                const bgColor = bloqueado?"#1F2937":busy?"#F3F4F6":"#FFF8F5";
+                const borderColor = bloqueado?"#374151":busy?"#E5E7EB":"#C4602B66";
+                const textColor = bloqueado?"#6B7280":busy?"#9CA3AF":"#1C1C1E";
                 return (
                   <button key={t.id}
                     onClick={()=>{ if(busy&&res){onReservaClick(res);onClose();}else if(!finalBusy){onNewReserva(date,t.id,t);onClose();} }}
-                    disabled={isDayBloqueado}
+                    disabled={bloqueado}
                     style={{flex:"1 1 calc(33% - 8px)",minWidth:80,padding:"14px 8px",borderRadius:10,
-                      fontSize:13,fontWeight:600,cursor:isDayBloqueado?"not-allowed":busy?"pointer":"pointer",
+                      fontSize:13,fontWeight:600,cursor:bloqueado?"not-allowed":"pointer",
                       background:bgColor,color:textColor,
                       border:`1.5px solid ${borderColor}`,
                       fontFamily:"inherit",textAlign:"center",
-                      opacity:isDayBloqueado?0.6:1}}>
+                      opacity:bloqueado?0.6:1}}>
                     <div style={{fontSize:24,marginBottom:4}}>{icon}</div>
                     <div style={{fontWeight:700,fontSize:12}}>{t.nombre}</div>
                     <div style={{fontSize:10,color:busy?"#9CA3AF":"#8B7355",marginTop:2}}>{t.horaInicio}–{t.horaFin}</div>
                     {busy ? (
-                      <div style={{marginTop:4,fontSize:10,fontWeight:700,color:"#DC2626"}}>
-                        {cli ? clientName(cli) : "Ocupado"}
-                      </div>
-                    ) : !isDayBloqueado && (
+                      <div style={{marginTop:4,fontSize:10,fontWeight:700,color:"#DC2626"}}>{cli?clientName(cli):"Ocupado"}</div>
+                    ) : bloqueado ? (
+                      <div style={{marginTop:4,fontSize:10,color:"#6B7280"}}>Bloqueado</div>
+                    ) : (
                       <div style={{marginTop:4,fontSize:10,fontWeight:700,color:"#C4602B"}}>{fmtCurrency(precio||0)}</div>
                     )}
                   </button>
@@ -1872,7 +1873,7 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
                   return (
                     <div key={`${year}-${month}-${day}-${ri}`} style={{flex:1,background:cellBg,display:"flex",alignItems:"center",gap:2,padding:"1px 3px",borderRadius:3,marginBottom:1}}>
                       <div style={{fontSize:10,lineHeight:1}}>{t?t.icon:"📌"}</div>
-                      <div style={{fontSize:8,fontWeight:800,color:"#FFF",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{turnoCustom?turnoCustom.nombre:ini}</div>
+                      <div style={{fontSize:8,fontWeight:800,color:"#FFF",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{turnoCustom?(turnoCustom.nombre.length>7?turnoCustom.horaInicio:turnoCustom.nombre):ini}</div>
                     </div>
                   );
                 })
@@ -2825,8 +2826,13 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
   };
 
   const cambiarModo = async (nuevoModo) => {
+    if(nuevoModo===modo) return;
+    if(turnos.length>0 && !window.confirm(`Al cambiar de modo se desactivarán los ${turnos.length} turnos actuales. ¿Continuar?`)) return;
     setModo(nuevoModo);
     await supabase.from("recursos").update({modo:nuevoModo}).eq("id",espacio.id);
+    await supabase.from("turnos_recurso").update({activo:false}).eq("recurso_id",espacio.id);
+    setTurnos([]);
+    if(onTurnosChange) onTurnosChange(espacio.id, []);
   };
 
   return (
