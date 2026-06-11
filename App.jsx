@@ -60,7 +60,17 @@ const DEFAULT_CONFIG = {
   },
 };
 
-const DEFAULT_SERVICIOS = []; // servicios vienen siempre desde Supabase
+const DEFAULT_SERVICIOS = [];
+
+// ─── PLAN LIMITS ─────────────────────────────────────────
+const PLAN_LIMITS = {
+  basico:       { reservasMes: 50,  colaboradores: 0, espacios: 1, recordatorios: false, serviciosExtras: false },
+  profesional:  { reservasMes: 100, colaboradores: 1, espacios: 3, recordatorios: true,  serviciosExtras: true  },
+  premium:      { reservasMes: null,colaboradores: 3, espacios: 5, recordatorios: true,  serviciosExtras: true  },
+  sincargo:     { reservasMes: null,colaboradores: 3, espacios: 5, recordatorios: true,  serviciosExtras: true  },
+  demo:         { reservasMes: 100, colaboradores: 1, espacios: 3, recordatorios: true,  serviciosExtras: true  },
+};
+const getPlanLimits = (plan) => PLAN_LIMITS[plan] || PLAN_LIMITS.basico;
 
 // ─── UTILS ────────────────────────────────────────────────
 
@@ -78,17 +88,26 @@ const getTotalExtras  = (rid, extrasReserva) => extrasReserva.filter(e=>e.reserv
 const getTotalPagado  = (rid, pagos)         => pagos.filter(p=>p.reservaId===rid).reduce((s,p)=>s+p.monto,0);
 const getSaldo        = (res, extrasReserva, pagos) => (res.montoPactado + getTotalExtras(res.id, extrasReserva)) - getTotalPagado(res.id, pagos);
 
-// ─── SUPABASE CLIENT ─────────────────────────────────────
+// ─── SUPABASE CLIENTS ────────────────────────────────────
 
+// Supabase propio (data del negocio)
 const SUPA_URL = "https://pmohyepcqfvkwijmljee.supabase.co";
 const SUPA_KEY = "sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
-
-
 const supabase = createClient(SUPA_URL, SUPA_KEY);
+
+// Supabase central (verifica suscripciones)
+const CENTRAL_URL = "https://ngymvfvlknaltsvsrvjm.supabase.co";
+const CENTRAL_KEY = "sb_publishable_XhsLlwmbDz5ne7JoeEoVHw_Qo56KJmd";
+const supabaseCentral = createClient(CENTRAL_URL, CENTRAL_KEY);
+
+// org_id activo — se setea al login, lo usan todos los métodos de sb
+let currentOrgId = null;
 
 const sb = {
   async getAll(table) {
-    const { data } = await supabase.from(table).select("*").order("creado_en", { ascending: true });
+    let q = supabase.from(table).select("*").order("creado_en", { ascending: true });
+    if (currentOrgId) q = q.eq("org_id", currentOrgId);
+    const { data } = await q;
     return data || [];
   },
   async upsert(table, rows) {
@@ -158,11 +177,12 @@ function buildDoc(title,body){
   return {title:title, html:html};
 }
 
-function printReserva(reserva,cliente,recurso,resExtras,resPagos){
+function printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio){
   var te=resExtras.reduce(function(s,e){return s+(e.precioHistorico*e.cantidad);},0);
   var tp=resPagos.reduce(function(s,p){return s+p.monto;},0);
   var saldo=(reserva.montoPactado+te)-tp;
-  var hdr=pDiv('hdr',pDiv('',pDiv('logo','El Quincho de Bere ✓')+pDiv('sub','Ficha de Evento'))+'<div>ID: '+reserva.id.slice(-8).toUpperCase()+'</div>');
+  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
+  var hdr=pDiv('hdr',pDiv('',pDiv('logo',nombreNeg+' ✓')+pDiv('sub','Ficha de Evento'))+'<div>ID: '+reserva.id.slice(-8).toUpperCase()+'</div>');
   var body=hdr+pH2('Cliente')+pRow('Nombre',escHtml(clientName(cliente)));
   if(cliente&&cliente.whatsapp)body+=pRow('WhatsApp',escHtml(cliente.whatsapp));
   if(cliente&&cliente.email)body+=pRow('Email',escHtml(cliente.email));
@@ -182,16 +202,18 @@ function printReserva(reserva,cliente,recurso,resExtras,resPagos){
   return buildDoc('Ficha '+escHtml(clientName(cliente)),body);
 }
 
-function printRecibo(pago,reserva,cliente){
-  var hdr=pDiv('hdr',pDiv('',pDiv('logo','El Quincho de Bere')+pDiv('sub','Comprobante de Pago'))+'<div><b>N '+pago.id.slice(-6).toUpperCase()+'</b><br>'+new Date().toLocaleDateString('es-AR')+'</div>');
-  var texto='Recibi de '+escHtml(clientName(cliente))+' la suma de '+fmtCurrency(pago.monto)+' en concepto de pago para la reserva del dia '+fmtDate(reserva?reserva.fecha:'-')+' en el Quincho de Bere. Metodo: '+escHtml(pago.metodo)+'.';
+function printRecibo(pago,reserva,cliente,negocio){
+  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
+  var hdr=pDiv('hdr',pDiv('',pDiv('logo',nombreNeg)+pDiv('sub','Comprobante de Pago'))+'<div><b>N '+pago.id.slice(-6).toUpperCase()+'</b><br>'+new Date().toLocaleDateString('es-AR')+'</div>');
+  var texto='Recibi de '+escHtml(clientName(cliente))+' la suma de '+fmtCurrency(pago.monto)+' en concepto de pago para la reserva del dia '+fmtDate(reserva?reserva.fecha:'-')+' en '+nombreNeg+'. Metodo: '+escHtml(pago.metodo)+'.';
   if(pago.notas)texto+=' Ref: '+escHtml(pago.notas);
   var firma=pDiv('firma',pDiv('fitem',pDiv('fline','Firma prestador'))+pDiv('fitem',pDiv('fline','Conformidad cliente')));
   return buildDoc('Recibo '+escHtml(clientName(cliente)),hdr+pDiv('box',texto)+pH2('Detalle')+pRow('Cliente',escHtml(clientName(cliente)))+pRow('Monto',fmtCurrency(pago.monto),'pos')+pRow('Metodo',escHtml(pago.metodo))+pRow('Fecha',fmtDate(pago.fecha))+firma);
 }
 
-function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,porCobrar){
-  var hdr=pDiv('hdr',pDiv('',pDiv('logo','El Quincho de Bere')+pDiv('sub','Reporte Financiero'))+'<b>'+MONTHS[month]+' '+year+'</b>');
+function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,porCobrar,negocio){
+  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
+  var hdr=pDiv('hdr',pDiv('',pDiv('logo',nombreNeg)+pDiv('sub','Reporte Financiero'))+'<b>'+MONTHS[month]+' '+year+'</b>');
   var body=hdr+pH2('Resumen del mes')+pRow('Ingresos cobrados',fmtCurrency(ingresos),'pos')+pRow('Gastos operacionales',fmtCurrency(gastos),'neg')+'<div class="total"><span>Ganancia Neta</span><span class="'+(ganancia>=0?'pos':'neg')+'">'+fmtCurrency(Math.abs(ganancia))+'</span></div>'+pH2('Ocupacion')+pRow('Eventos activos',String(confirmadas))+pRow('Por cobrar',fmtCurrency(porCobrar),'neg');
   if(catData.length>0){body+=pH2('Gastos por categoria');catData.forEach(function(c){body+=pRow(c.name,fmtCurrency(c.value));});}
   return buildDoc('Reporte '+MONTHS[month]+' '+year,body);
@@ -199,14 +221,14 @@ function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,po
 
 
 // ─── FIELD MAPPERS (camelCase -> snake_case for Supabase) ─
-function mapReserva(r){ return {id:r.id,cliente_id:r.clienteId,recurso_id:r.recursoId,fecha:r.fecha,turno:r.turno,horario:r.horario||"",horario_fin:r.horarioFin||"",cant_invitados:r.cantInvitados||35,monto_pactado:r.montoPactado||0,estado:r.estado||"pendiente",notas:r.notas||"",creado_por:r.creadoPor||"",creado_en:r.creadoEn||new Date().toISOString(),fecha_creacion:r.fechaCreacion||null,recordatorio_enviado:!!r.recordatorioEnviado,post_evento_procesado:!!r.postEventoProcesado,calificacion:r.calificacion||null}; }
-function mapCliente(c){ return {id:c.id,nombre:c.nombre||"",apellido:c.apellido||"",whatsapp:c.whatsapp||"",email:c.email||"",localidad:c.localidad||"",notas_internas:c.notasInternas||"",creado_en:c.creadoEn||new Date().toISOString()}; }
-function mapPago(p){ return {id:p.id,reserva_id:p.reservaId,monto:p.monto||0,fecha:p.fecha,metodo:p.metodo||"Transferencia",notas:p.notas||"",comprobante:p.comprobante||"",creado_por:p.creadoPor||"",creado_en:p.creadoEn||new Date().toISOString()}; }
-function mapGasto(g){ return {id:g.id,concepto:g.concepto||"",monto:g.monto||0,fecha:g.fecha,categoria:g.categoria||"Otros",metodo:g.metodo||"Efectivo",creado_por:g.creadoPor||"",creado_en:g.creadoEn||new Date().toISOString()}; }
-function mapExtra(e){ return {id:e.id,reserva_id:e.reservaId,servicio_id:e.servicioId||null,descripcion:e.descripcion||"",cantidad:e.cantidad||1,precio_historico:e.precioHistorico||0,creado_en:e.creadoEn||new Date().toISOString()}; }
-function mapBloqueo(b){ return {id:b.id,fecha:b.fecha,turno:b.turno,motivo:b.motivo||"",creado_por:b.creadoPor||"",creado_en:b.creadoEn||new Date().toISOString()}; }
-function mapTarea(t){ return {id:t.id,descripcion:t.descripcion||"",estado:t.estado||"pendiente",fecha_registro:t.fechaRegistro||null,creado_por:t.creadoPor||"",creado_en:t.creadoEn||new Date().toISOString()}; }
-function mapRecordatorio(r){ return {id:r.id,reserva_id:r.reservaId||null,cliente_id:r.clienteId||null,tipo:r.tipo||"",nota:r.nota||"",fecha_alerta:r.fechaAlerta,hora_alerta:r.horaAlerta||"09:00",estado:r.estado||"Pendiente",creado_en:r.creadoEn||new Date().toISOString()}; }
+function mapReserva(r){ return {id:r.id,org_id:r.orgId||currentOrgId,cliente_id:r.clienteId,recurso_id:r.recursoId,turno_id:r.turnoId||null,fecha:r.fecha,turno:r.turno,horario:r.horario||"",horario_fin:r.horarioFin||"",cant_invitados:r.cantInvitados||35,monto_pactado:r.montoPactado||0,estado:r.estado||"pendiente",notas:r.notas||"",creado_por:r.creadoPor||"",creado_en:r.creadoEn||new Date().toISOString(),fecha_creacion:r.fechaCreacion||null,recordatorio_enviado:!!r.recordatorioEnviado,post_evento_procesado:!!r.postEventoProcesado,calificacion:r.calificacion||null}; }
+function mapCliente(c){ return {id:c.id,org_id:c.orgId||currentOrgId,nombre:c.nombre||"",apellido:c.apellido||"",whatsapp:c.whatsapp||"",email:c.email||"",localidad:c.localidad||"",notas_internas:c.notasInternas||"",creado_en:c.creadoEn||new Date().toISOString()}; }
+function mapPago(p){ return {id:p.id,org_id:p.orgId||currentOrgId,reserva_id:p.reservaId,monto:p.monto||0,fecha:p.fecha,metodo:p.metodo||"Transferencia",notas:p.notas||"",comprobante:p.comprobante||"",creado_por:p.creadoPor||"",creado_en:p.creadoEn||new Date().toISOString()}; }
+function mapGasto(g){ return {id:g.id,org_id:g.orgId||currentOrgId,concepto:g.concepto||"",monto:g.monto||0,fecha:g.fecha,categoria:g.categoria||"Otros",metodo:g.metodo||"Efectivo",creado_por:g.creadoPor||"",creado_en:g.creadoEn||new Date().toISOString()}; }
+function mapExtra(e){ return {id:e.id,org_id:e.orgId||currentOrgId,reserva_id:e.reservaId,servicio_id:e.servicioId||null,descripcion:e.descripcion||"",cantidad:e.cantidad||1,precio_historico:e.precioHistorico||0,creado_en:e.creadoEn||new Date().toISOString()}; }
+function mapBloqueo(b){ return {id:b.id,org_id:b.orgId||currentOrgId,fecha:b.fecha,turno:b.turno,motivo:b.motivo||"",creado_por:b.creadoPor||"",creado_en:b.creadoEn||new Date().toISOString()}; }
+function mapTarea(t){ return {id:t.id,org_id:t.orgId||currentOrgId,descripcion:t.descripcion||"",estado:t.estado||"pendiente",fecha_registro:t.fechaRegistro||null,creado_por:t.creadoPor||"",creado_en:t.creadoEn||new Date().toISOString()}; }
+function mapRecordatorio(r){ return {id:r.id,org_id:r.orgId||currentOrgId,reserva_id:r.reservaId||null,cliente_id:r.clienteId||null,tipo:r.tipo||"",nota:r.nota||"",fecha_alerta:r.fechaAlerta,hora_alerta:r.horaAlerta||"09:00",estado:r.estado||"Pendiente",creado_en:r.creadoEn||new Date().toISOString()}; }
 function mapUsuario(u){ return {id:u.id,nombre:u.nombre||"",apellido:u.apellido||"",email:u.email||"",whatsapp:u.whatsapp||"",puesto:u.puesto||"",rol:u.rol||"Personal",estado:u.estado||"Activo",permiso_root:!!u.permisoRoot,ver_finanzas:!!u.verFinanzas,modificar_caja:!!u.modificarCaja,gestion_operativa:!!u.gestionOperativa}; }
 
 
@@ -588,7 +610,7 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
 
 // ─── DETAIL PANELS ────────────────────────────────────────
 
-function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, canModifyCaja }) {
+function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, canModifyCaja, negocio }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -779,7 +801,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       )}
 
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-        <Btn small onClick={()=>onShowPDF(printReserva(reserva,cliente,recurso,resExtras,resPagos))}>🖨️ PDF</Btn>
+        <Btn small onClick={()=>onShowPDF(printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio))}>🖨️ PDF</Btn>
         <Btn small variant="secondary" onClick={onEdit}>✏️ Editar</Btn>
         {canModifyCaja&&reserva.estado!=="cancelada"&&reserva.estado!=="finalizada"&&(
           <Btn small variant="secondary" onClick={()=>setShowReschedule(v=>!v)}>📅 Reprogramar</Btn>
@@ -1203,11 +1225,11 @@ function UsuariosView({ usuarios, setUsuarios, currentUser }) {
 
 // ─── ALERTA RECORDATORIO MODAL ───────────────────────────
 
-function AlertaRecordatorioModal({ alerta, clientes, reservas, onClose, onVerCliente, onVerEvento, onNewPago, onSnooze, onDone }) {
+function AlertaRecordatorioModal({ alerta, clientes, reservas, onClose, onVerCliente, onVerEvento, onNewPago, onSnooze, onDone, negocio }) {
   const c = clientes.find(x=>x.id===alerta.clienteId);
   const r = reservas.find(x=>x.id===alerta.reservaId);
   const waMsg = c&&c.whatsapp
-    ? "Hola "+clientName(c)+"! Te contactamos desde El Quincho de Bere. "+alerta.nota
+    ? "Hola "+clientName(c)+"! Te contactamos desde "+(negocio?.nombreNegocio||"nuestro negocio")+". "+alerta.nota
     : null;
 
   return (
@@ -1401,7 +1423,7 @@ function BloqueoModal({ date, bloqueoExistente, onClose, onBloquear, onDesbloque
 
 const TIPO_RECORDATORIO = ["Cobro pendiente","Llamar al cliente","Confirmar asistencia","Preparar evento","Comprar insumos"];
 
-function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes, pagos, extrasReserva, onVerCliente, onVerEvento, onNewPago }) {
+function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes, pagos, extrasReserva, onVerCliente, onVerEvento, onNewPago, negocio }) {
   const [tab, setTab] = useState("hoy");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({reservaId:"",clienteId:"",tipo:"Cobro pendiente",nota:"",fechaAlerta:toDateStr(new Date()),horaAlerta:"09:00"});
@@ -1455,7 +1477,7 @@ function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes
               {r&&<Btn small variant="secondary" onClick={()=>onVerEvento(r)}>📋 Ver evento</Btn>}
               {rec.tipo==="Cobro pendiente"&&r&&<Btn small onClick={()=>onNewPago(r.id)}>💰 Cobro</Btn>}
               {c&&c.whatsapp&&(
-                <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent("Hola "+clientName(c)+"! Te contactamos desde El Quincho de Bere. "+rec.nota)}
+                <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent("Hola "+clientName(c)+"! Te contactamos desde "+(negocio?.nombreNegocio||"nuestro negocio")+". "+rec.nota)}
                   target="_blank" rel="noreferrer"
                   style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 12px",background:"#25D366",color:"#FFF",borderRadius:8,fontSize:12,fontWeight:600,textDecoration:"none"}}>
                   💬 WA
@@ -1501,11 +1523,13 @@ function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes
 // ─── CALENDAR WIDGET ──────────────────────────────────────
 // ─── CALENDAR WIDGET ──────────────────────────────────────
 
-function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick }) {
+function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick, recursos }) {
   const year = calDate.year;
   const month = calDate.month;
 
   const [cells, setCells] = useState([]);
+  const multiEspacio = recursos && recursos.length > 1;
+  const [espacioFiltro, setEspacioFiltro] = useState("all");
 
   useEffect(() => {
     // Reset absoluto antes de recalcular
@@ -1520,7 +1544,7 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
   const todayStr = toDateStr(new Date());
   const getDay = (day) => {
     const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    return reservas.filter(r=>r.fecha===ds&&r.estado!=="cancelada");
+    return reservas.filter(r=>r.fecha===ds&&r.estado!=="cancelada"&&(espacioFiltro==="all"||r.recursoId===espacioFiltro));
   };
   const getBloqueo = (day) => {
     const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
@@ -1534,6 +1558,14 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
         <span style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif",color:"#FFF"}}>{MONTHS[month]} {year}</span>
         <button onClick={()=>setCalDate(d=>({year:d.month===11?d.year+1:d.year, month:d.month===11?0:d.month+1}))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
       </div>
+      {multiEspacio && (
+        <div style={{padding:"8px 12px",background:"#FDF5EE",borderBottom:"1px solid #EDE0D0",display:"flex",gap:6,overflowX:"auto"}}>
+          <button onClick={()=>setEspacioFiltro("all")} style={{flexShrink:0,padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"1.5px solid "+(espacioFiltro==="all"?"#C4602B":"#EDE0D0"),background:espacioFiltro==="all"?"#C4602B":"#FFF",color:espacioFiltro==="all"?"#FFF":"#8B7355"}}>Todos</button>
+          {recursos.map(r=>(
+            <button key={r.id} onClick={()=>setEspacioFiltro(r.id)} style={{flexShrink:0,padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"1.5px solid "+(espacioFiltro===r.id?"#C4602B":"#EDE0D0"),background:espacioFiltro===r.id?"#C4602B":"#FFF",color:espacioFiltro===r.id?"#FFF":"#8B7355"}}>🏠 {r.nombre}</button>
+          ))}
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",background:"#FDF8F3",borderBottom:"1px solid #EDE0D0"}}>
         {DAYS_SHORT.map(d=><div key={`header-${d}-${year}-${month}`} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#8B7355",padding:"6px 0"}}>{d}</div>)}
       </div>
@@ -1590,7 +1622,7 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
   );
 }
 
-function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes }) {
+function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio }) {
   const generarPDF = () => {
     const mes = MONTHS[selMonth];
     const anio = selYear;
@@ -1651,7 +1683,7 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
       +".ft{text-align:center;margin-top:20px;color:#8B7355;font-size:9px;border-top:1px solid #EDE0D0;padding-top:10px}";
 
     const html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>"+css+"</style></head><body>"
-      +"<div class=\"hdr\"><div class=\"logo\">🏡 El Quincho de Bere</div><div class=\"sub\">Mar del Plata, Argentina</div><div class=\"ttl\">Reporte Mensual — "+mes+" "+anio+"</div></div>"
+      +"<div class=\"hdr\"><div class=\"logo\">🏡 "+(negocio?.nombreNegocio||"Mi Negocio")+"</div><div class=\"sub\">"+(negocio?.ciudad||"")+"</div><div class=\"ttl\">Reporte Mensual — "+mes+" "+anio+"</div></div>"
       +"<div class=\"kpis\">"
         +"<div class=\"kpi\"><div class=\"knum\">"+reservasMes.length+"</div><div class=\"klbl\">Reservas</div></div>"
         +"<div class=\"kpi\"><div class=\"knum\">"+fmt(totalCobrado)+"</div><div class=\"klbl\">Total cobrado</div></div>"
@@ -1666,7 +1698,7 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
         ?"<div class=\"sec\"><div class=\"stitle\">📅 Detalle de reservas</div><table><tr><th>Fecha</th><th>Cliente / Tel.</th><th>Turno</th><th>Extras</th><th>Pactado</th><th>Cobrado</th><th>Saldo</th></tr>"+rowsRes+"</table></div>"
         :"<p style=\"color:#8B7355;padding:10px 0\">Sin reservas este mes.</p>")
       +(gastosCatRows?"<div class=\"sec\"><div class=\"stitle\">💸 Gastos por categoría</div><table><tr><th>Categoría</th><th style=\"text-align:right\">Total</th></tr>"+gastosCatRows+"<tr><td style=\"font-weight:bold\">TOTAL</td><td style=\"text-align:right;font-weight:bold\">"+fmt(totalGastos)+"</td></tr></table></div>":"")
-      +"<div class=\"ft\">Generado el "+new Date().toLocaleDateString("es-AR",{day:"2-digit",month:"long",year:"numeric"})+" · El Quincho de Bere</div>"
+      +"<div class=\"ft\">Generado el "+new Date().toLocaleDateString("es-AR",{day:"2-digit",month:"long",year:"numeric"})+" · "+(negocio?.nombreNegocio||"Mi Negocio")+"</div>"
       +"</body></html>";
 
     const w=window.open("","_blank");
@@ -1929,7 +1961,7 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
   );
 }
 
-function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser }) {
+function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos }) {
   const today=toDateStr(new Date()), now=new Date();
   const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const monthRes=reservas.filter(r=>r.fecha&&r.fecha.startsWith(monthStr)&&r.estado!=="cancelada");
@@ -1953,7 +1985,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
     const extrasText=extList.length===0?"Ninguno":extList.map(e=>"- "+e.descripcion+(e.cantidad>1?" (x"+e.cantidad+")":"")).join("\n");
     const tp=getTotalPagado(r.id,pagos);
     const saldo=Math.max(0,(r.montoPactado+getTotalExtras(r.id,extrasReserva))-tp);
-    return "\u00a1Hola, "+clientName(c)+"! Te recordamos que ma\u00f1ana es tu evento en el Quincho de Bere. \ud83c\udf89\n\n"+
+    return "\u00a1Hola, "+clientName(c)+"! Te recordamos que ma\u00f1ana es tu evento en "+(negocio?.nombreNegocio||"nuestro espacio")+". \ud83c\udf89\n\n"+
       "\u23f0 Horario: Tu turno es de "+(r.horario||"--")+" a "+(r.horarioFin||"--")+".\n"+
       "\u2728 Servicios Extras Contratados:\n"+extrasText+"\n\n"+
       "\ud83d\udcb0 Control de Saldo: El monto pactado inicial fue de "+fmtCurrency(r.montoPactado)+". Al d\u00eda de hoy, llev\u00e1s pagado un total de "+fmtCurrency(tp)+", por lo que tu SALDO PENDIENTE A ABONAR ES DE: "+fmtCurrency(saldo)+".\n"+"\ud83d\udcb5 Dep\u00f3sito en efectivo al ingreso: "+fmtCurrency(50000)+".\n"+"\ud83d\udcb3 TOTAL A ABONAR MA\u00d1ANA: "+fmtCurrency(saldo+50000)+".\n\n"+
@@ -1991,7 +2023,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           {icon:"📅",label:"Reserva",action:()=>setModal("reserva"),perm:currentUser?.gestionOperativa!==false},
           {icon:"💸",label:"Gastos",action:()=>onNavigate("gastos"),perm:currentUser?.gestionOperativa!==false},
           {icon:"📈",label:"Reportes",action:()=>onNavigate("reportes"),perm:currentUser?.verFinanzas!==false},
-          {icon:"🔔",label:"Alertas",action:()=>onNavigate("recordatorios"),perm:true},
+          {icon:"🔔",label:"Alertas",action:()=>getPlanLimits(currentUser?.plan).recordatorios!==false?onNavigate("recordatorios"):alert("Los recordatorios no están disponibles en tu plan. Actualizá a Profesional o superior."),perm:true},
         ].map((b,i)=>(
           <button key={i} onClick={b.perm?b.action:()=>alert("Sin permiso.")} style={{
             display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 4px",
@@ -2015,7 +2047,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
 
       {/* ── Calendario ── */}
       <div style={{marginBottom:16}}>
-        <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={calDate} setCalDate={setCalDate} onDayClick={onDayClick} />
+        <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={calDate} setCalDate={setCalDate} onDayClick={onDayClick} recursos={recursos} />
       </div>
 
       {/* ── Próximas reservas ── */}
@@ -2026,7 +2058,9 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
       }).map(r=>{
         const c=clientes.find(x=>x.id===r.clienteId);
         if(!c||!c.whatsapp) return null;
-        const msg="Hola "+clientName(c)+" 🎉 Fue un placer tenerte en El Quincho de Bere. Esperamos que hayas disfrutado mucho! Si te gustó la experiencia, nos ayudaría muchísimo que nos menciones en tus redes sociales. ¡Gracias y hasta la próxima! 🏠❤️";
+        const msg=negocio?.msgPostEvento
+          ? negocio.msgPostEvento.replace("{nombre}",clientName(c)).replace("{nombre_negocio}",negocio.nombreNegocio||"nuestro espacio")
+          : "Hola "+clientName(c)+" 🎉 Fue un placer tenerte en "+(negocio?.nombreNegocio||"nuestro espacio")+". Esperamos que hayas disfrutado mucho! ¡Gracias y hasta la próxima! 🏠❤️";
         return (
           <div key={r.id} style={{...card,padding:"14px 16px",marginBottom:12,border:"2px solid #F59E0B",background:"#FFFBEB"}}>
             <div style={{fontWeight:700,fontSize:14,color:"#D97706",marginBottom:4}}>💌 Mensaje post-evento</div>
@@ -2354,14 +2388,193 @@ function AddUsuarioForm({ usuarios, setUsuarios }) {
   );
 }
 
-function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios }) {
+function ColaboradoresSection({ orgId, plan }) {
+  const [colaboradores, setColaboradores] = useState([]);
+  const [email, setEmail] = useState("");
+  const [nombre, setNombre] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const limits = getPlanLimits(plan);
+  const maxColab = limits.colaboradores;
+
+  useEffect(()=>{
+    if(!orgId) return;
+    supabaseCentral.from("empleados_organizacion").select("*").eq("org_id",orgId).eq("activo",true)
+      .then(({data})=>{ setColaboradores(data||[]); setLoading(false); });
+  },[orgId]);
+
+  const handleAdd = async () => {
+    if(!email.trim()) return;
+    if(colaboradores.length >= maxColab){
+      alert(`Tu plan ${plan||"actual"} permite hasta ${maxColab} colaborador${maxColab!==1?"es":""}. Actualizá tu plan para agregar más.`);
+      return;
+    }
+    setSaving(true);
+    const nuevo = { id: genId(), org_id: orgId, email: email.trim(), nombre: nombre.trim()||email.trim(), activo: true };
+    const { error } = await supabaseCentral.from("empleados_organizacion").insert(nuevo);
+    if(error){ alert("Error al agregar colaborador: "+error.message); setSaving(false); return; }
+    setColaboradores(prev=>[...prev, nuevo]);
+    setEmail(""); setNombre(""); setSaving(false);
+  };
+
+  const handleRemove = async (id) => {
+    await supabaseCentral.from("empleados_organizacion").update({activo:false}).eq("id",id);
+    setColaboradores(prev=>prev.filter(x=>x.id!==id));
+  };
+
+  if(maxColab === 0) return (
+    <div style={{...card, marginBottom:16, padding:16, opacity:0.7}}>
+      <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>👥 Colaboradores</div>
+      <div style={{fontSize:13,color:"#8B7355"}}>🔒 Tu plan actual no incluye colaboradores. Actualizá a Profesional o Premium para agregar accesos adicionales.</div>
+    </div>
+  );
+
+  return (
+    <div style={{...card, marginBottom:16, padding:16}}>
+      <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>👥 Colaboradores</div>
+      <div style={{fontSize:12,color:"#8B7355",marginBottom:16}}>
+        Personas con acceso a tu cuenta. Tu plan permite hasta <b>{maxColab}</b> colaborador{maxColab!==1?"es":""}.
+      </div>
+      {loading ? <div style={{fontSize:13,color:"#8B7355"}}>Cargando...</div> : (
+        <>
+          {colaboradores.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:12}}>No hay colaboradores aún.</div>}
+          {colaboradores.map(c=>(
+            <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
+              <div>
+                <div style={{fontWeight:600,fontSize:13}}>{c.nombre||c.email}</div>
+                <div style={{fontSize:11,color:"#8B7355"}}>{c.email}</div>
+              </div>
+              <button onClick={()=>handleRemove(c.id)}
+                style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
+            </div>
+          ))}
+          {colaboradores.length < maxColab && (
+            <div style={{marginTop:12,padding:12,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
+              <input placeholder="Nombre" value={nombre} onChange={e=>setNombre(e.target.value)}
+                style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
+              <input placeholder="Email de Google" value={email} onChange={e=>setEmail(e.target.value)} type="email"
+                style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box",outline:"none"}} />
+              <button onClick={handleAdd} disabled={saving}
+                style={{width:"100%",padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700,opacity:saving?0.7:1}}>
+                {saving ? "Guardando..." : "+ Agregar colaborador"}
+              </button>
+            </div>
+          )}
+          {colaboradores.length >= maxColab && colaboradores.length > 0 && (
+            <div style={{marginTop:10,fontSize:12,color:"#8B7355",textAlign:"center"}}>Límite de colaboradores alcanzado para tu plan.</div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function TurnosEspacioSection({ recursos }) {
+  const [espacioSel, setEspacioSel] = useState(recursos[0]?.id || "");
+  const [turnos, setTurnos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ nombre:"", horaInicio:"", horaFin:"", precioSemana:"", precioFinde:"" });
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(()=>{
+    if(!espacioSel) return;
+    setLoading(true);
+    supabase.from("turnos_recurso").select("*").eq("recurso_id",espacioSel).eq("activo",true).order("hora_inicio")
+      .then(({data})=>{ setTurnos(data||[]); setLoading(false); });
+  },[espacioSel]);
+
+  const handleAdd = async () => {
+    if(!form.nombre||!form.horaInicio||!form.horaFin) return alert("Completá nombre, hora inicio y hora fin.");
+    const nuevo = { recurso_id: espacioSel, org_id: currentOrgId, nombre: form.nombre.trim(), hora_inicio: form.horaInicio, hora_fin: form.horaFin, precio_semana: Number(form.precioSemana)||0, precio_finde: Number(form.precioFinde)||0, activo: true };
+    const { data, error } = await supabase.from("turnos_recurso").insert(nuevo).select().single();
+    if(error){ alert("Error: "+error.message); return; }
+    setTurnos(prev=>[...prev, data]);
+    setForm({ nombre:"", horaInicio:"", horaFin:"", precioSemana:"", precioFinde:"" });
+    setShowForm(false);
+  };
+
+  const handleRemove = async (id) => {
+    await supabase.from("turnos_recurso").update({activo:false}).eq("id",id);
+    setTurnos(prev=>prev.filter(t=>t.id!==id));
+  };
+
+  const espacio = recursos.find(r=>r.id===espacioSel);
+  const inpS = {padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",width:"100%",boxSizing:"border-box",outline:"none"};
+
+  return (
+    <div style={{...card, marginTop:16}}>
+      <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>🕐 Turnos por Espacio</div>
+      <div style={{fontSize:12,color:"#8B7355",marginBottom:12}}>Configurá los turnos y precios de cada espacio.</div>
+
+      {/* Selector de espacio */}
+      {recursos.length > 1 && (
+        <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:14,paddingBottom:2}}>
+          {recursos.map(r=>(
+            <button key={r.id} onClick={()=>setEspacioSel(r.id)} style={{flexShrink:0,padding:"6px 14px",borderRadius:16,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"1.5px solid "+(espacioSel===r.id?"#C4602B":"#EDE0D0"),background:espacioSel===r.id?"#C4602B":"#FFF",color:espacioSel===r.id?"#FFF":"#8B7355"}}>🏠 {r.nombre}</button>
+          ))}
+        </div>
+      )}
+
+      {espacio && <div style={{fontSize:12,fontWeight:700,color:"#C4602B",marginBottom:10}}>📍 {espacio.nombre}</div>}
+
+      {loading ? <div style={{fontSize:13,color:"#8B7355"}}>Cargando...</div> : (
+        <>
+          {turnos.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:10}}>No hay turnos configurados para este espacio.</div>}
+          {turnos.map(t=>(
+            <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
+              <div>
+                <div style={{fontWeight:600,fontSize:13}}>{t.nombre}</div>
+                <div style={{fontSize:11,color:"#8B7355"}}>{t.hora_inicio} – {t.hora_fin} · Sem: {fmtCurrency(t.precio_semana)} · Finde: {fmtCurrency(t.precio_finde)}</div>
+              </div>
+              <button onClick={()=>handleRemove(t.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
+            </div>
+          ))}
+          {!showForm ? (
+            <button onClick={()=>setShowForm(true)} style={{marginTop:12,width:"100%",padding:"9px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:8,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar turno</button>
+          ) : (
+            <div style={{marginTop:12,padding:12,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#8B7355",marginBottom:8}}>Nuevo turno para {espacio?.nombre}</div>
+              <input placeholder="Nombre del turno (ej: Noche, Mañana)" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} style={{...inpS,marginBottom:8}} />
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora inicio</div><input type="time" value={form.horaInicio} onChange={e=>setForm(p=>({...p,horaInicio:e.target.value}))} style={inpS} /></div>
+                <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora fin</div><input type="time" value={form.horaFin} onChange={e=>setForm(p=>({...p,horaFin:e.target.value}))} style={inpS} /></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio semana ($)</div><input type="number" value={form.precioSemana} onChange={e=>setForm(p=>({...p,precioSemana:e.target.value}))} style={inpS} /></div>
+                <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio fin de semana ($)</div><input type="number" value={form.precioFinde} onChange={e=>setForm(p=>({...p,precioFinde:e.target.value}))} style={inpS} /></div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setShowForm(false)} style={{flex:1,padding:"9px",background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#8B7355",fontWeight:600}}>Cancelar</button>
+                <button onClick={handleAdd} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar turno</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio }) {
   const [precios, setPrecios] = useState(config?.precios || DEFAULT_CONFIG.precios);
   const [saved, setSaved] = useState(false);
+  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"" });
+  const [negSaved, setNegSaved] = useState(false);
+  const planLimits = getPlanLimits(currentUser?.plan);
 
   const handleSave = () => {
     saveConfig({...config, precios});
     setSaved(true);
     setTimeout(()=>setSaved(false), 2000);
+  };
+
+  const handleSaveNegocio = async () => {
+    const row = { org_id: currentOrgId, nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento };
+    const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
+    if (error) { alert("Error al guardar: " + error.message); return; }
+    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento });
+    setNegSaved(true);
+    setTimeout(()=>setNegSaved(false), 2000);
   };
 
   const updatePrecio = (tipo, turno, val) => {
@@ -2371,8 +2584,57 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const turnoLabels = {dia:"☀️ Día", noche:"🌙 Tarde/Noche", completo:"⭐ Día Completo"};
   const tipoLabels = {dia_semana:"Lunes a Viernes", dia_finde:"Sábado y Domingo"};
 
+  const inpS = {width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
+  const lblS = {display:"block",fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:5};
+
   return (
     <div style={{padding:"16px 16px 100px"}}>
+
+      {/* DATOS DEL NEGOCIO */}
+      <div style={{...card, marginBottom:16, padding:16}}>
+        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>🏢 Mi Negocio</div>
+        <div style={{fontSize:12,color:"#8B7355",marginBottom:16}}>Esta información aparece en la app, PDFs y mensajes de WhatsApp.</div>
+
+        <div style={{marginBottom:12}}>
+          <label style={lblS}>Nombre del negocio</label>
+          <input style={inpS} value={negForm.nombreNegocio} onChange={e=>setNegForm(p=>({...p,nombreNegocio:e.target.value}))} placeholder="Ej: El Quincho de Bere" />
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <div style={{flex:1}}>
+            <label style={lblS}>Ciudad</label>
+            <input style={inpS} value={negForm.ciudad} onChange={e=>setNegForm(p=>({...p,ciudad:e.target.value}))} placeholder="Ej: Mar del Plata" />
+          </div>
+          <div style={{flex:1}}>
+            <label style={lblS}>Teléfono</label>
+            <input style={inpS} value={negForm.telefono} onChange={e=>setNegForm(p=>({...p,telefono:e.target.value}))} placeholder="Ej: 223-1234567" />
+          </div>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={lblS}>URL del logo (imagen)</label>
+          <input style={inpS} value={negForm.logoUrl} onChange={e=>setNegForm(p=>({...p,logoUrl:e.target.value}))} placeholder="https://..." />
+          {negForm.logoUrl && <img src={negForm.logoUrl} alt="preview" style={{marginTop:8,width:48,height:48,borderRadius:8,objectFit:"cover",border:"1px solid #EDE0D0"}} onError={e=>e.target.style.display="none"} />}
+        </div>
+
+        <div style={{fontWeight:700,fontSize:13,color:"#C4602B",marginBottom:10,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>💬 Mensajes de WhatsApp</div>
+        <div style={{fontSize:11,color:"#8B7355",marginBottom:12}}>Variables disponibles: {"{nombre}"}, {"{nombre_negocio}"}, {"{fecha}"}, {"{horario}"}, {"{saldo}"}</div>
+
+        <div style={{marginBottom:12}}>
+          <label style={lblS}>Recordatorio pre-evento (día anterior)</label>
+          <textarea style={{...inpS,height:80,resize:"vertical"}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} placeholder="Hola {nombre}! Te recordamos tu evento mañana en {nombre_negocio}..." />
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={lblS}>Mensaje post-evento (día siguiente)</label>
+          <textarea style={{...inpS,height:80,resize:"vertical"}} value={negForm.msgPostEvento} onChange={e=>setNegForm(p=>({...p,msgPostEvento:e.target.value}))} placeholder="Hola {nombre}! Fue un placer tenerte en {nombre_negocio}..." />
+        </div>
+
+        <button onClick={handleSaveNegocio} style={{width:"100%",padding:"12px",background:negSaved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s"}}>
+          {negSaved ? "✅ Guardado" : "💾 Guardar datos del negocio"}
+        </button>
+      </div>
+
+      {/* COLABORADORES */}
+      <ColaboradoresSection orgId={currentOrgId} plan={currentUser?.plan} />
+
       {/* USUARIOS */}
       <div style={{...card, marginBottom:16}}>
         <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:12,fontFamily:"'Playfair Display',serif"}}>👤 Usuarios</div>
@@ -2418,21 +2680,28 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
         </button>
       </div>
 
-      <div style={{...card}}>
-        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>✨ Servicios Extras</div>
-        <div style={{fontSize:12,color:"#8B7355",marginBottom:12}}>Servicios adicionales disponibles para las reservas.</div>
-        {serviciosExtras.map(s=>(
-          <div key={s.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #F5EDE4"}}>
-            <div>
-              <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
-              <div style={{fontSize:12,color:"#8B7355"}}>{new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(s.precioActual)}</div>
+      {planLimits.serviciosExtras === false ? (
+        <div style={{...card, padding:16, opacity:0.7}}>
+          <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>✨ Servicios Extras</div>
+          <div style={{fontSize:13,color:"#8B7355"}}>🔒 Tu plan actual no incluye servicios extras. Actualizá a Profesional o Premium para activarlos.</div>
+        </div>
+      ) : (
+        <div style={{...card}}>
+          <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>✨ Servicios Extras</div>
+          <div style={{fontSize:12,color:"#8B7355",marginBottom:12}}>Servicios adicionales disponibles para las reservas.</div>
+          {serviciosExtras.map(s=>(
+            <div key={s.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #F5EDE4"}}>
+              <div>
+                <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
+                <div style={{fontSize:12,color:"#8B7355"}}>{new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(s.precioActual)}</div>
+              </div>
+              <button onClick={async()=>{await sb.remove("servicios_extras",s.id);setServiciosExtras(prev=>prev.filter(x=>x.id!==s.id));}}
+                style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
             </div>
-            <button onClick={async()=>{await sb.remove("servicios_extras",s.id);setServiciosExtras(prev=>prev.filter(x=>x.id!==s.id));}}
-              style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
-          </div>
-        ))}
-        <AddSrvForm serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />
-      </div>
+          ))}
+          <AddSrvForm serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />
+        </div>
+      )}
 
       {/* ESPACIOS */}
       <div style={{...card, marginTop:16}}>
@@ -2448,16 +2717,26 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
               style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
           </div>
         ))}
-        <AddEspacioForm recursos={recursos} setRecursos={setRecursos} />
+        <AddEspacioForm recursos={recursos} setRecursos={setRecursos} plan={currentUser?.plan} />
       </div>
+
+      {/* TURNOS POR ESPACIO */}
+      {recursos.length > 0 && <TurnosEspacioSection recursos={recursos} />}
     </div>
   );
 }
 
-function AddEspacioForm({ recursos, setRecursos }) {
+function AddEspacioForm({ recursos, setRecursos, plan }) {
   const [show, setShow] = useState(false);
   const [form, setForm] = useState({nombre:"",capacidadMax:""});
-  if(!show) return <button onClick={()=>setShow(true)} style={{marginTop:12,width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar espacio</button>;
+  const limits = getPlanLimits(plan);
+  const atLimit = recursos.length >= limits.espacios;
+  if(!show) return (
+    <button onClick={()=>{ if(atLimit){alert(`Tu plan ${plan||"actual"} permite hasta ${limits.espacios} espacio${limits.espacios!==1?"s":""}. Actualizá tu plan para agregar más.`);return;} setShow(true);}}
+      style={{marginTop:12,width:"100%",padding:"10px",background: atLimit?"#F3F4F6":"#FDF8F3",border:`1.5px dashed ${atLimit?"#D1D5DB":"#C4602B"}`,borderRadius:10,color:atLimit?"#9CA3AF":"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+      {atLimit ? `🔒 Límite de espacios (${limits.espacios}) alcanzado` : "+ Agregar espacio"}
+    </button>
+  );
   return (
     <div style={{marginTop:12,padding:12,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
       <input placeholder="Nombre del espacio" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))}
@@ -2466,9 +2745,12 @@ function AddEspacioForm({ recursos, setRecursos }) {
         style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box",outline:"none"}} />
       <div style={{display:"flex",gap:8}}>
         <button onClick={()=>setShow(false)} style={{flex:1,padding:"9px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
-        <button onClick={()=>{
+        <button onClick={async()=>{
           if(!form.nombre) return;
-          setRecursos(prev=>[...prev,{id:genId(),nombre:form.nombre,capacidadMax:Number(form.capacidadMax)||0}]);
+          const nuevo={id:genId(),nombre:form.nombre,capacidadMax:Number(form.capacidadMax)||0,modo:"fijo",orgId:currentOrgId,org_id:currentOrgId};
+          const {error}=await supabase.from("recursos").insert({id:nuevo.id,nombre:nuevo.nombre,capacidad_max:nuevo.capacidadMax,modo:"fijo",org_id:currentOrgId,creado_en:new Date().toISOString()});
+          if(error){alert("Error al guardar espacio: "+error.message);return;}
+          setRecursos(prev=>[...prev,nuevo]);
           setForm({nombre:"",capacidadMax:""});setShow(false);
         }} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
       </div>
@@ -2593,15 +2875,17 @@ function FAB({ onNewPago, onNewGasto }) {
 
 // ─── SIDE MENU ────────────────────────────────────────────
 
-function SideMenu({ open, onClose, onNavigate, tab, currentUser }) {
+function SideMenu({ open, onClose, onNavigate, tab, currentUser, negocio }) {
   const isAdmin = currentUser?.rol==="Administrador";
+  const limits = getPlanLimits(currentUser?.plan);
+  const tieneRecordatorios = limits.recordatorios !== false;
   const items=[
     {icon:"📊",label:"Inicio",view:"inicio"},
     {icon:"📋",label:"Reservas",view:"reservas"},
     {icon:"👥",label:"Clientes",view:"clientes"},
     ...(isAdmin?[{icon:"📈",label:"Reportes",view:"reportes"}]:[]),
     ...(isAdmin?[{icon:"💸",label:"Gastos",view:"gastos"}]:[]),
-    {icon:"📋",label:"Recordatorios",view:"recordatorios"},
+    ...(tieneRecordatorios?[{icon:"🔔",label:"Recordatorios",view:"recordatorios"}]:[]),
     ...(isAdmin?[{icon:"⚙️",label:"Configuración",view:"config"}]:[]),
   ];
   return (
@@ -2609,10 +2893,13 @@ function SideMenu({ open, onClose, onNavigate, tab, currentUser }) {
       {open && <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:900}} />}
       <div style={{position:"fixed",top:0,left:0,bottom:0,width:265,background:"#1E0E08",zIndex:1000,transform:open?"translateX(0)":"translateX(-100%)",transition:"transform 0.25s ease",display:"flex",flexDirection:"column"}}>
         <div style={{padding:"52px 20px 24px",borderBottom:"1px solid rgba(255,255,255,0.1)"}}>
-          <LogoSVG size={44} color="#F0A882" />
+          {negocio?.logoUrl
+            ? <img src={negocio.logoUrl} alt="logo" style={{width:44,height:44,borderRadius:10,objectFit:"cover"}} />
+            : <LogoSVG size={44} color="#F0A882" />
+          }
           <div style={{marginTop:8}}>
-            <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.5)",letterSpacing:3,textTransform:"uppercase"}}>El Quincho</div>
-            <div style={{fontSize:20,fontWeight:800,color:"#FFF",fontFamily:"'Playfair Display',serif",lineHeight:1.1}}>de Bere</div>
+            <div style={{fontSize:16,fontWeight:800,color:"#FFF",fontFamily:"'Playfair Display',serif",lineHeight:1.2}}>{negocio?.nombreNegocio||"Mi Negocio"}</div>
+            {negocio?.ciudad && <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",marginTop:2}}>{negocio.ciudad}</div>}
           </div>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",marginTop:6}}>Tu lugar de descanso y diversión</div>
         </div>
@@ -2741,24 +3028,61 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
 
 
 
-function GoogleLoginScreen({ onLogin }) {
+function PantallaBloqueada({ motivo, negocio }) {
+  const msgs = {
+    impago:      { icon:"💳", titulo:"Suscripción vencida",    texto:"Tu período de acceso ha finalizado. Para renovar tu suscripción contactá al administrador." },
+    suspendido:  { icon:"🔒", titulo:"Acceso suspendido",       texto:"Tu acceso fue suspendido. Contactá al administrador para más información." },
+    sin_org:     { icon:"🏢", titulo:"Sin organización",        texto:"Tu cuenta no está asociada a ninguna organización. Contactá al administrador." },
+    sin_suscripcion: { icon:"📋", titulo:"Sin suscripción",     texto:"No tenés una suscripción activa para esta app. Contactá al administrador." },
+  };
+  const m = msgs[motivo] || msgs.sin_suscripcion;
+  return (
+    <div style={{minHeight:"100vh",background:"#FFF",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{width:"100%",maxWidth:380,textAlign:"center"}}>
+        <div style={{fontSize:56,marginBottom:16}}>{m.icon}</div>
+        {negocio?.nombreNegocio && <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800,color:"#1C1C1E",marginBottom:20}}>{negocio.nombreNegocio}</div>}
+        <div style={{fontWeight:700,fontSize:18,color:"#1C1C1E",marginBottom:12}}>{m.titulo}</div>
+        <div style={{fontSize:14,color:"#6B7280",marginBottom:32,lineHeight:1.6}}>{m.texto}</div>
+        <button onClick={()=>supabase.auth.signOut()}
+          style={{padding:"12px 24px",background:"#F3F4F6",border:"none",borderRadius:10,cursor:"pointer",fontSize:14,color:"#6B7280",fontFamily:"inherit"}}>
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BannerDemo({ diasRestantes }) {
+  const urgente = diasRestantes <= 3;
+  return (
+    <div style={{
+      background: urgente ? "#FEF2F2" : "#FFFBEB",
+      borderBottom: `1px solid ${urgente ? "#FECACA" : "#FDE68A"}`,
+      padding:"8px 16px",
+      display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+      fontSize:13,fontWeight:600,
+      color: urgente ? "#DC2626" : "#92400E",
+    }}>
+      <span>{urgente ? "⚠️" : "🕐"}</span>
+      <span>
+        {diasRestantes > 0
+          ? `Período de prueba — quedan ${diasRestantes} día${diasRestantes !== 1 ? "s" : ""}`
+          : "Tu período de prueba venció — contactá al administrador para continuar"}
+      </span>
+    </div>
+  );
+}
+
+function GoogleLoginScreen({ onLogin, onBlocked }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(()=>{
-    // Handle OAuth callback - Supabase client handles PKCE automatically
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if(session?.user) {
-        setLoading(true);
-        await handleUser(session.user);
-      }
+      if(session?.user) { setLoading(true); await handleUser(session.user); }
     });
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if(event === "SIGNED_IN" && session?.user) {
-        setLoading(true);
-        await handleUser(session.user);
-      }
+      if(event === "SIGNED_IN" && session?.user) { setLoading(true); await handleUser(session.user); }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -2766,25 +3090,44 @@ function GoogleLoginScreen({ onLogin }) {
   const handleUser = async (authUser) => {
     try {
       const email = authUser.email;
-      const { data: profiles } = await supabase.from("perfiles_usuarios").select("*").eq("email", email).eq("activo", true);
-      if(!profiles || profiles.length===0) {
-        setError("Tu cuenta no está autorizada o fue deshabilitada. Contactá al administrador.");
-        setLoading(false);
+
+      // Verificar acceso en Supabase central
+      const { data: accesoArr } = await supabaseCentral.rpc("verificar_acceso_email", {
+        email_param: email,
+        app_id_param: "quincho",
+      });
+      const acceso = Array.isArray(accesoArr) ? accesoArr[0] : accesoArr;
+
+      if (!acceso?.tiene_acceso) {
         await supabase.auth.signOut();
+        onBlocked(acceso?.motivo || "sin_suscripcion");
         return;
       }
-      const profile = profiles[0];
+
+      if (acceso.estado === "impago" || acceso.estado === "suspendido") {
+        await supabase.auth.signOut();
+        onBlocked(acceso.estado);
+        return;
+      }
+
+      const orgId = acceso.ret_org_id;
+
+      // Registrar mapeo user_id → org_id para RLS
+      await supabase.from("user_orgs").upsert({ user_id: authUser.id, org_id: orgId });
+
       const user = {
-        id: profile.id,
-        nombre: profile.nombre || email.split("@")[0],
-        email: email,
-        rol: profile.rol || "Empleado",
-        estado: "Activo",
+        id: authUser.id,
+        nombre: acceso.nombre_docente || email.split("@")[0],
+        email,
+        orgId,
+        plan: acceso.plan || "basico",
+        suscripcionEstado: acceso.estado,
+        diasRestantes: acceso.dias_restantes ?? null,
       };
       localStorage.setItem("qb_user", JSON.stringify(user));
       onLogin(user);
     } catch(e) {
-      setError("Error: "+e.message);
+      setError("Error al verificar acceso: " + e.message);
       setLoading(false);
     }
   };
@@ -2793,7 +3136,7 @@ function GoogleLoginScreen({ onLogin }) {
     setLoading(true);
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: "https://quincho-bere.vercel.app" }
+      options: { redirectTo: "https://quincho-bere.vercel.app" },
     });
   };
 
@@ -2801,8 +3144,8 @@ function GoogleLoginScreen({ onLogin }) {
     <div style={{minHeight:"100vh",background:"#FFF",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
       <div style={{width:"100%",maxWidth:380,textAlign:"center"}}>
         <div style={{fontSize:56,marginBottom:16}}>🏡</div>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:800,color:"#1C1C1E",marginBottom:4}}>El Quincho de Bere</div>
-        <div style={{fontSize:14,color:"#8B7355",marginBottom:40}}>Mar del Plata</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:800,color:"#1C1C1E",marginBottom:4}}>Gestión de Espacios</div>
+        <div style={{fontSize:14,color:"#8B7355",marginBottom:40}}>Iniciá sesión para continuar</div>
 
         {error && (
           <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#DC2626",fontSize:13}}>
@@ -2866,13 +3209,14 @@ export default function App() {
   const [pagos,setPagos]=useState([]);
   const [gastos,setGastos]=useState([]);
   const [recursos,setRecursos]=useState(DEFAULT_RECURSOS);
+  const [turnosRecurso,setTurnosRecurso]=useState([]);
   const [extrasReserva,setExtrasReserva]=useState([]);
   const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
-  const [config,setConfig]=useState(()=>{ try{ const s=localStorage.getItem("quincho_config"); if(s) return JSON.parse(s); }catch(e){} return DEFAULT_CONFIG; }); // fallback inicial, se pisa con Supabase al cargar
-  const [usuarios,setUsuarios]=useState(DEFAULT_USUARIOS);
-  const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
+  const [config,setConfig]=useState(DEFAULT_CONFIG);
+  const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"" });
   const [currentUser,setCurrentUser]=useState(null);
-  const isAdmin = currentUser?.rol === "Administrador";
+  const [bloqueadoMotivo,setBloqueadoMotivo]=useState(null);
+  const isAdmin = true; // todos los usuarios tienen acceso completo en el nuevo modelo
   const [tareas,setTareas]=useState([]);
   const [bloqueos,setBloqueos]=useState([]);
   const [recordatorios,setRecordatorios]=useState([]);
@@ -2898,69 +3242,74 @@ export default function App() {
   useEffect(()=>{
     (async()=>{
     try {
-      // ── PASO 1: verificar auth ANTES de cargar datos ──
+      // ── PASO 1: verificar sesión Supabase ──
       const { data:{ session } } = await supabase.auth.getSession();
       var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
 
-      // Sin sesión de Supabase → show login (el LocalStorage sin sesión no vale nada)
-      if(!session?.user){
-        try{ localStorage.removeItem("qb_user"); }catch(e){}
-        return;
-      }
-      // Sesión existe pero el email guardado NO coincide → posible token viejo, limpiar
-      if(cu?.email && cu.email !== session.user.email){
-        try{ localStorage.removeItem("qb_user"); }catch(e){}
-        cu = null;
-      }
-      // Sesión existe pero sin localStorage → GoogleLoginScreen va a manejar el login
+      if(!session?.user){ try{localStorage.removeItem("qb_user");}catch(e){} return; }
+      if(cu?.email && cu.email !== session.user.email){ try{localStorage.removeItem("qb_user");}catch(e){} cu=null; }
       if(!cu?.email) return;
 
-      // ── PASO 2: verificar perfil activo en DB ──
-      const {data:cuProfiles}=await supabase.from("perfiles_usuarios").select("*").eq("email",cu.email).eq("activo",true);
-      if(!cuProfiles?.length){
-        localStorage.removeItem("qb_user"); await supabase.auth.signOut(); return;
-      }
-      setCurrentUser({...cu, rol:cuProfiles[0].rol});
+      // ── PASO 2: verificar suscripción en central ──
+      const { data:accesoArr } = await supabaseCentral.rpc("verificar_acceso_email", {
+        email_param: cu.email,
+        app_id_param: "quincho",
+      });
+      const acceso = Array.isArray(accesoArr) ? accesoArr[0] : accesoArr;
 
-      // ── PASO 3: cargar datos (ya autenticado) ──
-      const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:er},{data:se},{data:t},{data:u},{data:bl},{data:rec}]=await Promise.all([
-        supabase.from("clientes").select("*").order("creado_en",{ascending:true}),
-        supabase.from("reservas").select("*").order("creado_en",{ascending:true}),
-        supabase.from("pagos").select("*").order("creado_en",{ascending:true}),
-        supabase.from("gastos").select("*").order("creado_en",{ascending:true}),
-        supabase.from("recursos").select("*").order("creado_en",{ascending:true}),
-        supabase.from("extras_reserva").select("*").order("creado_en",{ascending:true}),
-        supabase.from("servicios_extras").select("*").order("creado_en",{ascending:true}),
-        supabase.from("tareas").select("*").order("creado_en",{ascending:true}),
-        cuProfiles[0].rol==="Administrador" ? supabase.from("usuarios").select("*").order("creado_en",{ascending:true}) : Promise.resolve({data:[]}),
-        supabase.from("bloqueos").select("*").order("creado_en",{ascending:true}),
-        supabase.from("recordatorios").select("*").order("creado_en",{ascending:true}),
-      ]);
-      if(c&&c.length)setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
-      if(r&&r.length)setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"dia",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
-      if(p&&p.length)setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
-      if(g&&g.length)setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
-      if(rc&&rc.length)setRecursos(rc);
-      if(er&&er.length)setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
-      setServiciosExtras(se&&se.length?se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})):[]);
-      if(t&&t.length)setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
-      if(u&&u.length)setUsuarios(u.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",email:x.email||"",whatsapp:x.whatsapp||"",puesto:x.puesto||"",rol:x.rol||"Personal",estado:x.estado||"Activo",permisoRoot:!!x.permiso_root,verFinanzas:!!x.ver_finanzas,modificarCaja:!!x.modificar_caja,gestionOperativa:!!x.gestion_operativa})));
-      // Load perfiles_usuarios solo para admins (contiene emails de todos los usuarios)
-      if(cuProfiles[0].rol==="Administrador"){
-        const {data:perfiles}=await supabase.from("perfiles_usuarios").select("*").order("creado_en",{ascending:true});
-        if(perfiles)setPerfilesUsuarios(perfiles);
+      if(!acceso?.tiene_acceso || acceso.estado==="impago" || acceso.estado==="suspendido"){
+        localStorage.removeItem("qb_user");
+        await supabase.auth.signOut();
+        setBloqueadoMotivo(acceso?.motivo || acceso?.estado || "sin_suscripcion");
+        setLoaded(true);
+        return;
       }
-      if(bl&&bl.length)setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
-      if(rec&&rec.length)setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
-      // Cargar config desde Supabase DESPUÉS de autenticar
-      const {data:cfgData}=await supabase.from("config").select("precios").eq("id","main").maybeSingle();
-      if(cfgData?.precios){ const cfg={...DEFAULT_CONFIG,precios:cfgData.precios}; setConfig(cfg); try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){} }
-      // Limpiar hash OAuth de la URL si quedó visible
-      if(window.location.hash&&window.location.hash.includes("access_token")){
+
+      // ── PASO 3: configurar org y cargar datos ──
+      const orgId = acceso.ret_org_id || cu.orgId;
+      currentOrgId = orgId;
+
+      const user = { ...cu, orgId, plan: acceso.plan || cu.plan || "basico", suscripcionEstado: acceso.estado, diasRestantes: acceso.dias_restantes ?? null };
+      setCurrentUser(user);
+      localStorage.setItem("qb_user", JSON.stringify(user));
+
+      const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:tr},{data:er},{data:se},{data:t},{data:bl},{data:rec}]=await Promise.all([
+        supabase.from("clientes").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("reservas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("pagos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("gastos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("recursos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("turnos_recurso").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("extras_reserva").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("servicios_extras").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("tareas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("bloqueos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+        supabase.from("recordatorios").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      ]);
+
+      if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
+      if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
+      if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
+      if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
+      if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",orgId:x.org_id})));
+      if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
+      if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
+      setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
+      if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
+      if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
+      if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
+
+      // Cargar config (white-label + mensajes)
+      const {data:cfgData}=await supabase.from("config").select("*").eq("org_id",orgId).maybeSingle();
+      if(cfgData){
+        setNegocio({ nombreNegocio:cfgData.nombre_negocio||"", ciudad:cfgData.ciudad||"", telefono:cfgData.telefono||"", logoUrl:cfgData.logo_url||"", msgRecordatorio:cfgData.msg_recordatorio||"", msgPostEvento:cfgData.msg_post_evento||"" });
+      }
+
+      if(window.location.hash?.includes("access_token")){
         window.history.replaceState(null,"",window.location.pathname);
       }
     } catch(e) {
-      console.error("Error cargando datos de Supabase:", e);
+      console.error("Error cargando datos:", e);
     } finally {
       setLoaded(true);
     }
@@ -3042,7 +3391,7 @@ export default function App() {
     };
   },[loaded]);
 
-  const handleLogin=(user)=>{ setCurrentUser(user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
+  const handleLogin=(user)=>{ currentOrgId=user.orgId; setCurrentUser(user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
   const handleLogout=async()=>{
     try{ await supabase.auth.signOut(); }catch(e){}
     setCurrentUser(null);
@@ -3076,9 +3425,18 @@ export default function App() {
     setSavingReserva(true);
     try{
       if(!editReserva){
-        const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id,turno").eq("fecha",data.fecha).neq("estado","cancelada");
-        const conflict=dbConflicts?.find(r=>r.turno===data.turno||r.turno==="completo"||data.turno==="completo");
-        if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);return alert("Conflicto: ya existe una reserva de "+clientName(c)+" en ese dia y turno.");}
+        // Chequeo límite de reservas del plan
+        const limits = getPlanLimits(currentUser?.plan);
+        if(limits.reservasMes !== null){
+          const mesActual = toDateStr(new Date()).slice(0,7);
+          const reservasMes = reservas.filter(r=>r.fecha?.slice(0,7)===mesActual && r.estado!=="cancelada").length;
+          if(reservasMes >= limits.reservasMes){
+            return alert(`Tu plan ${currentUser?.plan||"actual"} permite hasta ${limits.reservasMes} reservas por mes. Ya alcanzaste el límite de este mes.\n\nContactá al administrador para actualizar tu plan.`);
+          }
+        }
+        const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id,turno,recurso_id").eq("fecha",data.fecha).eq("org_id",currentOrgId).neq("estado","cancelada");
+        const conflict=dbConflicts?.find(r=>r.recurso_id===data.recursoId&&(r.turno===data.turno||r.turno==="completo"||data.turno==="completo"));
+        if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);return alert("Conflicto: ya existe una reserva de "+clientName(c)+" en ese espacio, día y turno.");}
         const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turno||b.turno==="completo"||data.turno==="completo"));
         if(bloqueoConflict)return alert("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.");
       }
@@ -3114,15 +3472,16 @@ export default function App() {
     if(shouldPrint){
       var res2=reservas.find(r=>r.id===data.reservaId);
       var cli=clientes.find(c=>c.id===res2?.clienteId);
-      var docData=printRecibo(newP,res2,cli);
+      var docData=printRecibo(newP,res2,cli,negocio);
       if(cli&&cli.whatsapp){
-        var waMsg="*Recibo de Pago - El Quincho de Bere*\n\n"+
+        var negNombre=negocio?.nombreNegocio||"nuestro negocio";
+        var waMsg="*Recibo de Pago - "+negNombre+"*\n\n"+
           "Cliente: "+clientName(cli)+"\n"+
-          "Evento: "+fmtDate(res2?res2.fecha:"")+" · "+(res2&&TURNOS[res2.turno]?TURNOS[res2.turno].label:"")+"\n"+
+          "Evento: "+fmtDate(res2?res2.fecha:"")+" · "+(res2&&res2.turno?res2.turno:"")+"\n"+
           "Monto cobrado: "+fmtCurrency(newP.monto)+"\n"+
           "Método: "+newP.metodo+"\n"+
           "Fecha del cobro: "+fmtDate(newP.fecha)+"\n\n"+
-          "_Gracias por tu confianza en El Quincho de Bere_ 🏠";
+          "_Gracias por tu confianza en "+negNombre+"_ 🏠";
         docData={...docData,waPhone:cli.whatsapp,waMsg:waMsg};
       }
       setPrintData(docData);
@@ -3191,13 +3550,14 @@ export default function App() {
 
   const PAGE_TITLES={inicio:"Inicio",reservas:"Reservas",clientes:"Clientes",gastos:"Gastos",recursos:"Espacios y Extras",reportes:"Reportes",config:"⚙️ Configuración",usuarios:"Usuarios"};
 
-  if(loaded&&!currentUser) return <GoogleLoginScreen onLogin={handleLogin} />;
+  if(loaded&&bloqueadoMotivo) return <PantallaBloqueada motivo={bloqueadoMotivo} negocio={negocio} />;
+  if(loaded&&!currentUser) return <GoogleLoginScreen onLogin={handleLogin} onBlocked={(m)=>{setBloqueadoMotivo(m);setLoaded(true);}} />;
   if(!loaded) return (
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"#FDF8F3"}}>
       <style>{`@keyframes qb-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
       <div style={{textAlign:"center"}}>
         <div style={{fontSize:56,marginBottom:16}}>🏠</div>
-        <div style={{fontSize:20,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display', serif"}}>El Quincho de Bere</div>
+        <div style={{fontSize:20,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display', serif"}}>{negocio.nombreNegocio||"Gestión de Espacios"}</div>
         <div style={{margin:"18px auto 0",width:32,height:32,border:"3px solid #EDE0D0",borderTop:"3px solid #C4602B",borderRadius:"50%",animation:"qb-spin 0.8s linear infinite"}}></div>
         <div style={{fontSize:12,color:"#8B7355",marginTop:10}}>Cargando datos...</div>
       </div>
@@ -3214,15 +3574,23 @@ export default function App() {
         input:focus,select:focus,textarea:focus{border-color:#C4602B!important;box-shadow:0 0 0 3px rgba(196,96,43,0.12);}
       `}</style>
 
+      {/* Banner demo */}
+      {currentUser?.suscripcionEstado === "demo" && <BannerDemo diasRestantes={currentUser.diasRestantes ?? 0} />}
+
       {/* Top Bar */}
       <div style={{position:"sticky",top:0,background:"rgba(253,248,243,0.95)",backdropFilter:"blur(10px)",zIndex:100,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,borderBottom:"1px solid #EDE0D0"}}>
         <button onClick={()=>setSideOpen(true)} style={{background:"none",border:"none",cursor:"pointer",padding:4,fontSize:22,color:"#1C1C1E",lineHeight:1,flexShrink:0}}>☰</button>
         {tab==="inicio" ? (
           <div style={{flex:1,display:"flex",alignItems:"center",gap:8}}>
-            <LogoSVG size={28} color="#C4602B" />
+            {negocio.logoUrl
+              ? <img src={negocio.logoUrl} alt="logo" style={{width:32,height:32,borderRadius:8,objectFit:"cover"}} />
+              : <LogoSVG size={28} color="#C4602B" />
+            }
             <div>
-              <div style={{fontSize:8,fontWeight:700,color:"#C4602B",letterSpacing:2,textTransform:"uppercase",lineHeight:1}}>El Quincho</div>
-              <div style={{fontSize:14,fontWeight:800,color:"#1C1C1E",fontFamily:"'Playfair Display',serif",lineHeight:1.1}}>de Bere</div>
+              <div style={{fontSize:13,fontWeight:800,color:"#1C1C1E",fontFamily:"'Playfair Display',serif",lineHeight:1.2,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {negocio.nombreNegocio || "Mi Negocio"}
+              </div>
+              {negocio.ciudad && <div style={{fontSize:10,color:"#8B7355",lineHeight:1}}>{negocio.ciudad}</div>}
             </div>
           </div>
         ) : (
@@ -3251,15 +3619,15 @@ export default function App() {
       </div>
 
       {/* Views */}
-      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr)=>setDayModal({date:ds,reservas:dr})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} />}
+      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr)=>setDayModal({date:ds,reservas:dr})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} />}
       {tab==="reservas" && <ReservasView reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} />}
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
-      {tab==="gastos" && (isAdmin ? <ErrorBoundary><GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} /></ErrorBoundary> : <AccesoDenegado />)}
+      {tab==="gastos" && <ErrorBoundary><GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} /></ErrorBoundary>}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
-      {tab==="config" && (isAdmin ? <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} /> : <AccesoDenegado />)}
-      {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} />}
-      {tab==="usuarios" && (isAdmin ? <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} /> : <AccesoDenegado />)}
-      {tab==="reportes" && (isAdmin ? <ErrorBoundary><ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} /></ErrorBoundary> : <AccesoDenegado />)}
+      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} />}
+      {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} />}
+      {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
+      {tab==="reportes" && <ErrorBoundary><ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} /></ErrorBoundary>}
 
       {/* Bottom Tab Bar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
@@ -3276,7 +3644,7 @@ export default function App() {
       <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />
 
       {/* Side Menu */}
-      <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} />
+      <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} negocio={negocio} />
 
       {/* Modals */}
       {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} />}
@@ -3344,6 +3712,7 @@ export default function App() {
         }}
         onNewPago={()=>{setPagoReservaId(detailReserva.id);setDetailReserva(null);setModal("pago");}}
         onNewExtra={()=>{setExtraReservaId(detailReserva.id);setDetailReserva(null);setModal("extra");}}
+        negocio={negocio}
       />}
       {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas}
         onClose={()=>setDetailCliente(null)}
@@ -3365,6 +3734,7 @@ export default function App() {
           saveRecordatorios(recordatorios.map(r=>r.id===alertaActiva.id?{...r,estado:"Procesado"}:r));
           setAlertaActiva(null);
         }}
+        negocio={negocio}
       />}
       {currentUser && ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
