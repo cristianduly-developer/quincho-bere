@@ -1916,7 +1916,15 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
   );
 }
 
-function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio }) {
+function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio, turnosRecurso }) {
+  const getTurnoNombre = (r) => {
+    if(r.turnoId) {
+      const t=(turnosRecurso||[]).find(x=>x.id===r.turnoId);
+      if(t) return t.nombre;
+    }
+    return TURNOS[r.turno]?.label || r.turno || "—";
+  };
+
   const generarPDF = () => {
     const mes = MONTHS[selMonth];
     const anio = selYear;
@@ -1929,8 +1937,8 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
 
     // Turno summary
     const porTurno = {};
-    reservasMes.forEach(r=>{ porTurno[r.turno]=(porTurno[r.turno]||0)+1; });
-    const turnoRows = Object.entries(porTurno).map(([t,n])=>"<tr><td>"+(TURNOS[t]?.label||t)+"</td><td style=\"text-align:center\">"+n+"</td></tr>").join("") || "<tr><td colspan=\"2\" style=\"color:#8B7355\">Sin datos</td></tr>";
+    reservasMes.forEach(r=>{ const k=getTurnoNombre(r); porTurno[k]=(porTurno[k]||0)+1; });
+    const turnoRows = Object.entries(porTurno).map(([t,n])=>"<tr><td>"+escHtml(t)+"</td><td style=\"text-align:center\">"+n+"</td></tr>").join("") || "<tr><td colspan=\"2\" style=\"color:#8B7355\">Sin datos</td></tr>";
 
     // Extras del mes
     const extrasMap = {};
@@ -1950,7 +1958,7 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
       const extrasR=extrasReserva.filter(e=>e.reservaId===r.id).map(e=>e.descripcion+(e.cantidad>1?" x"+e.cantidad:"")).join(", ")||"—";
       return "<tr><td>"+fmtDate(r.fecha)+"</td>"
         +"<td><b>"+(c?escHtml(c.nombre)+" "+escHtml(c.apellido):"—")+"</b><br><small style=\"color:#8B7355\">"+escHtml(c?.whatsapp||"")+"</small></td>"
-        +"<td>"+escHtml(TURNOS[r.turno]?.label||r.turno)+"</td>"
+        +"<td>"+escHtml(getTurnoNombre(r))+"</td>"
         +"<td style=\"font-size:10px\">"+escHtml(extrasR)+"</td>"
         +"<td>"+fmt(r.montoPactado)+"</td>"
         +"<td>"+fmt(tp)+"</td>"
@@ -2133,12 +2141,16 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
         <div style={{...card,padding:"14px 16px"}}>
           <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:4}}>Reservas por turno</div>
           <div style={{fontSize:20,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif",marginBottom:8}}>{monthRes.length} <span style={{fontSize:12,color:"#8B7355",fontWeight:400}}>total mes</span></div>
-          {Object.entries(TURNOS).map(([k,v])=>(
-            <div key={k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <span style={{fontSize:12}}>{v.icon} {v.label}</span>
-              <span style={{fontWeight:700,fontSize:14,color:v.color}}>{monthRes.filter(r=>r.turno===k).length}</span>
-            </div>
-          ))}
+          {(()=>{
+            const porT={};
+            monthRes.forEach(r=>{ const k=getTurnoNombre(r); porT[k]=(porT[k]||0)+1; });
+            return Object.entries(porT).sort((a,b)=>b[1]-a[1]).map(([nombre,cant])=>(
+              <div key={nombre} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <span style={{fontSize:12,color:"#1C1C1E"}}>📌 {nombre}</span>
+                <span style={{fontWeight:700,fontSize:14,color:"#C4602B"}}>{cant}</span>
+              </div>
+            ));
+          })()}
         </div>
       </div>
 
@@ -4219,7 +4231,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} />}
       {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} />}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
-      {tab==="reportes" && <ErrorBoundary><ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} /></ErrorBoundary>}
+      {tab==="reportes" && <ErrorBoundary><ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} /></ErrorBoundary>}
 
       {/* Bottom Tab Bar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
