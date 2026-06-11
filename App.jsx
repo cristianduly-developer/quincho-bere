@@ -379,6 +379,21 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     notas:        reserva?.notas        || "",
   });
 
+  // Si initialTurno llega después del primer render (batching), sincronizar
+  useEffect(() => {
+    if(!initialTurno) return;
+    const t = (turnosRecurso||[]).find(x=>x.id===initialTurno);
+    if(!t) return;
+    const fecha = f.fecha;
+    const esFin = esFinde(fecha);
+    const precio = esFin ? (t.precioFinde||"") : (t.precioSemana||"");
+    setF(p => {
+      if(p.turnoId === t.id) return p; // ya está bien, no hacer nada
+      return {...p, recursoId:t.recursoId, turnoId:t.id, horario:t.horaInicio, horarioFin:t.horaFin, montoPactado:precio||p.montoPactado};
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTurno]);
+
   const turnosDelEspacio = getTurnosEspacio(f.recursoId);
   const usaTurnosCustom = turnosDelEspacio.length > 0;
 
