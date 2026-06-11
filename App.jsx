@@ -3123,6 +3123,7 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
         nombre: acceso.nombre_docente || email.split("@")[0],
         email,
         orgId,
+        rol: "Administrador",
         plan: acceso.plan || "basico",
         suscripcionEstado: acceso.estado,
         diasRestantes: acceso.dias_restantes ?? null,
