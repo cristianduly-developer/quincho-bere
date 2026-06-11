@@ -984,19 +984,20 @@ function EditPagoModal({ pago, onClose, onSave }) {
   );
 }
 
-function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueo, onBloquear, canBloquear, turnosRecurso, espacioFiltro }) {
-  // Abre directo en reserva; si hay bloqueo abre en modo bloqueo
-  const [mode, setMode] = useState(bloqueo ? "bloqueo" : "reserva");
+function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueosDia, onBloquear, canBloquear, turnosRecurso, espacioFiltro }) {
+  const bloqueosDiaArr = bloqueosDia||[];
+  const hayBloqueoCompleto = bloqueosDiaArr.some(b=>b.turno==="completo");
+  // Para compatibilidad con código viejo que usa bloqueo singular
+  const bloqueo = bloqueosDiaArr.find(b=>b.turno==="completo") || bloqueosDiaArr[0] || null;
+
+  const [mode, setMode] = useState(bloqueosDiaArr.length>0 ? "bloqueo" : "reserva");
   const [bTurno, setBTurno] = useState("completo");
   const [bMotivo, setBMotivo] = useState("");
-  const [confirmUnblock, setConfirmUnblock] = useState(false);
+  const [confirmUnblockId, setConfirmUnblockId] = useState(null);
 
-  // Turnos del espacio activo
-  // Si hay espacio seleccionado, usamos ese. Si "all" pero hay un solo espacio con turnos, lo usamos igual.
   const todosLosTurnos = turnosRecurso||[];
   const espacioEfectivo = (()=>{
     if(espacioFiltro && espacioFiltro !== "all" && espacioFiltro !== "todos") return espacioFiltro;
-    // Un solo espacio con turnos configurados → usarlo implícitamente
     const idsConTurnos = [...new Set(todosLosTurnos.map(t=>t.recursoId))];
     if(idsConTurnos.length===1) return idsConTurnos[0];
     return null;
@@ -1005,18 +1006,17 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
     ? todosLosTurnos.filter(t=>t.recursoId===espacioEfectivo && t.activo!==false)
     : [];
   const usaTurnosCustom = turnosDelEspacio.length > 0;
-  const modoAgenda = turnosDelEspacio.length > 4; // lista compacta cuando hay muchos slots
+  const modoAgenda = turnosDelEspacio.length > 4;
 
-  // Con turnos custom: un slot está ocupado si hay una reserva con ese turnoId
+  // Slot bloqueado: reserva con ese turnoId O bloqueo con ese turnoId O bloqueo completo
+  const isSlotBloqueado = (turnoId) =>
+    hayBloqueoCompleto || bloqueosDiaArr.some(b=>b.turno===turnoId);
   const isOccCustom = (turnoId) =>
     dayRes.some(r=>r.turnoId===turnoId);
 
-  // Checks if a turno is occupied (reservation OR bloqueo) — modo genérico
-  const isBlocked = t => !!bloqueo && (
-    bloqueo.turno === "completo" || bloqueo.turno === t || t === "completo"
-  );
+  const isBlocked = t => hayBloqueoCompleto || bloqueosDiaArr.some(b=>b.turno===t);
   const isOcc = t => {
-    if(t==="completo") return dayRes.some(r=>r.turno!==undefined) || isBlocked(t);
+    if(t==="completo") return dayRes.some(r=>r.turno!==undefined) || hayBloqueoCompleto;
     return dayRes.some(r=>r.turno===t||r.turno==="completo") || isBlocked(t);
   };
 
@@ -1044,19 +1044,26 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
         </div>
       )}
 
-      {/* Bloqueo activo existente */}
-      {bloqueo && mode !== "bloqueo" && (
-        <div style={{background:"#1F2937",color:"#D1D5DB",padding:"10px 14px",borderRadius:10,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div>
-            <div style={{fontWeight:700,fontSize:12,marginBottom:2}}>🚫 {TURNOS[bloqueo.turno]?.label||"Día completo"} bloqueado</div>
-            <div style={{fontSize:11}}>{bloqueo.motivo}</div>
-          </div>
-          {canBloquear && (
-            <button onClick={()=>onBloquear(bloqueo)}
-              style={{padding:"5px 10px",background:"#DC2626",border:"none",borderRadius:7,color:"#FFF",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0,marginLeft:10}}>
-              🔓 Desbloquear
-            </button>
-          )}
+      {/* Bloqueos activos del día */}
+      {bloqueosDiaArr.length>0 && mode !== "bloqueo" && (
+        <div style={{marginBottom:12}}>
+          {bloqueosDiaArr.map(bl=>{
+            const turnoNombre = turnosDelEspacio.find(t=>t.id===bl.turno)?.nombre || TURNOS[bl.turno]?.label || (bl.turno==="completo"?"Día completo":bl.turno);
+            return (
+              <div key={bl.id} style={{background:"#1F2937",color:"#D1D5DB",padding:"10px 14px",borderRadius:10,marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:12,marginBottom:2}}>🚫 {turnoNombre} bloqueado</div>
+                  <div style={{fontSize:11}}>{bl.motivo}</div>
+                </div>
+                {canBloquear && (
+                  <button onClick={()=>onBloquear(bl)}
+                    style={{padding:"5px 10px",background:"#DC2626",border:"none",borderRadius:7,color:"#FFF",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0,marginLeft:10}}>
+                    🔓
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -1212,36 +1219,33 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
       {/* MODO BLOQUEO */}
       {mode === "bloqueo" && (
         <div>
-          {bloqueo ? (
-            /* Desbloqueo con confirmación inline */
-            <div>
-              <div style={{background:"#1F2937",borderRadius:12,padding:"16px",marginBottom:16,textAlign:"center"}}>
-                <div style={{fontSize:32,marginBottom:8}}>🔒</div>
-                <div style={{fontWeight:700,fontSize:14,color:"#FFF",marginBottom:4}}>Turno bloqueado</div>
-                <div style={{fontSize:13,color:"#9CA3AF",marginBottom:4}}>{TURNOS[bloqueo.turno]?.icon} {TURNOS[bloqueo.turno]?.label}</div>
-                <div style={{fontSize:12,color:"#D1D5DB",fontStyle:"italic"}}>"{bloqueo.motivo}"</div>
-              </div>
-              {!confirmUnblock ? (
-                <button onClick={()=>setConfirmUnblock(true)}
-                  style={{width:"100%",padding:"13px",background:"#DC2626",border:"none",borderRadius:10,color:"#FFF",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
-                  🔓 Desbloquear este turno
-                </button>
-              ) : (
-                <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:10,padding:"16px"}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#DC2626",marginBottom:12,textAlign:"center"}}>¿Confirmás que querés desbloquear?</div>
-                  <div style={{display:"flex",gap:10}}>
-                    <button onClick={()=>setConfirmUnblock(false)}
-                      style={{flex:1,padding:"11px",background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:8,fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:"#6B7280"}}>
-                      Cancelar
-                    </button>
-                    <button onClick={()=>onBloquear(bloqueo)}
-                      style={{flex:1,padding:"11px",background:"#DC2626",border:"none",borderRadius:8,fontWeight:800,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:"#FFF"}}>
-                      ✅ Sí, desbloquear
-                    </button>
+          {/* Bloqueos existentes con confirmación de desbloqueo */}
+          {bloqueosDiaArr.length>0 && (
+            <div style={{marginBottom:16}}>
+              {bloqueosDiaArr.map(bl=>{
+                const turnoNombre = turnosDelEspacio.find(t=>t.id===bl.turno)?.nombre || TURNOS[bl.turno]?.label || (bl.turno==="completo"?"Día completo":bl.turno);
+                return (
+                  <div key={bl.id} style={{background:"#1F2937",borderRadius:10,padding:"12px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13,color:"#FFF"}}>🚫 {turnoNombre}</div>
+                      <div style={{fontSize:11,color:"#9CA3AF",fontStyle:"italic"}}>"{bl.motivo}"</div>
+                    </div>
+                    {confirmUnblockId===bl.id ? (
+                      <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:8}}>
+                        <button onClick={()=>setConfirmUnblockId(null)} style={{padding:"5px 8px",background:"#374151",border:"none",borderRadius:6,color:"#FFF",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>No</button>
+                        <button onClick={()=>{onBloquear(bl);setConfirmUnblockId(null);}} style={{padding:"5px 8px",background:"#DC2626",border:"none",borderRadius:6,color:"#FFF",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✓ Sí</button>
+                      </div>
+                    ) : (
+                      <button onClick={()=>setConfirmUnblockId(bl.id)} style={{padding:"5px 10px",background:"#DC2626",border:"none",borderRadius:7,color:"#FFF",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0,marginLeft:8}}>🔓</button>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
+          )}
+          {/* Si hay bloqueo completo, no tiene sentido agregar más */}
+          {hayBloqueoCompleto ? (
+            <div style={{fontSize:12,color:"#8B7355",textAlign:"center",padding:"8px 0"}}>El día completo está bloqueado. Desbloquealo para agregar turnos individuales.</div>
           ) : (
             /* Nuevo bloqueo */
             <div>
@@ -1259,22 +1263,40 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
                       <div style={{fontSize:11,color:bTurno==="completo"?"#9CA3AF":"#8B7355"}}>Bloquea todos los turnos del día</div>
                     </div>
                   </button>
-                  {/* Turnos individuales (solo modo fijo ≤4, no tiene sentido bloquear slots sueltos en cancha) */}
-                  {!modoAgenda && turnosDelEspacio.map(t=>{
-                    const sel = bTurno===t.id;
-                    const h = parseInt((t.horaInicio||"12").split(":")[0]);
-                    const icon = h<12?"☀️":h<18?"🌤️":h<21?"🌆":"🌙";
-                    return (
-                      <button key={t.id} onClick={()=>setBTurno(t.id)}
-                        style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:8,border:`1.5px solid ${sel?"#374151":"#EDE0D0"}`,background:sel?"#1F2937":"#FDF8F3",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
-                        <span style={{fontSize:20}}>{icon}</span>
-                        <div>
-                          <div style={{fontWeight:700,fontSize:13,color:sel?"#FFF":"#1C1C1E"}}>{t.nombre}</div>
-                          <div style={{fontSize:11,color:sel?"#9CA3AF":"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                  {/* Turnos individuales — todos los modos */}
+                  {modoAgenda ? (
+                    /* Cancha: lista compacta scrollable */
+                    <div style={{maxHeight:200,overflowY:"auto",display:"flex",flexDirection:"column",gap:3,marginTop:6}}>
+                      {turnosDelEspacio.map(t=>{
+                        const sel = bTurno===t.id;
+                        const yaBloqueado = bloqueosDiaArr.some(b=>b.turno===t.id);
+                        return (
+                          <button key={t.id} onClick={()=>!yaBloqueado&&setBTurno(t.id)} disabled={yaBloqueado}
+                            style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 10px",borderRadius:6,border:`1px solid ${sel?"#374151":"#EDE0D0"}`,background:yaBloqueado?"#374151":sel?"#1F2937":"#FFF",cursor:yaBloqueado?"default":"pointer",fontFamily:"inherit",opacity:yaBloqueado?0.6:1}}>
+                            <span style={{fontSize:12,fontWeight:700,color:sel||yaBloqueado?"#FFF":"#1C1C1E"}}>{t.horaInicio} – {t.horaFin}</span>
+                            {yaBloqueado && <span style={{fontSize:10,color:"#9CA3AF"}}>🚫 ya bloqueado</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    /* Quincho ≤4: botones grandes */
+                    turnosDelEspacio.map(t=>{
+                      const sel = bTurno===t.id;
+                      const h = parseInt((t.horaInicio||"12").split(":")[0]);
+                      const icon = h<12?"☀️":h<18?"🌤️":h<21?"🌆":"🌙";
+                      return (
+                        <button key={t.id} onClick={()=>setBTurno(t.id)}
+                          style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:8,border:`1.5px solid ${sel?"#374151":"#EDE0D0"}`,background:sel?"#1F2937":"#FDF8F3",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                          <span style={{fontSize:20}}>{icon}</span>
+                          <div>
+                            <div style={{fontWeight:700,fontSize:13,color:sel?"#FFF":"#1C1C1E"}}>{t.nombre}</div>
+                            <div style={{fontSize:11,color:sel?"#9CA3AF":"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               ) : (
                 /* Turnos genéricos */
@@ -1309,10 +1331,6 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
           )}
         </div>
       )}
-
-    </BottomModal>
-  );
-}
 
 function LoginScreen({ usuarios, onLogin }) {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -4279,7 +4297,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         date={dayModal.date}
         dayRes={dayModal.reservas}
         clientes={clientes}
-        bloqueo={bloqueos.find(b=>b.fecha===dayModal.date)}
+        bloqueosDia={bloqueos.filter(b=>b.fecha===dayModal.date)}
         canBloquear={currentUser?.gestionOperativa!==false}
         onClose={()=>setDayModal(null)}
         turnosRecurso={turnosRecurso}
