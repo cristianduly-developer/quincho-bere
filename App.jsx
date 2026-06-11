@@ -322,45 +322,78 @@ function Avatar({ nombre }) {
 
 // ─── MODALS ───────────────────────────────────────────────
 
-function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config, saving }) {
+function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config, saving, turnosRecurso }) {
   const isEdit = !!reserva;
-  const initTurno = reserva?.turno || initialTurno || "dia";
-  const initH = !reserva ? (TURNO_HORARIOS[initTurno] || {}) : {};
+
+  const esFinde = (fecha) => {
+    try { const d=new Date(fecha+"T12:00:00"); const dow=d.getDay(); return dow===0||dow===6; } catch(e){ return false; }
+  };
+
+  const getTurnosEspacio = (recursoId) =>
+    (turnosRecurso||[]).filter(t=>t.recursoId===recursoId && t.activo!==false);
+
+  const getPrecioFromTurnos = (turnoId, fecha, recursoId) => {
+    const ts = getTurnosEspacio(recursoId);
+    const t = ts.find(x=>x.id===turnoId);
+    if(!t) return "";
+    return esFinde(fecha) ? (t.precioFinde||"") : (t.precioSemana||"");
+  };
+
+  const initRecursoId = reserva?.recursoId || recursos[0]?.id || "";
+  const initTurnosEspacio = getTurnosEspacio(initRecursoId);
+  const initTurnoId = reserva?.turnoId || (initTurnosEspacio[0]?.id) || reserva?.turno || initialTurno || "";
+
+  const getInitMonto = () => {
+    if(reserva?.montoPactado) return reserva.montoPactado;
+    const fecha = initialDate || toDateStr(new Date());
+    if(initTurnoId && initTurnosEspacio.length>0) return getPrecioFromTurnos(initTurnoId, fecha, initRecursoId);
+    return "";
+  };
+
+  const getInitHorario = () => {
+    if(reserva) return {horario: reserva.horario||"", horarioFin: reserva.horarioFin||""};
+    const t = initTurnosEspacio.find(x=>x.id===initTurnoId);
+    return t ? {horario: t.horaInicio, horarioFin: t.horaFin} : {horario:"", horarioFin:""};
+  };
+  const initH = getInitHorario();
+
   const [f, setF] = useState({
     clienteId:    reserva?.clienteId    || "",
-    recursoId:    reserva?.recursoId    || recursos[0]?.id || "",
+    recursoId:    initRecursoId,
     fecha:        reserva?.fecha        || initialDate || toDateStr(new Date()),
-    turno:        initTurno,
-    horario:      reserva?.horario      || initH.horario  || "",
-    horarioFin:   reserva?.horarioFin   || initH.horarioFin || "",
-    cantInvitados:reserva?.cantInvitados||35,
-    montoPactado: reserva?.montoPactado || (()=>{ try{ if(!config?.precios) return ""; const fd=reserva?.fecha||initialDate||toDateStr(new Date()); const [fy,fm,fd2]=fd.split("-").map(Number); const t2=[0,3,2,5,0,3,5,1,4,6,2,4]; let yr2=fy; if(fm<3)yr2--; const dow=(yr2+Math.floor(yr2/4)-Math.floor(yr2/100)+Math.floor(yr2/400)+t2[fm-1]+fd2)%7; const tipo=(dow===0||dow===6)?"dia_finde":"dia_semana"; return config.precios[tipo]?.[initTurno]||""; }catch(e){return "";} })(),
+    turnoId:      initTurnoId,
+    turno:        reserva?.turno        || initialTurno || "dia",
+    horario:      initH.horario,
+    horarioFin:   initH.horarioFin,
+    cantInvitados:reserva?.cantInvitados||1,
+    montoPactado: getInitMonto(),
     estado:       reserva?.estado       || "pendiente",
     notas:        reserva?.notas        || "",
   });
-  const getPrecioTurno = (turno, fecha) => {
-    try {
-      if(!config?.precios||!turno||!fecha) return "";
-      const [y,m,d]=fecha.split("-").map(Number);
-      const t=[0,3,2,5,0,3,5,1,4,6,2,4]; let yr=y; if(m<3)yr--;
-      const dow=(yr+Math.floor(yr/4)-Math.floor(yr/100)+Math.floor(yr/400)+t[m-1]+d)%7;
-      const tipo=(dow===0||dow===6)?"dia_finde":"dia_semana";
-      return config.precios[tipo]?.[turno] || "";
-    } catch(e) { return ""; }
-  };
+
+  const turnosDelEspacio = getTurnosEspacio(f.recursoId);
+  const usaTurnosCustom = turnosDelEspacio.length > 0;
+
   const set = k => v => setF(p => {
-    if (k === "turno") {
-      var h = TURNO_HORARIOS[v] || {};
-      const precioSugerido = getPrecioTurno(v, p.fecha);
-      const precio = precioSugerido || p.montoPactado || "";
-      return {...p, turno:v, horario:h.horario||p.horario, horarioFin:h.horarioFin||p.horarioFin, montoPactado:precio};
+    if(k==="recursoId") {
+      const ts = getTurnosEspacio(v);
+      const primerTurno = ts[0];
+      const precio = primerTurno ? (esFinde(p.fecha) ? primerTurno.precioFinde : primerTurno.precioSemana) : "";
+      return {...p, recursoId:v, turnoId:primerTurno?.id||"", horario:primerTurno?.horaInicio||"", horarioFin:primerTurno?.horaFin||"", montoPactado:precio||""};
     }
-    if (k === "fecha") {
-      const precio = getPrecioTurno(p.turno, v);
+    if(k==="turnoId") {
+      const ts = getTurnosEspacio(p.recursoId);
+      const t = ts.find(x=>x.id===v);
+      const precio = t ? (esFinde(p.fecha) ? t.precioFinde : t.precioSemana) : "";
+      return {...p, turnoId:v, horario:t?.horaInicio||p.horario, horarioFin:t?.horaFin||p.horarioFin, montoPactado:precio||p.montoPactado};
+    }
+    if(k==="fecha") {
+      const precio = getPrecioFromTurnos(p.turnoId, v, p.recursoId);
       return {...p, fecha:v, montoPactado:precio||p.montoPactado||""};
     }
     return {...p, [k]:v};
   });
+
   return (
     <BottomModal title={isEdit?"Editar Reserva":"Nueva Reserva"} onClose={onClose}>
       <Select label="Cliente" value={f.clienteId} onChange={set("clienteId")}
@@ -377,15 +410,38 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
       })()}
       <Select label="Espacio" value={f.recursoId} onChange={set("recursoId")}
         options={recursos.map(r=>({value:r.id,label:r.nombre}))} />
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-        <Input label="Fecha del evento" type="date" value={f.fecha} onChange={set("fecha")} required />
-        <Select label="Turno" value={f.turno} onChange={set("turno")}
+      <Input label="Fecha del evento" type="date" value={f.fecha} onChange={set("fecha")} required />
+
+      {/* Selector de turno: custom si hay turnos configurados, genérico si no */}
+      {usaTurnosCustom ? (
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>Turno</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {turnosDelEspacio.map(t=>{
+              const precio = esFinde(f.fecha) ? t.precioFinde : t.precioSemana;
+              const sel = f.turnoId===t.id;
+              return (
+                <button key={t.id} onClick={()=>set("turnoId")(t.id)}
+                  style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${sel?"#C4602B":"#EDE0D0"}`,background:sel?"#FEF3EC":"#FFF",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,color:sel?"#C4602B":"#1C1C1E"}}>{t.nombre}</div>
+                    <div style={{fontSize:11,color:"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
+                  </div>
+                  <div style={{fontWeight:700,fontSize:13,color:sel?"#C4602B":"#5C4033"}}>{fmtCurrency(precio||0)}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <Select label="Turno" value={f.turno} onChange={v=>setF(p=>({...p,turno:v}))}
           options={Object.entries(TURNOS).map(([k,v])=>({value:k,label:`${v.icon} ${v.label}`}))} />
-      </div>
+      )}
+
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         <Input label="Hora inicio" type="time" value={f.horario} onChange={set("horario")} />
-        <Input label="Hora fin *" type="time" value={f.horarioFin} onChange={set("horarioFin")} />
-        <Input label="Cant. invitados" type="number" value={f.cantInvitados} onChange={set("cantInvitados")} min="1" placeholder="0" onFocus={e=>e.target.select()} />
+        <Input label="Hora fin" type="time" value={f.horarioFin} onChange={set("horarioFin")} />
+        <Input label="Cant. personas" type="number" value={f.cantInvitados} onChange={set("cantInvitados")} min="1" placeholder="0" onFocus={e=>e.target.select()} />
       </div>
       <Input label="Monto pactado ($)" type="number" value={f.montoPactado} onChange={set("montoPactado")} required placeholder="0" />
       <div style={{padding:"8px 12px",background:"#F3F4F6",borderRadius:8,marginBottom:14,fontSize:12,color:"#6B7280"}}>
@@ -396,12 +452,11 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn disabled={saving} onClick={()=>{
           if(saving) return;
-          if(!f.clienteId) return alert("Seleccioná un cliente antes de guardar la reserva.");
+          if(!f.clienteId) return alert("Seleccioná un cliente.");
           if(!f.fecha||!f.montoPactado) return alert("Completá fecha y monto pactado.");
           if(Number(f.montoPactado)<=0) return alert("El monto pactado debe ser mayor a cero.");
-          if(Number(f.cantInvitados)<=0) return alert("Ingresá la cantidad de invitados (mínimo 1).");
           if(!isEdit&&f.fecha < toDateStr(new Date())) return alert("No podés registrar una reserva en una fecha pasada.");
-          onSave({...f, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||0});
+          onSave({...f, turnoId:f.turnoId||null, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||1});
         }}>{saving?"Guardando...":(isEdit?"Guardar cambios":"Crear reserva")}</Btn>
       </div>
     </BottomModal>
@@ -923,14 +978,24 @@ function EditPagoModal({ pago, onClose, onSave }) {
   );
 }
 
-function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueo, onBloquear, canBloquear }) {
+function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueo, onBloquear, canBloquear, turnosRecurso, espacioFiltro }) {
   // Abre directo en reserva; si hay bloqueo abre en modo bloqueo
   const [mode, setMode] = useState(bloqueo ? "bloqueo" : "reserva");
   const [bTurno, setBTurno] = useState("completo");
   const [bMotivo, setBMotivo] = useState("");
   const [confirmUnblock, setConfirmUnblock] = useState(false);
 
-  // Checks if a turno is occupied (reservation OR bloqueo)
+  // Turnos del espacio activo (si hay espacio seleccionado y tiene turnos configurados)
+  const turnosDelEspacio = espacioFiltro && espacioFiltro !== "todos"
+    ? (turnosRecurso||[]).filter(t=>t.recursoId===espacioFiltro && t.activo!==false)
+    : [];
+  const usaTurnosCustom = turnosDelEspacio.length > 0;
+
+  // Con turnos custom: un slot está ocupado si hay una reserva con ese turnoId
+  const isOccCustom = (turnoId) =>
+    dayRes.some(r=>r.turnoId===turnoId);
+
+  // Checks if a turno is occupied (reservation OR bloqueo) — modo genérico
   const isBlocked = t => !!bloqueo && (
     bloqueo.turno === "completo" || bloqueo.turno === t || t === "completo"
   );
@@ -1001,25 +1066,58 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
       {mode === "reserva" && (
         <div>
           <div style={{...lbl, marginBottom:10}}>Seleccioná el turno</div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {Object.entries(TURNOS).map(([k,v]) => {
-              const busy = isOcc(k);
-              return (
-                <button key={k} onClick={()=>{ if(!busy){ onNewReserva(date,k); onClose(); }}}
-                  disabled={busy}
-                  style={{flex:"1 1 calc(33% - 8px)",padding:"14px 8px",borderRadius:10,fontSize:13,
-                    fontWeight:600,cursor:busy?"not-allowed":"pointer",
-                    background:isBlocked(k)?"#1F2937":busy?"#F5F5F5":v.bg,
-                    color:isBlocked(k)?"#6B7280":busy?"#CCC":v.color,
-                    border:`1.5px solid ${isBlocked(k)?"#374151":busy?"#EEE":v.color+"66"}`,
-                    fontFamily:"inherit",textAlign:"center",opacity:busy?0.7:1}}>
-                  <div style={{fontSize:22,marginBottom:4}}>{v.icon}</div>
-                  <div>{v.label}</div>
-                  {busy && <div style={{fontSize:10,marginTop:2,fontWeight:700}}>{isBlocked(k)?"🚫 Bloqueado":"Ocupado"}</div>}
-                </button>
-              );
-            })}
-          </div>
+
+          {/* Turnos configurados del espacio */}
+          {usaTurnosCustom ? (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {turnosDelEspacio.map(t=>{
+                const busy = isOccCustom(t.id);
+                const isDayBloqueado = !!bloqueo && (bloqueo.turno==="completo");
+                const finalBusy = busy || isDayBloqueado;
+                const esFinde = (()=>{try{const d=new Date(date+"T12:00:00");const dow=d.getDay();return dow===0||dow===6;}catch(e){return false;}})();
+                const precio = esFinde ? t.precioFinde : t.precioSemana;
+                return (
+                  <button key={t.id} onClick={()=>{ if(!finalBusy){ onNewReserva(date, t.id, t); onClose(); }}}
+                    disabled={finalBusy}
+                    style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                      padding:"12px 14px",borderRadius:10,fontSize:13,fontWeight:600,
+                      cursor:finalBusy?"not-allowed":"pointer",fontFamily:"inherit",textAlign:"left",
+                      background:isDayBloqueado?"#1F2937":busy?"#F5F5F5":"#FFF",
+                      color:isDayBloqueado?"#6B7280":busy?"#CCC":"#1C1C1E",
+                      border:`1.5px solid ${isDayBloqueado?"#374151":busy?"#EEE":"#EDE0D0"}`,
+                      opacity:finalBusy?0.7:1}}>
+                    <div>
+                      <div style={{fontWeight:700,color:finalBusy?"inherit":"#1C1C1E"}}>{t.nombre}</div>
+                      <div style={{fontSize:11,color:"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
+                      {finalBusy && <div style={{fontSize:10,marginTop:2,fontWeight:700,color:"#DC2626"}}>{isDayBloqueado?"🚫 Bloqueado":"Ocupado"}</div>}
+                    </div>
+                    <div style={{fontWeight:700,fontSize:13,color:finalBusy?"#CCC":"#C4602B"}}>{fmtCurrency(precio||0)}</div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            /* Turnos genéricos (fallback cuando no hay turnos configurados en el espacio) */
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {Object.entries(TURNOS).map(([k,v]) => {
+                const busy = isOcc(k);
+                return (
+                  <button key={k} onClick={()=>{ if(!busy){ onNewReserva(date,k); onClose(); }}}
+                    disabled={busy}
+                    style={{flex:"1 1 calc(33% - 8px)",padding:"14px 8px",borderRadius:10,fontSize:13,
+                      fontWeight:600,cursor:busy?"not-allowed":"pointer",
+                      background:isBlocked(k)?"#1F2937":busy?"#F5F5F5":v.bg,
+                      color:isBlocked(k)?"#6B7280":busy?"#CCC":v.color,
+                      border:`1.5px solid ${isBlocked(k)?"#374151":busy?"#EEE":v.color+"66"}`,
+                      fontFamily:"inherit",textAlign:"center",opacity:busy?0.7:1}}>
+                    <div style={{fontSize:22,marginBottom:4}}>{v.icon}</div>
+                    <div>{v.label}</div>
+                    {busy && <div style={{fontSize:10,marginTop:2,fontWeight:700}}>{isBlocked(k)?"🚫 Bloqueado":"Ocupado"}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -1576,7 +1674,7 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
           const dr=getDay(day), isToday=ds2===todayStr, isPast=ds2<todayStr;
           const bloqueo=getBloqueo(day);
           return (
-            <div key={`day-${year}-${month}-${day}`} onClick={()=>onDayClick(ds2,dr)}
+            <div key={`day-${year}-${month}-${day}`} onClick={()=>onDayClick(ds2,dr,espacioFiltro)}
               style={{background:bloqueo?"#1F2937":isToday&&dr.length===0?"#FEF0E8":"#FFF",minHeight:54,display:"flex",flexDirection:"column",cursor:"pointer",padding:"2px",opacity:isPast?0.4:1,pointerEvents:isPast?"none":"auto"}}>
               <div style={{textAlign:"center",padding:"2px 1px",flexShrink:0}}>
                 {isToday ? (
@@ -2746,7 +2844,17 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
               </div>
             </div>
             <div style={{fontWeight:700,fontSize:12,color:"#C4602B",marginBottom:6,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>💬 Mensajes de WhatsApp</div>
-            <div style={{fontSize:11,color:"#8B7355",marginBottom:12}}>Variables disponibles: <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{nombre}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{nombre_negocio}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{fecha}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{horario_inicio}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{horario_fin}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{extras}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{monto_total}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{pagado}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{saldo}"}</span></div>
+            <details style={{marginBottom:12}}>
+              <summary style={{fontSize:11,color:"#8B7355",cursor:"pointer",userSelect:"none",listStyle:"none",display:"inline-flex",alignItems:"center",gap:4}}>
+                <span style={{width:16,height:16,borderRadius:"50%",background:"#EDE0D0",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#8B7355",flexShrink:0}}>?</span>
+                <span>Variables disponibles</span>
+              </summary>
+              <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:4}}>
+                {["{nombre}","{nombre_negocio}","{fecha}","{horario_inicio}","{horario_fin}","{extras}","{monto_total}","{pagado}","{saldo}"].map(v=>(
+                  <span key={v} style={{fontFamily:"monospace",background:"#F5EDE4",padding:"2px 6px",borderRadius:4,fontSize:11,color:"#5C4033"}}>{v}</span>
+                ))}
+              </div>
+            </details>
 
             {/* Recordatorio */}
             <div style={{marginBottom:14,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
@@ -3566,8 +3674,12 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
             return alert(`Tu plan ${currentUser?.plan||"actual"} permite hasta ${limits.reservasMes} reservas por mes. Ya alcanzaste el límite de este mes.\n\nContactá al administrador para actualizar tu plan.`);
           }
         }
-        const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id,turno,recurso_id").eq("fecha",data.fecha).eq("org_id",currentOrgId).neq("estado","cancelada");
-        const conflict=dbConflicts?.find(r=>r.recurso_id===data.recursoId&&(r.turno===data.turno||r.turno==="completo"||data.turno==="completo"));
+        const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id,turno,turno_id,recurso_id").eq("fecha",data.fecha).eq("org_id",currentOrgId).neq("estado","cancelada");
+        const conflict=dbConflicts?.find(r=>r.recurso_id===data.recursoId&&(
+          data.turnoId
+            ? (r.turno_id===data.turnoId)
+            : (r.turno===data.turno||r.turno==="completo"||data.turno==="completo")
+        ));
         if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);return alert("Conflicto: ya existe una reserva de "+clientName(c)+" en ese espacio, día y turno.");}
         const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turno||b.turno==="completo"||data.turno==="completo"));
         if(bloqueoConflict)return alert("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.");
@@ -3780,7 +3892,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       </div>
 
       {/* Views */}
-      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr)=>setDayModal({date:ds,reservas:dr})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} />}
+      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>setDayModal({date:ds,reservas:dr,espacioFiltro:ef||"all"})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} />}
       {tab==="reservas" && <ReservasView reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} />}
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
       {tab==="gastos" && <ErrorBoundary><GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} /></ErrorBoundary>}
@@ -3808,7 +3920,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} negocio={negocio} />
 
       {/* Modals */}
-      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} />}
+      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} turnosRecurso={turnosRecurso} />}
       {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} />}
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} />}
       {modal==="gasto" && <GastoModal onClose={()=>setModal(null)} onSave={handleSaveGasto} />}
@@ -3907,7 +4019,14 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         bloqueo={bloqueos.find(b=>b.fecha===dayModal.date)}
         canBloquear={currentUser?.gestionOperativa!==false}
         onClose={()=>setDayModal(null)}
-        onNewReserva={(date,turno)=>{setInitDate(date);setInitTurno(turno);setEditReserva(null);setModal("reserva");}}
+        turnosRecurso={turnosRecurso}
+        espacioFiltro={dayModal.espacioFiltro||"all"}
+        onNewReserva={(date,turnoIdOrKey,turnoObj)=>{
+          setInitDate(date);
+          setInitTurno(turnoObj ? turnoObj.id : turnoIdOrKey);
+          setEditReserva(null);
+          setModal("reserva");
+        }}
         onReservaClick={r=>setDetailReserva(r)}
         onBloquear={(data)=>{
           if(data&&data.id){
