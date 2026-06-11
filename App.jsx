@@ -1113,7 +1113,9 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
 
           {/* Turnos configurados del espacio */}
           {usaTurnosCustom ? (
-            <div style={modoAgenda?{maxHeight:300,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}:{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={modoAgenda
+              ? {maxHeight:300,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}
+              : {display:"flex",gap:8,flexWrap:"wrap"}}>
               {turnosDelEspacio.map(t=>{
                 const busy = isOccCustom(t.id);
                 const res = dayRes.find(r=>r.turnoId===t.id);
@@ -1145,23 +1147,33 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
                   );
                 }
 
-                // Vista cards (pocos turnos — quincho, salón)
+                // Vista botones grandes (≤4 turnos — quincho, salón) — igual al estilo original
+                const cli = res ? clientes.find(c=>c.id===res.clienteId) : null;
+                const h = parseInt((t.horaInicio||"12").split(":")[0]);
+                const icon = isDayBloqueado?"🚫":busy?"🔒":h<12?"☀️":h<18?"🌤️":h<21?"🌆":"🌙";
+                const bgColor = isDayBloqueado?"#1F2937":busy?"#F3F4F6":"#FFF8F5";
+                const borderColor = isDayBloqueado?"#374151":busy?"#E5E7EB":"#C4602B66";
+                const textColor = isDayBloqueado?"#6B7280":busy?"#9CA3AF":"#1C1C1E";
                 return (
-                  <button key={t.id} onClick={()=>{ if(!finalBusy){ onNewReserva(date, t.id, t); onClose(); }}}
-                    disabled={finalBusy}
-                    style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                      padding:"12px 14px",borderRadius:10,fontSize:13,fontWeight:600,
-                      cursor:finalBusy?"not-allowed":"pointer",fontFamily:"inherit",textAlign:"left",
-                      background:isDayBloqueado?"#1F2937":busy?"#F5F5F5":"#FFF",
-                      color:isDayBloqueado?"#6B7280":busy?"#CCC":"#1C1C1E",
-                      border:`1.5px solid ${isDayBloqueado?"#374151":busy?"#EEE":"#EDE0D0"}`,
-                      opacity:finalBusy?0.7:1}}>
-                    <div>
-                      <div style={{fontWeight:700,color:finalBusy?"inherit":"#1C1C1E"}}>{t.nombre}</div>
-                      <div style={{fontSize:11,color:"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
-                      {finalBusy && <div style={{fontSize:10,marginTop:2,fontWeight:700,color:"#DC2626"}}>{isDayBloqueado?"🚫 Bloqueado":"Ocupado"}</div>}
-                    </div>
-                    <div style={{fontWeight:700,fontSize:13,color:finalBusy?"#CCC":"#C4602B"}}>{fmtCurrency(precio||0)}</div>
+                  <button key={t.id}
+                    onClick={()=>{ if(busy&&res){onReservaClick(res);onClose();}else if(!finalBusy){onNewReserva(date,t.id,t);onClose();} }}
+                    disabled={isDayBloqueado}
+                    style={{flex:"1 1 calc(33% - 8px)",minWidth:80,padding:"14px 8px",borderRadius:10,
+                      fontSize:13,fontWeight:600,cursor:isDayBloqueado?"not-allowed":busy?"pointer":"pointer",
+                      background:bgColor,color:textColor,
+                      border:`1.5px solid ${borderColor}`,
+                      fontFamily:"inherit",textAlign:"center",
+                      opacity:isDayBloqueado?0.6:1}}>
+                    <div style={{fontSize:24,marginBottom:4}}>{icon}</div>
+                    <div style={{fontWeight:700,fontSize:12}}>{t.nombre}</div>
+                    <div style={{fontSize:10,color:busy?"#9CA3AF":"#8B7355",marginTop:2}}>{t.horaInicio}–{t.horaFin}</div>
+                    {busy ? (
+                      <div style={{marginTop:4,fontSize:10,fontWeight:700,color:"#DC2626"}}>
+                        {cli ? clientName(cli) : "Ocupado"}
+                      </div>
+                    ) : !isDayBloqueado && (
+                      <div style={{marginTop:4,fontSize:10,fontWeight:700,color:"#C4602B"}}>{fmtCurrency(precio||0)}</div>
+                    )}
                   </button>
                 );
               })}
