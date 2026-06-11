@@ -2755,7 +2755,7 @@ function EspacioCard({ espacio, onDelete }) {
     await supabase.from("recursos").update({modo:"slot",slot_hora_inicio:slotForm.horaInicio,slot_hora_fin:slotForm.horaFin,slot_duracion_min:dur}).eq("id",espacio.id);
     // Insertar nuevos slots
     const {data,error}=await supabase.from("turnos_recurso").insert(slots).select();
-    if(error){alert("Error: "+error.message);setGenerando(false);return;}
+    if(error){alert("Error al generar turnos: "+error.message+"\n\nSi dice 'foreign key', corré el SQL de corrección en Supabase (consultá al soporte).");setGenerando(false);return;}
     setTurnos(data||[]);
     setLoaded(true);
     setGenerando(false);
