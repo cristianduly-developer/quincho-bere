@@ -2469,6 +2469,36 @@ function ColaboradoresSection({ orgId, plan }) {
   );
 }
 
+function LogoUploadButton({ orgId, onUploaded }) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef(null);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return alert("Solo se permiten imágenes.");
+    if (file.size > 2 * 1024 * 1024) return alert("La imagen no puede superar 2MB.");
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `logos/${orgId || "default"}.${ext}`;
+    const { error } = await supabase.storage.from("negocio-assets").upload(path, file, { upsert: true, contentType: file.type });
+    if (error) { alert("Error al subir imagen: " + error.message); setUploading(false); return; }
+    const { data } = supabase.storage.from("negocio-assets").getPublicUrl(path);
+    onUploaded(data.publicUrl + "?t=" + Date.now());
+    setUploading(false);
+  };
+
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleFile} />
+      <button onClick={()=>inputRef.current?.click()} disabled={uploading}
+        style={{padding:"8px 14px",background:uploading?"#F3F4F6":"#C4602B",border:"none",borderRadius:8,color:uploading?"#8B7355":"#FFF",fontSize:12,fontWeight:700,cursor:uploading?"not-allowed":"pointer",fontFamily:"inherit"}}>
+        {uploading ? "Subiendo..." : "📷 Subir imagen"}
+      </button>
+    </>
+  );
+}
+
 function TurnosEspacioSection({ recursos }) {
   const [espacioSel, setEspacioSel] = useState(recursos[0]?.id || "");
   const [turnos, setTurnos] = useState([]);
@@ -2610,9 +2640,19 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
           </div>
         </div>
         <div style={{marginBottom:16}}>
-          <label style={lblS}>URL del logo (imagen)</label>
-          <input style={inpS} value={negForm.logoUrl} onChange={e=>setNegForm(p=>({...p,logoUrl:e.target.value}))} placeholder="https://..." />
-          {negForm.logoUrl && <img src={negForm.logoUrl} alt="preview" style={{marginTop:8,width:48,height:48,borderRadius:8,objectFit:"cover",border:"1px solid #EDE0D0"}} onError={e=>e.target.style.display="none"} />}
+          <label style={lblS}>Logo del negocio</label>
+          <div style={{display:"flex",alignItems:"center",gap:14,marginTop:4}}>
+            <div style={{width:72,height:72,borderRadius:36,background:"#F5EDE4",border:"2px solid #EDE0D0",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              {negForm.logoUrl
+                ? <img src={negForm.logoUrl} alt="logo" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"} />
+                : <span style={{fontSize:28}}>🏠</span>
+              }
+            </div>
+            <div style={{flex:1}}>
+              <LogoUploadButton orgId={currentOrgId} onUploaded={url=>setNegForm(p=>({...p,logoUrl:url}))} />
+              {negForm.logoUrl && <div style={{fontSize:10,color:"#8B7355",marginTop:4,wordBreak:"break-all"}}>{negForm.logoUrl.split("/").pop()}</div>}
+            </div>
+          </div>
         </div>
 
         <div style={{fontWeight:700,fontSize:13,color:"#C4602B",marginBottom:10,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>💬 Mensajes de WhatsApp</div>
@@ -3120,7 +3160,8 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
 
       const user = {
         id: authUser.id,
-        nombre: acceso.nombre_docente || email.split("@")[0],
+        nombre: authUser.user_metadata?.full_name || authUser.user_metadata?.name || acceso.nombre_docente || email.split("@")[0],
+        avatarUrl: authUser.user_metadata?.avatar_url || authUser.user_metadata?.picture || null,
         email,
         orgId,
         rol: "Administrador",
@@ -3605,17 +3646,46 @@ export default function App() {
         {currentUser&&(
           <div style={{position:"relative",flexShrink:0}} id="root-menu-wrap">
             <button onClick={()=>setShowRootMenu(m=>!m)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",cursor:"pointer",padding:4,fontFamily:"inherit"}}>
-              <div style={{width:30,height:30,borderRadius:15,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:13,fontFamily:"'Playfair Display',serif"}}>{(currentUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
-              <span style={{fontSize:11,color:"#5C4033",fontWeight:700,maxWidth:60,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser.nombre}</span>
+              {currentUser.avatarUrl
+                ? <img src={currentUser.avatarUrl} alt="" style={{width:30,height:30,borderRadius:15,objectFit:"cover"}} />
+                : <div style={{width:30,height:30,borderRadius:15,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:13}}>{(currentUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
+              }
+              <span style={{fontSize:11,color:"#5C4033",fontWeight:700,maxWidth:70,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser.nombre?.split(" ")[0]}</span>
               <span style={{fontSize:10,color:"#8B7355"}}>▾</span>
             </button>
             {showRootMenu&&(
-              <div style={{position:"absolute",top:"100%",right:0,background:"#FFF",border:"1px solid #EDE0D0",borderRadius:10,boxShadow:"0 4px 16px rgba(0,0,0,0.12)",zIndex:200,minWidth:180,padding:"6px 0",marginTop:4}}>
-                <div style={{padding:"6px 14px 4px",fontSize:10,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:0.5}}>
-                  {currentUser.nombre} {currentUser.apellido||""}
+              <div style={{position:"absolute",top:"100%",right:0,background:"#FFF",border:"1px solid #EDE0D0",borderRadius:12,boxShadow:"0 4px 20px rgba(0,0,0,0.14)",zIndex:200,minWidth:220,padding:"0",marginTop:6,overflow:"hidden"}}>
+                {/* Header usuario */}
+                <div style={{padding:"14px 16px",background:"#FDF8F3",borderBottom:"1px solid #EDE0D0",display:"flex",alignItems:"center",gap:10}}>
+                  {currentUser.avatarUrl
+                    ? <img src={currentUser.avatarUrl} alt="" style={{width:36,height:36,borderRadius:18,objectFit:"cover",flexShrink:0}} />
+                    : <div style={{width:36,height:36,borderRadius:18,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:15,flexShrink:0}}>{(currentUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
+                  }
+                  <div style={{overflow:"hidden"}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{currentUser.nombre}</div>
+                    <div style={{fontSize:11,color:"#8B7355",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{currentUser.email}</div>
+                  </div>
                 </div>
-                <div style={{height:1,background:"#EDE0D0",margin:"4px 0"}} />
-                <button onClick={()=>{handleLogout();setShowRootMenu(false);}} style={{display:"flex",alignItems:"center",gap:8,width:"100%",padding:"10px 14px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,color:"#DC2626",fontFamily:"inherit",textAlign:"left"}}>
+                {/* Plan */}
+                <div style={{padding:"10px 16px",borderBottom:"1px solid #EDE0D0"}}>
+                  <div style={{fontSize:10,color:"#8B7355",textTransform:"uppercase",letterSpacing:0.5,marginBottom:3}}>Suscripción</div>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{background:"#FEF3C7",color:"#92400E",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,textTransform:"capitalize"}}>
+                      {currentUser.suscripcionEstado==="sincargo"?"Sin cargo":(currentUser.plan||"Básico")}
+                    </span>
+                    <span style={{fontSize:11,color:currentUser.suscripcionEstado==="activo"||currentUser.suscripcionEstado==="sincargo"?"#16A34A":"#DC2626",fontWeight:600}}>
+                      {currentUser.suscripcionEstado==="activo"?"● Activa":currentUser.suscripcionEstado==="sincargo"?"● Activa":currentUser.suscripcionEstado==="demo"?"● Demo":"● Vencida"}
+                    </span>
+                  </div>
+                </div>
+                {/* Soporte WhatsApp */}
+                <a href="https://wa.me/542235767784?text=Hola%2C+necesito+soporte+con+la+app+de+quincho" target="_blank" rel="noreferrer"
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"11px 16px",color:"#16A34A",textDecoration:"none",fontSize:13,fontWeight:600,borderBottom:"1px solid #EDE0D0"}}
+                  onClick={()=>setShowRootMenu(false)}>
+                  💬 Contactar soporte
+                </a>
+                {/* Cerrar sesión */}
+                <button onClick={()=>{handleLogout();setShowRootMenu(false);}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 16px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,color:"#DC2626",fontFamily:"inherit",textAlign:"left"}}>
                   🚪 Cerrar sesión
                 </button>
               </div>
