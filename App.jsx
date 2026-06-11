@@ -3218,6 +3218,8 @@ export default function App() {
   const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
   const [config,setConfig]=useState(DEFAULT_CONFIG);
   const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"" });
+  const [usuarios,setUsuarios]=useState([]);
+  const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
   const [currentUser,setCurrentUser]=useState(null);
   const [bloqueadoMotivo,setBloqueadoMotivo]=useState(null);
   const isAdmin = true; // todos los usuarios tienen acceso completo en el nuevo modelo
