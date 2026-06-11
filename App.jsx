@@ -1979,18 +1979,28 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const tomorrowDate=new Date(now); tomorrowDate.setDate(tomorrowDate.getDate()+1);
   const tmStr=toDateStr(tomorrowDate);
   const tmReservas=reservas.filter(r=>r.fecha===tmStr&&(r.estado==="senada"||r.estado==="confirmada")&&!r.recordatorioEnviado);
-  const buildReminderMsg=(r)=>{
+
+  const applyTemplate=(template,r)=>{
     const c=clientes.find(x=>x.id===r.clienteId);
     const extList=extrasReserva.filter(e=>e.reservaId===r.id);
-    const extrasText=extList.length===0?"Ninguno":extList.map(e=>"- "+e.descripcion+(e.cantidad>1?" (x"+e.cantidad+")":"")).join("\n");
+    const extrasLines=extList.length>0?"\u2728 Extras contratados:\n"+extList.map(e=>"- "+e.descripcion+(e.cantidad>1?" (x"+e.cantidad+")":"")).join("\n"):null;
     const tp=getTotalPagado(r.id,pagos);
-    const saldo=Math.max(0,(r.montoPactado+getTotalExtras(r.id,extrasReserva))-tp);
-    return "\u00a1Hola, "+clientName(c)+"! Te recordamos que ma\u00f1ana es tu evento en "+(negocio?.nombreNegocio||"nuestro espacio")+". \ud83c\udf89\n\n"+
-      "\u23f0 Horario: Tu turno es de "+(r.horario||"--")+" a "+(r.horarioFin||"--")+".\n"+
-      "\u2728 Servicios Extras Contratados:\n"+extrasText+"\n\n"+
-      "\ud83d\udcb0 Control de Saldo: El monto pactado inicial fue de "+fmtCurrency(r.montoPactado)+". Al d\u00eda de hoy, llev\u00e1s pagado un total de "+fmtCurrency(tp)+", por lo que tu SALDO PENDIENTE A ABONAR ES DE: "+fmtCurrency(saldo)+".\n"+"\ud83d\udcb5 Dep\u00f3sito en efectivo al ingreso: "+fmtCurrency(50000)+".\n"+"\ud83d\udcb3 TOTAL A ABONAR MA\u00d1ANA: "+fmtCurrency(saldo+50000)+".\n\n"+
-      "\u00a1Te esperamos para disfrutar de un gran d\u00eda!";
+    const montoTotal=r.montoPactado+getTotalExtras(r.id,extrasReserva);
+    const saldo=Math.max(0,montoTotal-tp);
+    return template
+      .replace(/\{nombre\}/g, clientName(c))
+      .replace(/\{nombre_negocio\}/g, negocio?.nombreNegocio||"nuestro espacio")
+      .replace(/\{fecha\}/g, fmtDate(r.fecha))
+      .replace(/\{horario_inicio\}/g, r.horario||"--")
+      .replace(/\{horario_fin\}/g, r.horarioFin||"--")
+      .replace(/\{extras\}/g, extrasLines||"")
+      .replace(/\{monto_total\}/g, fmtCurrency(montoTotal))
+      .replace(/\{pagado\}/g, fmtCurrency(tp))
+      .replace(/\{saldo\}/g, fmtCurrency(saldo));
   };
+
+  const buildReminderMsg=(r)=>applyTemplate(negocio?.msgRecordatorio||"Hola {nombre}! Te recordamos tu evento ma\u00f1ana {fecha} de {horario_inicio} a {horario_fin} en {nombre_negocio}. Saldo: {saldo}",r);
+  const buildPostMsg=(r)=>applyTemplate(negocio?.msgPostEvento||"Hola {nombre}! Gracias por tu evento en {nombre_negocio}. \u00a1Te esperamos nuevamente!",r);
   const nextEvento=upcoming[0]||null;
   const [newTarea,setNewTarea]=useState("");
 
@@ -2052,15 +2062,13 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
 
       {/* ── Próximas reservas ── */}
       {/* Post-event fidelization */}
-      {now.getHours()>=8&&now.getHours()<21&&reservas.filter(r=>{
+      {negocio?.postEventoActivo!==false&&now.getHours()>=8&&now.getHours()<21&&reservas.filter(r=>{
         const yest=new Date(now); yest.setDate(yest.getDate()-1);
         return r.fecha===toDateStr(yest)&&r.estado==="finalizada"&&!r.postEventoProcesado;
       }).map(r=>{
         const c=clientes.find(x=>x.id===r.clienteId);
         if(!c||!c.whatsapp) return null;
-        const msg=negocio?.msgPostEvento
-          ? negocio.msgPostEvento.replace("{nombre}",clientName(c)).replace("{nombre_negocio}",negocio.nombreNegocio||"nuestro espacio")
-          : "Hola "+clientName(c)+" 🎉 Fue un placer tenerte en "+(negocio?.nombreNegocio||"nuestro espacio")+". Esperamos que hayas disfrutado mucho! ¡Gracias y hasta la próxima! 🏠❤️";
+        const msg=buildPostMsg(r);
         return (
           <div key={r.id} style={{...card,padding:"14px 16px",marginBottom:12,border:"2px solid #F59E0B",background:"#FFFBEB"}}>
             <div style={{fontWeight:700,fontSize:14,color:"#D97706",marginBottom:4}}>💌 Mensaje post-evento</div>
@@ -2079,7 +2087,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           </div>
         );
       })}
-      {now.getHours()>=8&&now.getHours()<21&&tmReservas.length>0&&(
+      {negocio?.recordatorioActivo!==false&&now.getHours()>=8&&now.getHours()<21&&tmReservas.length>0&&(
         <div id="reminders-section" style={{...card,padding:"14px 16px",marginBottom:16,border:"2px solid #25D366"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div>
@@ -2680,7 +2688,7 @@ function TurnosEspacioSection({ recursos }) {
 }
 
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio }) {
-  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"" });
+  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false });
   const [negSaved, setNegSaved] = useState(false);
   const [open, setOpen] = useState("negocio");
   const planLimits = getPlanLimits(currentUser?.plan);
@@ -2688,10 +2696,10 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const toggle = s => setOpen(o => o===s ? null : s);
 
   const handleSaveNegocio = async () => {
-    const row = { org_id: currentOrgId, nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento };
+    const row = { org_id: currentOrgId, nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo };
     const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
     if (error) { alert("Error al guardar: " + error.message); return; }
-    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento });
+    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo });
     setNegSaved(true);
     setTimeout(()=>setNegSaved(false), 2000);
   };
@@ -2737,15 +2745,37 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                 </div>
               </div>
             </div>
-            <div style={{fontWeight:700,fontSize:12,color:"#C4602B",marginBottom:8,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>💬 Mensajes de WhatsApp</div>
-            <div style={{fontSize:11,color:"#8B7355",marginBottom:10}}>Variables: {"{nombre}"} {"{nombre_negocio}"} {"{fecha}"} {"{horario}"} {"{saldo}"}</div>
-            <div style={{marginBottom:10}}>
-              <label style={lblS}>Recordatorio (día anterior)</label>
-              <textarea style={{...inpS,height:72,resize:"vertical"}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} placeholder="Hola {nombre}! Te recordamos tu evento mañana..." />
+            <div style={{fontWeight:700,fontSize:12,color:"#C4602B",marginBottom:6,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>💬 Mensajes de WhatsApp</div>
+            <div style={{fontSize:11,color:"#8B7355",marginBottom:12}}>Variables disponibles: <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{nombre}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{nombre_negocio}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{fecha}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{horario_inicio}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{horario_fin}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{extras}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{monto_total}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{pagado}"}</span> <span style={{fontFamily:"monospace",background:"#F5EDE4",padding:"1px 4px",borderRadius:3}}>{"{saldo}"}</span></div>
+
+            {/* Recordatorio */}
+            <div style={{marginBottom:14,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.recordatorioActivo?10:0}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>📲 Recordatorio pre-evento</div>
+                  <div style={{fontSize:11,color:"#8B7355"}}>Se muestra el día anterior al evento</div>
+                </div>
+                <button onClick={()=>setNegForm(p=>({...p,recordatorioActivo:!p.recordatorioActivo}))}
+                  style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.recordatorioActivo?"#16A34A":"#EDE0D0",color:negForm.recordatorioActivo?"#FFF":"#8B7355"}}>
+                  {negForm.recordatorioActivo?"✅ Activo":"Inactivo"}
+                </button>
+              </div>
+              {negForm.recordatorioActivo&&<textarea style={{...inpS,height:130,resize:"vertical",fontSize:12}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} />}
             </div>
-            <div style={{marginBottom:16}}>
-              <label style={lblS}>Post-evento (día siguiente)</label>
-              <textarea style={{...inpS,height:72,resize:"vertical"}} value={negForm.msgPostEvento} onChange={e=>setNegForm(p=>({...p,msgPostEvento:e.target.value}))} placeholder="Hola {nombre}! Fue un placer tenerte..." />
+
+            {/* Post-evento */}
+            <div style={{marginBottom:16,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.postEventoActivo?10:0}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>💌 Mensaje post-evento</div>
+                  <div style={{fontSize:11,color:"#8B7355"}}>Se muestra el día siguiente al evento</div>
+                </div>
+                <button onClick={()=>setNegForm(p=>({...p,postEventoActivo:!p.postEventoActivo}))}
+                  style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.postEventoActivo?"#16A34A":"#EDE0D0",color:negForm.postEventoActivo?"#FFF":"#8B7355"}}>
+                  {negForm.postEventoActivo?"✅ Activo":"Inactivo"}
+                </button>
+              </div>
+              {negForm.postEventoActivo&&<textarea style={{...inpS,height:130,resize:"vertical",fontSize:12}} value={negForm.msgPostEvento} onChange={e=>setNegForm(p=>({...p,msgPostEvento:e.target.value}))} />}
             </div>
             <button onClick={handleSaveNegocio} style={{width:"100%",padding:"12px",background:negSaved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s"}}>
               {negSaved ? "✅ Guardado" : "💾 Guardar"}
@@ -3296,7 +3326,24 @@ export default function App() {
   const [extrasReserva,setExtrasReserva]=useState([]);
   const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
   const [config,setConfig]=useState(DEFAULT_CONFIG);
-  const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"" });
+  const MSG_REC_DEFAULT = `Hola {nombre}! 👋
+Te contactamos desde {nombre_negocio} para recordarte tu evento mañana {fecha}, de {horario_inicio} a {horario_fin}.
+
+{extras}
+💰 Costo total: {monto_total}
+✅ Abonado: {pagado}
+📌 Saldo para mañana: {saldo}
+
+¡Te esperamos!`;
+
+  const MSG_POST_DEFAULT = `Hola {nombre}! 🎉
+Desde {nombre_negocio} queremos agradecerte por haber realizado tu evento con nosotros. ¡Fue un placer recibirte!
+
+Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un montón 🙌
+
+¡Muchas gracias por elegirnos!`;
+
+  const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true });
   const [usuarios,setUsuarios]=useState([]);
   const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
   const [currentUser,setCurrentUser]=useState(null);
@@ -3387,7 +3434,7 @@ export default function App() {
       // Cargar config (white-label + mensajes)
       const {data:cfgData}=await supabase.from("config").select("*").eq("org_id",orgId).maybeSingle();
       if(cfgData){
-        setNegocio({ nombreNegocio:cfgData.nombre_negocio||"", ciudad:cfgData.ciudad||"", telefono:cfgData.telefono||"", logoUrl:cfgData.logo_url||"", msgRecordatorio:cfgData.msg_recordatorio||"", msgPostEvento:cfgData.msg_post_evento||"" });
+        setNegocio({ nombreNegocio:cfgData.nombre_negocio||"", ciudad:cfgData.ciudad||"", telefono:cfgData.telefono||"", logoUrl:cfgData.logo_url||"", msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT, msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT, recordatorioActivo:cfgData.recordatorio_activo!==false, postEventoActivo:cfgData.post_evento_activo!==false });
       }
 
       if(window.location.hash?.includes("access_token")){
