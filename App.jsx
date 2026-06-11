@@ -985,11 +985,21 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
   const [bMotivo, setBMotivo] = useState("");
   const [confirmUnblock, setConfirmUnblock] = useState(false);
 
-  // Turnos del espacio activo (si hay espacio seleccionado y tiene turnos configurados)
-  const turnosDelEspacio = espacioFiltro && espacioFiltro !== "todos"
-    ? (turnosRecurso||[]).filter(t=>t.recursoId===espacioFiltro && t.activo!==false)
+  // Turnos del espacio activo
+  // Si hay espacio seleccionado, usamos ese. Si "all" pero hay un solo espacio con turnos, lo usamos igual.
+  const todosLosTurnos = turnosRecurso||[];
+  const espacioEfectivo = (()=>{
+    if(espacioFiltro && espacioFiltro !== "all" && espacioFiltro !== "todos") return espacioFiltro;
+    // Un solo espacio con turnos configurados → usarlo implícitamente
+    const idsConTurnos = [...new Set(todosLosTurnos.map(t=>t.recursoId))];
+    if(idsConTurnos.length===1) return idsConTurnos[0];
+    return null;
+  })();
+  const turnosDelEspacio = espacioEfectivo
+    ? todosLosTurnos.filter(t=>t.recursoId===espacioEfectivo && t.activo!==false)
     : [];
   const usaTurnosCustom = turnosDelEspacio.length > 0;
+  const modoAgenda = turnosDelEspacio.length > 4; // lista compacta cuando hay muchos slots
 
   // Con turnos custom: un slot está ocupado si hay una reserva con ese turnoId
   const isOccCustom = (turnoId) =>
@@ -1069,13 +1079,39 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
 
           {/* Turnos configurados del espacio */}
           {usaTurnosCustom ? (
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={modoAgenda?{maxHeight:340,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}:{display:"flex",flexDirection:"column",gap:8}}>
               {turnosDelEspacio.map(t=>{
                 const busy = isOccCustom(t.id);
-                const isDayBloqueado = !!bloqueo && (bloqueo.turno==="completo");
+                const res = dayRes.find(r=>r.turnoId===t.id);
+                const isDayBloqueado = !!bloqueo && bloqueo.turno==="completo";
                 const finalBusy = busy || isDayBloqueado;
                 const esFinde = (()=>{try{const d=new Date(date+"T12:00:00");const dow=d.getDay();return dow===0||dow===6;}catch(e){return false;}})();
                 const precio = esFinde ? t.precioFinde : t.precioSemana;
+
+                if(modoAgenda) {
+                  // Vista agenda compacta — una fila por slot
+                  const cli = res ? clientes.find(c=>c.id===res.clienteId) : null;
+                  return (
+                    <button key={t.id}
+                      onClick={()=>{ if(busy&&res){onReservaClick(res);onClose();}else if(!finalBusy){onNewReserva(date,t.id,t);onClose();} }}
+                      style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderRadius:7,
+                        border:`1px solid ${finalBusy?"#FECACA":"#EDE0D0"}`,
+                        background:isDayBloqueado?"#1F2937":busy?"#FEF2F2":"#FFF",
+                        cursor:(busy&&res)||!finalBusy?"pointer":"default",fontFamily:"inherit",textAlign:"left"}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#8B7355",width:90,flexShrink:0}}>{t.horaInicio} – {t.horaFin}</div>
+                      {busy ? (
+                        <div style={{flex:1,fontSize:12,fontWeight:700,color:"#DC2626"}}>{cli?clientName(cli):"🔴 Ocupado"}</div>
+                      ) : isDayBloqueado ? (
+                        <div style={{flex:1,fontSize:12,color:"#6B7280"}}>🚫 Bloqueado</div>
+                      ) : (
+                        <div style={{flex:1,fontSize:12,color:"#16A34A",fontWeight:600}}>✅ Disponible</div>
+                      )}
+                      <div style={{fontSize:11,color:busy?"#DC2626":"#C4602B",fontWeight:700,flexShrink:0}}>{fmtCurrency(precio||0)}</div>
+                    </button>
+                  );
+                }
+
+                // Vista cards (pocos turnos — quincho, salón)
                 return (
                   <button key={t.id} onClick={()=>{ if(!finalBusy){ onNewReserva(date, t.id, t); onClose(); }}}
                     disabled={finalBusy}
@@ -2576,6 +2612,10 @@ function EspacioCard({ espacio, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:""});
   const [saving, setSaving] = useState(false);
+  // modo local del espacio (fijo = manual, slot = generador)
+  const [modo, setModo] = useState(espacio.modo||"fijo");
+  const [slotForm, setSlotForm] = useState({horaInicio: espacio.slotHoraInicio||"08:00", horaFin: espacio.slotHoraFin||"23:00", duracion: espacio.slotDuracionMin||60, precioSemana:"", precioFinde:""});
+  const [generando, setGenerando] = useState(false);
 
   const inpS = {padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",width:"100%",boxSizing:"border-box",outline:"none"};
 
@@ -2607,6 +2647,40 @@ function EspacioCard({ espacio, onDelete }) {
     setTurnos(prev=>prev.filter(t=>t.id!==id));
   };
 
+  const handleGenerarSlots = async () => {
+    if(!slotForm.horaInicio||!slotForm.horaFin||!slotForm.duracion) return alert("Completá horario de apertura, cierre y duración.");
+    const [hI,mI]=slotForm.horaInicio.split(":").map(Number);
+    const [hF,mF]=slotForm.horaFin.split(":").map(Number);
+    const inicioMin = hI*60+mI;
+    const finMin = hF*60+mF;
+    const dur = Number(slotForm.duracion);
+    if(finMin<=inicioMin||dur<=0||dur>finMin-inicioMin) return alert("Horarios o duración inválidos.");
+    const slots=[];
+    for(let t=inicioMin;t+dur<=finMin;t+=dur){
+      const hh=h=>String(Math.floor(h/60)).padStart(2,"0")+":"+String(h%60).padStart(2,"0");
+      slots.push({recurso_id:espacio.id,org_id:currentOrgId,nombre:hh(t)+" – "+hh(t+dur),hora_inicio:hh(t),hora_fin:hh(t+dur),precio_semana:Number(slotForm.precioSemana)||0,precio_finde:Number(slotForm.precioFinde)||0,activo:true});
+    }
+    if(slots.length===0) return alert("No se generaron turnos. Revisá los horarios.");
+    if(turnos.length>0 && !window.confirm(`Esto va a reemplazar los ${turnos.length} turnos actuales de este espacio. ¿Continuar?`)) return;
+    setGenerando(true);
+    // Desactivar turnos existentes
+    await supabase.from("turnos_recurso").update({activo:false}).eq("recurso_id",espacio.id);
+    // Guardar parámetros del slot en el espacio
+    await supabase.from("recursos").update({modo:"slot",slot_hora_inicio:slotForm.horaInicio,slot_hora_fin:slotForm.horaFin,slot_duracion_min:dur}).eq("id",espacio.id);
+    // Insertar nuevos slots
+    const {data,error}=await supabase.from("turnos_recurso").insert(slots).select();
+    if(error){alert("Error: "+error.message);setGenerando(false);return;}
+    setTurnos(data||[]);
+    setLoaded(true);
+    setGenerando(false);
+    alert(`✅ Se generaron ${slots.length} turnos de ${dur} minutos.`);
+  };
+
+  const cambiarModo = async (nuevoModo) => {
+    setModo(nuevoModo);
+    await supabase.from("recursos").update({modo:nuevoModo}).eq("id",espacio.id);
+  };
+
   return (
     <div style={{borderRadius:10,border:"1.5px solid #EDE0D0",marginBottom:10,overflow:"hidden"}}>
       {/* Header del espacio */}
@@ -2626,9 +2700,62 @@ function EspacioCard({ espacio, onDelete }) {
       {/* Turnos expandidos */}
       {expanded && (
         <div style={{padding:"12px 14px",background:"#FFF",borderTop:"1px solid #EDE0D0"}}>
+
+          {/* Selector de tipo de turno */}
+          <div style={{display:"flex",gap:0,marginBottom:14,borderRadius:8,overflow:"hidden",border:"1.5px solid #EDE0D0"}}>
+            <button onClick={()=>cambiarModo("fijo")} style={{flex:1,padding:"8px 4px",fontSize:12,fontWeight:700,border:"none",cursor:"pointer",fontFamily:"inherit",background:modo==="fijo"?"#C4602B":"#FDF8F3",color:modo==="fijo"?"#FFF":"#8B7355"}}>
+              🎪 Turnos nombrados
+            </button>
+            <button onClick={()=>cambiarModo("slot")} style={{flex:1,padding:"8px 4px",fontSize:12,fontWeight:700,border:"none",cursor:"pointer",fontFamily:"inherit",background:modo==="slot"?"#C4602B":"#FDF8F3",color:modo==="slot"?"#FFF":"#8B7355"}}>
+              ⏰ Por franja horaria
+            </button>
+          </div>
+
           {!loaded ? (
             <div style={{fontSize:13,color:"#8B7355"}}>Cargando turnos...</div>
+          ) : modo==="slot" ? (
+            /* ── MODO SLOT: generador automático ── */
+            <div>
+              <div style={{fontSize:12,color:"#8B7355",marginBottom:10}}>Definí el horario y la duración de cada turno. La app genera todos los slots automáticamente.</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Apertura</div><input type="time" value={slotForm.horaInicio} onChange={e=>setSlotForm(p=>({...p,horaInicio:e.target.value}))} style={inpS} /></div>
+                <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Cierre</div><input type="time" value={slotForm.horaFin} onChange={e=>setSlotForm(p=>({...p,horaFin:e.target.value}))} style={inpS} /></div>
+              </div>
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Duración de cada turno</div>
+                <select value={slotForm.duracion} onChange={e=>setSlotForm(p=>({...p,duracion:e.target.value}))} style={inpS}>
+                  <option value={30}>30 minutos</option>
+                  <option value={60}>60 minutos (1 hora)</option>
+                  <option value={90}>90 minutos</option>
+                  <option value={120}>120 minutos (2 horas)</option>
+                </select>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" value={slotForm.precioSemana} onChange={e=>setSlotForm(p=>({...p,precioSemana:e.target.value}))} style={inpS} placeholder="0" /></div>
+                <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" value={slotForm.precioFinde} onChange={e=>setSlotForm(p=>({...p,precioFinde:e.target.value}))} style={inpS} placeholder="0" /></div>
+              </div>
+              <button onClick={handleGenerarSlots} disabled={generando}
+                style={{width:"100%",padding:"10px",background:generando?"#EDE0D0":"#C4602B",border:"none",borderRadius:8,color:"#FFF",fontWeight:700,fontSize:13,cursor:generando?"not-allowed":"pointer",fontFamily:"inherit"}}>
+                {generando?"Generando...":"⚡ Generar turnos automáticamente"}
+              </button>
+              {/* Vista previa de turnos generados */}
+              {turnos.length>0&&(
+                <div style={{marginTop:12}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:6}}>TURNOS ACTUALES ({turnos.length})</div>
+                  <div style={{maxHeight:160,overflowY:"auto",display:"flex",flexDirection:"column",gap:4}}>
+                    {turnos.map(t=>(
+                      <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 8px",background:"#F9F6F2",borderRadius:6,fontSize:12}}>
+                        <span style={{fontWeight:600,color:"#1C1C1E"}}>{t.hora_inicio} – {t.hora_fin}</span>
+                        <span style={{color:"#8B7355"}}>Sem: {fmtCurrency(t.precio_semana)} · Finde: {fmtCurrency(t.precio_finde)}</span>
+                        <button onClick={()=>handleRemoveTurno(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#DC2626",fontSize:14,padding:"0 4px"}}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
+            /* ── MODO FIJO: turnos nombrados manuales ── */
             <>
               {turnos.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:10}}>Sin turnos. Agregá al menos uno para poder tomar reservas en este espacio.</div>}
               {turnos.map(t=>(
@@ -2640,13 +2767,12 @@ function EspacioCard({ espacio, onDelete }) {
                   <button onClick={()=>handleRemoveTurno(t.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",flexShrink:0}}>🗑️</button>
                 </div>
               ))}
-
               {!showForm ? (
                 <button onClick={()=>setShowForm(true)} style={{marginTop:10,width:"100%",padding:"9px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:8,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar turno</button>
               ) : (
                 <div style={{marginTop:10,padding:12,background:"#FDF5EE",borderRadius:10,border:"1px solid #EDE0D0"}}>
                   <div style={{fontSize:12,fontWeight:700,color:"#8B7355",marginBottom:8}}>Nuevo turno — {espacio.nombre}</div>
-                  <input placeholder="Nombre (ej: Noche, Turno 20hs)" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} style={{...inpS,marginBottom:8}} />
+                  <input placeholder="Nombre (ej: Tarde, Noche, Turno 20hs)" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} style={{...inpS,marginBottom:8}} />
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
                     <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora inicio</div><input type="time" value={form.horaInicio} onChange={e=>setForm(p=>({...p,horaInicio:e.target.value}))} style={inpS} /></div>
                     <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora fin</div><input type="time" value={form.horaFin} onChange={e=>setForm(p=>({...p,horaFin:e.target.value}))} style={inpS} /></div>
@@ -2788,6 +2914,7 @@ function TurnosEspacioSection({ recursos }) {
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio }) {
   const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false });
   const [negSaved, setNegSaved] = useState(false);
+  const [showMsgs, setShowMsgs] = useState(false);
   const [open, setOpen] = useState("negocio");
   const planLimits = getPlanLimits(currentUser?.plan);
 
@@ -2843,47 +2970,53 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                 </div>
               </div>
             </div>
-            <div style={{fontWeight:700,fontSize:12,color:"#C4602B",marginBottom:6,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>💬 Mensajes de WhatsApp</div>
-            <details style={{marginBottom:12}}>
-              <summary style={{fontSize:11,color:"#8B7355",cursor:"pointer",userSelect:"none",listStyle:"none",display:"inline-flex",alignItems:"center",gap:4}}>
-                <span style={{width:16,height:16,borderRadius:"50%",background:"#EDE0D0",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#8B7355",flexShrink:0}}>?</span>
-                <span>Variables disponibles</span>
-              </summary>
-              <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:4}}>
-                {["{nombre}","{nombre_negocio}","{fecha}","{horario_inicio}","{horario_fin}","{extras}","{monto_total}","{pagado}","{saldo}"].map(v=>(
-                  <span key={v} style={{fontFamily:"monospace",background:"#F5EDE4",padding:"2px 6px",borderRadius:4,fontSize:11,color:"#5C4033"}}>{v}</span>
-                ))}
-              </div>
-            </details>
-
-            {/* Recordatorio */}
-            <div style={{marginBottom:14,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.recordatorioActivo?10:0}}>
-                <div>
-                  <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>📲 Recordatorio pre-evento</div>
-                  <div style={{fontSize:11,color:"#8B7355"}}>Se muestra el día anterior al evento</div>
+            {/* Mensajes de WhatsApp - colapsable */}
+            <div style={{borderTop:"1px solid #EDE0D0",paddingTop:14,marginTop:4}}>
+              <button onClick={()=>setShowMsgs(p=>!p)}
+                style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0,marginBottom:showMsgs?14:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:16}}>💬</span>
+                  <div style={{textAlign:"left"}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>Mensajes de WhatsApp</div>
+                    <div style={{fontSize:11,color:"#8B7355"}}>Personalizar recordatorio y post-evento</div>
+                  </div>
                 </div>
-                <button onClick={()=>setNegForm(p=>({...p,recordatorioActivo:!p.recordatorioActivo}))}
-                  style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.recordatorioActivo?"#16A34A":"#EDE0D0",color:negForm.recordatorioActivo?"#FFF":"#8B7355"}}>
-                  {negForm.recordatorioActivo?"✅ Activo":"Inactivo"}
-                </button>
-              </div>
-              {negForm.recordatorioActivo&&<textarea style={{...inpS,height:130,resize:"vertical",fontSize:12}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} />}
-            </div>
+                <span style={{fontSize:18,color:"#8B7355",transform:showMsgs?"rotate(180deg)":"none",transition:"transform 0.2s"}}>›</span>
+              </button>
 
-            {/* Post-evento */}
-            <div style={{marginBottom:16,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.postEventoActivo?10:0}}>
+              {showMsgs && (
                 <div>
-                  <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>💌 Mensaje post-evento</div>
-                  <div style={{fontSize:11,color:"#8B7355"}}>Se muestra el día siguiente al evento</div>
+                  {/* Recordatorio */}
+                  <div style={{marginBottom:12,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.recordatorioActivo?10:0}}>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>📲 Recordatorio pre-evento</div>
+                        <div style={{fontSize:11,color:"#8B7355"}}>Se envía el día anterior al evento</div>
+                      </div>
+                      <button onClick={()=>setNegForm(p=>({...p,recordatorioActivo:!p.recordatorioActivo}))}
+                        style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.recordatorioActivo?"#16A34A":"#EDE0D0",color:negForm.recordatorioActivo?"#FFF":"#8B7355",flexShrink:0,marginLeft:8}}>
+                        {negForm.recordatorioActivo?"✅ Activo":"Inactivo"}
+                      </button>
+                    </div>
+                    {negForm.recordatorioActivo&&<textarea style={{...inpS,height:130,resize:"vertical",fontSize:12}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} />}
+                  </div>
+
+                  {/* Post-evento */}
+                  <div style={{marginBottom:4,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.postEventoActivo?10:0}}>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>💌 Mensaje post-evento</div>
+                        <div style={{fontSize:11,color:"#8B7355"}}>Se envía el día siguiente al evento</div>
+                      </div>
+                      <button onClick={()=>setNegForm(p=>({...p,postEventoActivo:!p.postEventoActivo}))}
+                        style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.postEventoActivo?"#16A34A":"#EDE0D0",color:negForm.postEventoActivo?"#FFF":"#8B7355",flexShrink:0,marginLeft:8}}>
+                        {negForm.postEventoActivo?"✅ Activo":"Inactivo"}
+                      </button>
+                    </div>
+                    {negForm.postEventoActivo&&<textarea style={{...inpS,height:130,resize:"vertical",fontSize:12}} value={negForm.msgPostEvento} onChange={e=>setNegForm(p=>({...p,msgPostEvento:e.target.value}))} />}
+                  </div>
                 </div>
-                <button onClick={()=>setNegForm(p=>({...p,postEventoActivo:!p.postEventoActivo}))}
-                  style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.postEventoActivo?"#16A34A":"#EDE0D0",color:negForm.postEventoActivo?"#FFF":"#8B7355"}}>
-                  {negForm.postEventoActivo?"✅ Activo":"Inactivo"}
-                </button>
-              </div>
-              {negForm.postEventoActivo&&<textarea style={{...inpS,height:130,resize:"vertical",fontSize:12}} value={negForm.msgPostEvento} onChange={e=>setNegForm(p=>({...p,msgPostEvento:e.target.value}))} />}
+              )}
             </div>
             <button onClick={handleSaveNegocio} style={{width:"100%",padding:"12px",background:negSaved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s"}}>
               {negSaved ? "✅ Guardado" : "💾 Guardar"}
