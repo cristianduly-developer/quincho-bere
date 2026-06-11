@@ -2691,7 +2691,7 @@ function ColaboradoresSection({ orgId, plan, embedded }) {
   );
 }
 
-function EspacioCard({ espacio, onDelete }) {
+function EspacioCard({ espacio, onDelete, onTurnosChange }) {
   const [expanded, setExpanded] = useState(false);
   const [turnos, setTurnos] = useState([]);
   const [loaded, setLoaded] = useState(false);
@@ -2723,7 +2723,8 @@ function EspacioCard({ espacio, onDelete }) {
     const nuevo = {recurso_id:espacio.id,org_id:currentOrgId,nombre:form.nombre.trim(),hora_inicio:form.horaInicio,hora_fin:form.horaFin,precio_semana:Number(form.precioSemana)||0,precio_finde:Number(form.precioFinde)||0,activo:true};
     const {data,error} = await supabase.from("turnos_recurso").insert(nuevo).select().single();
     if(error){alert("Error: "+error.message);setSaving(false);return;}
-    setTurnos(prev=>[...prev,data]);
+    const mapped={id:data.id,recursoId:data.recurso_id,orgId:data.org_id,nombre:data.nombre||"",horaInicio:data.hora_inicio||"",horaFin:data.hora_fin||"",precioSemana:Number(data.precio_semana)||0,precioFinde:Number(data.precio_finde)||0,activo:true};
+    setTurnos(prev=>{const n=[...prev,data];if(onTurnosChange)onTurnosChange(espacio.id,n.map(x=>({id:x.id,recursoId:x.recurso_id||x.recursoId,orgId:x.org_id||x.orgId,nombre:x.nombre||"",horaInicio:x.hora_inicio||x.horaInicio||"",horaFin:x.hora_fin||x.horaFin||"",precioSemana:Number(x.precio_semana||x.precioSemana)||0,precioFinde:Number(x.precio_finde||x.precioFinde)||0,activo:true})));return n;});
     setForm({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:""});
     setShowForm(false);setSaving(false);
   };
@@ -2756,8 +2757,10 @@ function EspacioCard({ espacio, onDelete }) {
     // Insertar nuevos slots
     const {data,error}=await supabase.from("turnos_recurso").insert(slots).select();
     if(error){alert("Error al generar turnos: "+error.message+"\n\nSi dice 'foreign key', corré el SQL de corrección en Supabase (consultá al soporte).");setGenerando(false);return;}
+    const mapped=(data||[]).map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:true}));
     setTurnos(data||[]);
     setLoaded(true);
+    if(onTurnosChange) onTurnosChange(espacio.id, mapped);
     setGenerando(false);
     alert(`✅ Se generaron ${slots.length} turnos de ${dur} minutos.`);
   };
@@ -2997,7 +3000,7 @@ function TurnosEspacioSection({ recursos }) {
   );
 }
 
-function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio }) {
+function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso }) {
   const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
@@ -3118,7 +3121,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
           <div style={{marginTop:16}}>
             {recursos.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:12}}>No hay espacios creados. Agregá uno para empezar.</div>}
             {recursos.map(r=>(
-              <EspacioCard key={r.id} espacio={r} onDelete={()=>setRecursos(prev=>prev.filter(x=>x.id!==r.id))} />
+              <EspacioCard key={r.id} espacio={r} onDelete={()=>setRecursos(prev=>prev.filter(x=>x.id!==r.id))} onTurnosChange={(recursoId,nuevos)=>setTurnosRecurso&&setTurnosRecurso(prev=>[...prev.filter(t=>t.recursoId!==recursoId),...nuevos])} />
             ))}
             <AddEspacioForm recursos={recursos} setRecursos={setRecursos} plan={currentUser?.plan} />
           </div>
@@ -4116,7 +4119,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
       {tab==="gastos" && <ErrorBoundary><GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} /></ErrorBoundary>}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
-      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} />}
+      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} />}
       {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} />}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
       {tab==="reportes" && <ErrorBoundary><ReportesView pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} /></ErrorBoundary>}
