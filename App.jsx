@@ -2388,7 +2388,7 @@ function AddUsuarioForm({ usuarios, setUsuarios }) {
   );
 }
 
-function ColaboradoresSection({ orgId, plan }) {
+function ColaboradoresSection({ orgId, plan, embedded }) {
   const [colaboradores, setColaboradores] = useState([]);
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
@@ -2423,18 +2423,12 @@ function ColaboradoresSection({ orgId, plan }) {
   };
 
   if(maxColab === 0) return (
-    <div style={{...card, marginBottom:16, padding:16, opacity:0.7}}>
-      <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>👥 Colaboradores</div>
-      <div style={{fontSize:13,color:"#8B7355"}}>🔒 Tu plan actual no incluye colaboradores. Actualizá a Profesional o Premium para agregar accesos adicionales.</div>
-    </div>
+    <div style={{fontSize:13,color:"#8B7355"}}>🔒 Tu plan actual no incluye colaboradores. Actualizá a Profesional o Premium para agregar accesos adicionales.</div>
   );
 
   return (
-    <div style={{...card, marginBottom:16, padding:16}}>
-      <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>👥 Colaboradores</div>
-      <div style={{fontSize:12,color:"#8B7355",marginBottom:16}}>
-        Personas con acceso a tu cuenta. Tu plan permite hasta <b>{maxColab}</b> colaborador{maxColab!==1?"es":""}.
-      </div>
+    <div>
+      <div style={{fontSize:12,color:"#8B7355",marginBottom:12}}>Tu plan permite hasta <b>{maxColab}</b> colaborador{maxColab!==1?"es":""}. Ingresarán con su Google.</div>
       {loading ? <div style={{fontSize:13,color:"#8B7355"}}>Cargando...</div> : (
         <>
           {colaboradores.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:12}}>No hay colaboradores aún.</div>}
@@ -2464,6 +2458,106 @@ function ColaboradoresSection({ orgId, plan }) {
             <div style={{marginTop:10,fontSize:12,color:"#8B7355",textAlign:"center"}}>Límite de colaboradores alcanzado para tu plan.</div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+function EspacioCard({ espacio, onDelete }) {
+  const [expanded, setExpanded] = useState(false);
+  const [turnos, setTurnos] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:""});
+  const [saving, setSaving] = useState(false);
+
+  const inpS = {padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",width:"100%",boxSizing:"border-box",outline:"none"};
+
+  const loadTurnos = async () => {
+    if(loaded) return;
+    const {data} = await supabase.from("turnos_recurso").select("*").eq("recurso_id",espacio.id).eq("activo",true).order("hora_inicio");
+    setTurnos(data||[]);
+    setLoaded(true);
+  };
+
+  const handleExpand = () => {
+    setExpanded(e=>!e);
+    if(!loaded) loadTurnos();
+  };
+
+  const handleAddTurno = async () => {
+    if(!form.nombre||!form.horaInicio||!form.horaFin) return alert("Completá nombre, hora inicio y hora fin.");
+    setSaving(true);
+    const nuevo = {recurso_id:espacio.id,org_id:currentOrgId,nombre:form.nombre.trim(),hora_inicio:form.horaInicio,hora_fin:form.horaFin,precio_semana:Number(form.precioSemana)||0,precio_finde:Number(form.precioFinde)||0,activo:true};
+    const {data,error} = await supabase.from("turnos_recurso").insert(nuevo).select().single();
+    if(error){alert("Error: "+error.message);setSaving(false);return;}
+    setTurnos(prev=>[...prev,data]);
+    setForm({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:""});
+    setShowForm(false);setSaving(false);
+  };
+
+  const handleRemoveTurno = async (id) => {
+    await supabase.from("turnos_recurso").update({activo:false}).eq("id",id);
+    setTurnos(prev=>prev.filter(t=>t.id!==id));
+  };
+
+  return (
+    <div style={{borderRadius:10,border:"1.5px solid #EDE0D0",marginBottom:10,overflow:"hidden"}}>
+      {/* Header del espacio */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",background:"#FDF8F3"}}>
+        <button onClick={handleExpand} style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",flex:1,textAlign:"left",padding:0}}>
+          <span style={{fontSize:18}}>🏠</span>
+          <div>
+            <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{espacio.nombre}</div>
+            {espacio.capacidadMax>0&&<div style={{fontSize:11,color:"#8B7355"}}>Cap. {espacio.capacidadMax} personas</div>}
+            {loaded&&<div style={{fontSize:11,color:"#C4602B"}}>{turnos.length} turno{turnos.length!==1?"s":""} configurado{turnos.length!==1?"s":""}</div>}
+          </div>
+          <span style={{marginLeft:"auto",fontSize:16,color:"#8B7355",transform:expanded?"rotate(180deg)":"none",transition:"transform 0.2s"}}>⌄</span>
+        </button>
+        <button onClick={onDelete} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",marginLeft:8,flexShrink:0}}>🗑️</button>
+      </div>
+
+      {/* Turnos expandidos */}
+      {expanded && (
+        <div style={{padding:"12px 14px",background:"#FFF",borderTop:"1px solid #EDE0D0"}}>
+          {!loaded ? (
+            <div style={{fontSize:13,color:"#8B7355"}}>Cargando turnos...</div>
+          ) : (
+            <>
+              {turnos.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:10}}>Sin turnos. Agregá al menos uno para poder tomar reservas en este espacio.</div>}
+              {turnos.map(t=>(
+                <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>{t.nombre}</div>
+                    <div style={{fontSize:11,color:"#8B7355"}}>{t.hora_inicio} – {t.hora_fin} · Sem: {fmtCurrency(t.precio_semana)} · Finde: {fmtCurrency(t.precio_finde)}</div>
+                  </div>
+                  <button onClick={()=>handleRemoveTurno(t.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",flexShrink:0}}>🗑️</button>
+                </div>
+              ))}
+
+              {!showForm ? (
+                <button onClick={()=>setShowForm(true)} style={{marginTop:10,width:"100%",padding:"9px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:8,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar turno</button>
+              ) : (
+                <div style={{marginTop:10,padding:12,background:"#FDF5EE",borderRadius:10,border:"1px solid #EDE0D0"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#8B7355",marginBottom:8}}>Nuevo turno — {espacio.nombre}</div>
+                  <input placeholder="Nombre (ej: Noche, Turno 20hs)" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} style={{...inpS,marginBottom:8}} />
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                    <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora inicio</div><input type="time" value={form.horaInicio} onChange={e=>setForm(p=>({...p,horaInicio:e.target.value}))} style={inpS} /></div>
+                    <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora fin</div><input type="time" value={form.horaFin} onChange={e=>setForm(p=>({...p,horaFin:e.target.value}))} style={inpS} /></div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                    <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" value={form.precioSemana} onChange={e=>setForm(p=>({...p,precioSemana:e.target.value}))} style={inpS} /></div>
+                    <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" value={form.precioFinde} onChange={e=>setForm(p=>({...p,precioFinde:e.target.value}))} style={inpS} /></div>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>setShowForm(false)} style={{flex:1,padding:"9px",background:"#FFF",border:"1px solid #EDE0D0",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#8B7355",fontWeight:600}}>Cancelar</button>
+                    <button onClick={handleAddTurno} disabled={saving} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700,opacity:saving?0.7:1}}>{saving?"Guardando...":"Guardar turno"}</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );
@@ -2586,17 +2680,12 @@ function TurnosEspacioSection({ recursos }) {
 }
 
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio }) {
-  const [precios, setPrecios] = useState(config?.precios || DEFAULT_CONFIG.precios);
-  const [saved, setSaved] = useState(false);
   const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"" });
   const [negSaved, setNegSaved] = useState(false);
+  const [open, setOpen] = useState("negocio");
   const planLimits = getPlanLimits(currentUser?.plan);
 
-  const handleSave = () => {
-    saveConfig({...config, precios});
-    setSaved(true);
-    setTimeout(()=>setSaved(false), 2000);
-  };
+  const toggle = s => setOpen(o => o===s ? null : s);
 
   const handleSaveNegocio = async () => {
     const row = { org_id: currentOrgId, nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento };
@@ -2607,161 +2696,110 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
     setTimeout(()=>setNegSaved(false), 2000);
   };
 
-  const updatePrecio = (tipo, turno, val) => {
-    setPrecios(p=>({...p, [tipo]:{...p[tipo],[turno]:Number(val)||0}}));
-  };
-
-  const turnoLabels = {dia:"☀️ Día", noche:"🌙 Tarde/Noche", completo:"⭐ Día Completo"};
-  const tipoLabels = {dia_semana:"Lunes a Viernes", dia_finde:"Sábado y Domingo"};
-
   const inpS = {width:"100%",padding:"9px 12px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
   const lblS = {display:"block",fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:5};
 
+  const SectionHeader = ({id, icon, title, subtitle}) => (
+    <button onClick={()=>toggle(id)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",background:"none",border:"none",cursor:"pointer",padding:0,fontFamily:"inherit",textAlign:"left"}}>
+      <div>
+        <div style={{fontWeight:800,fontSize:15,color:"#1C1C1E",fontFamily:"'Playfair Display',serif"}}>{icon} {title}</div>
+        {subtitle && open!==id && <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{subtitle}</div>}
+      </div>
+      <span style={{fontSize:18,color:"#8B7355",transform:open===id?"rotate(180deg)":"none",transition:"transform 0.2s"}}>⌄</span>
+    </button>
+  );
+
   return (
-    <div style={{padding:"16px 16px 100px"}}>
+    <div style={{padding:"16px 16px 100px",display:"flex",flexDirection:"column",gap:10}}>
 
-      {/* DATOS DEL NEGOCIO */}
-      <div style={{...card, marginBottom:16, padding:16}}>
-        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>🏢 Mi Negocio</div>
-        <div style={{fontSize:12,color:"#8B7355",marginBottom:16}}>Esta información aparece en la app, PDFs y mensajes de WhatsApp.</div>
-
-        <div style={{marginBottom:12}}>
-          <label style={lblS}>Nombre del negocio</label>
-          <input style={inpS} value={negForm.nombreNegocio} onChange={e=>setNegForm(p=>({...p,nombreNegocio:e.target.value}))} placeholder="Ej: El Quincho de Bere" />
-        </div>
-        <div style={{display:"flex",gap:8,marginBottom:12}}>
-          <div style={{flex:1}}>
-            <label style={lblS}>Ciudad</label>
-            <input style={inpS} value={negForm.ciudad} onChange={e=>setNegForm(p=>({...p,ciudad:e.target.value}))} placeholder="Ej: Mar del Plata" />
-          </div>
-          <div style={{flex:1}}>
-            <label style={lblS}>Teléfono</label>
-            <input style={inpS} value={negForm.telefono} onChange={e=>setNegForm(p=>({...p,telefono:e.target.value}))} placeholder="Ej: 223-1234567" />
-          </div>
-        </div>
-        <div style={{marginBottom:16}}>
-          <label style={lblS}>Logo del negocio</label>
-          <div style={{display:"flex",alignItems:"center",gap:14,marginTop:4}}>
-            <div style={{width:72,height:72,borderRadius:36,background:"#F5EDE4",border:"2px solid #EDE0D0",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              {negForm.logoUrl
-                ? <img src={negForm.logoUrl} alt="logo" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"} />
-                : <span style={{fontSize:28}}>🏠</span>
-              }
+      {/* ── MI NEGOCIO ── */}
+      <div style={{...card, padding:16}}>
+        <SectionHeader id="negocio" icon="🏢" title="Mi Negocio" subtitle={negocio?.nombreNegocio||"Sin configurar"} />
+        {open==="negocio" && (
+          <div style={{marginTop:16}}>
+            <div style={{marginBottom:12}}>
+              <label style={lblS}>Nombre del negocio</label>
+              <input style={inpS} value={negForm.nombreNegocio} onChange={e=>setNegForm(p=>({...p,nombreNegocio:e.target.value}))} placeholder="Ej: El Quincho de Bere" />
             </div>
-            <div style={{flex:1}}>
-              <LogoUploadButton orgId={currentOrgId} onUploaded={url=>setNegForm(p=>({...p,logoUrl:url}))} />
-              {negForm.logoUrl && <div style={{fontSize:10,color:"#8B7355",marginTop:4,wordBreak:"break-all"}}>{negForm.logoUrl.split("/").pop()}</div>}
+            <div style={{display:"flex",gap:8,marginBottom:12}}>
+              <div style={{flex:1}}><label style={lblS}>Ciudad</label><input style={inpS} value={negForm.ciudad} onChange={e=>setNegForm(p=>({...p,ciudad:e.target.value}))} placeholder="Ej: Mar del Plata" /></div>
+              <div style={{flex:1}}><label style={lblS}>Teléfono</label><input style={inpS} value={negForm.telefono} onChange={e=>setNegForm(p=>({...p,telefono:e.target.value}))} placeholder="Ej: 223-1234567" /></div>
             </div>
-          </div>
-        </div>
-
-        <div style={{fontWeight:700,fontSize:13,color:"#C4602B",marginBottom:10,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>💬 Mensajes de WhatsApp</div>
-        <div style={{fontSize:11,color:"#8B7355",marginBottom:12}}>Variables disponibles: {"{nombre}"}, {"{nombre_negocio}"}, {"{fecha}"}, {"{horario}"}, {"{saldo}"}</div>
-
-        <div style={{marginBottom:12}}>
-          <label style={lblS}>Recordatorio pre-evento (día anterior)</label>
-          <textarea style={{...inpS,height:80,resize:"vertical"}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} placeholder="Hola {nombre}! Te recordamos tu evento mañana en {nombre_negocio}..." />
-        </div>
-        <div style={{marginBottom:16}}>
-          <label style={lblS}>Mensaje post-evento (día siguiente)</label>
-          <textarea style={{...inpS,height:80,resize:"vertical"}} value={negForm.msgPostEvento} onChange={e=>setNegForm(p=>({...p,msgPostEvento:e.target.value}))} placeholder="Hola {nombre}! Fue un placer tenerte en {nombre_negocio}..." />
-        </div>
-
-        <button onClick={handleSaveNegocio} style={{width:"100%",padding:"12px",background:negSaved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s"}}>
-          {negSaved ? "✅ Guardado" : "💾 Guardar datos del negocio"}
-        </button>
-      </div>
-
-      {/* COLABORADORES */}
-      <ColaboradoresSection orgId={currentOrgId} plan={currentUser?.plan} />
-
-      {/* USUARIOS */}
-      <div style={{...card, marginBottom:16}}>
-        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:12,fontFamily:"'Playfair Display',serif"}}>👤 Usuarios</div>
-        {(perfilesUsuarios||[]).map(u=>(
-          <div key={u.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
-            <div>
-              <div style={{fontWeight:600,fontSize:13}}>{u.nombre||u.email}</div>
-              <div style={{fontSize:11,color:"#8B7355"}}>{u.rol} · {u.email}</div>
-            </div>
-            {currentUser?.rol==="Administrador" && u.email!==currentUser.email && (
-              <button onClick={async()=>{
-                await supabase.from("perfiles_usuarios").delete().eq("id",u.id);
-                setPerfilesUsuarios(prev=>prev.filter(x=>x.id!==u.id));
-              }} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
-            )}
-          </div>
-        ))}
-        {currentUser?.rol==="Administrador" && <AddUsuarioForm usuarios={perfilesUsuarios} setUsuarios={setPerfilesUsuarios} />}
-      </div>
-      {/* PRECIOS */}
-      <div style={{...card, marginBottom:16}}>
-        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>⚙️ Configuración de Precios</div>
-        <div style={{fontSize:12,color:"#8B7355",marginBottom:16}}>Los precios se usan como referencia al crear reservas.</div>
-        {Object.entries(tipoLabels).map(([tipo,tipoLabel])=>(
-          <div key={tipo} style={{marginBottom:20}}>
-            <div style={{fontWeight:700,fontSize:13,color:"#C4602B",marginBottom:10,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>{tipoLabel}</div>
-            {Object.entries(turnoLabels).map(([turno,turnoLabel])=>(
-              <div key={turno} style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                <span style={{fontSize:13,color:"#5C4033",fontWeight:600}}>{turnoLabel}</span>
-                <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:12,color:"#8B7355"}}>$</span>
-                  <input type="number" value={precios?.[tipo]?.[turno]||0}
-                    onChange={e=>updatePrecio(tipo,turno,e.target.value)}
-                    onFocus={e=>e.target.select()}
-                    style={{width:100,padding:"6px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",textAlign:"right",outline:"none"}} />
+            <div style={{marginBottom:16}}>
+              <label style={lblS}>Logo</label>
+              <div style={{display:"flex",alignItems:"center",gap:14,marginTop:4}}>
+                <div style={{width:72,height:72,borderRadius:36,background:"#F5EDE4",border:"2px solid #EDE0D0",overflow:"hidden",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {negForm.logoUrl ? <img src={negForm.logoUrl} alt="logo" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"} /> : <span style={{fontSize:28}}>🏠</span>}
+                </div>
+                <div style={{flex:1}}>
+                  <LogoUploadButton orgId={currentOrgId} onUploaded={url=>setNegForm(p=>({...p,logoUrl:url}))} />
+                  {negForm.logoUrl && <div style={{fontSize:10,color:"#8B7355",marginTop:4,wordBreak:"break-all"}}>{negForm.logoUrl.split("/").pop()?.split("?")[0]}</div>}
                 </div>
               </div>
+            </div>
+            <div style={{fontWeight:700,fontSize:12,color:"#C4602B",marginBottom:8,paddingBottom:6,borderBottom:"1px solid #EDE0D0"}}>💬 Mensajes de WhatsApp</div>
+            <div style={{fontSize:11,color:"#8B7355",marginBottom:10}}>Variables: {"{nombre}"} {"{nombre_negocio}"} {"{fecha}"} {"{horario}"} {"{saldo}"}</div>
+            <div style={{marginBottom:10}}>
+              <label style={lblS}>Recordatorio (día anterior)</label>
+              <textarea style={{...inpS,height:72,resize:"vertical"}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} placeholder="Hola {nombre}! Te recordamos tu evento mañana..." />
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={lblS}>Post-evento (día siguiente)</label>
+              <textarea style={{...inpS,height:72,resize:"vertical"}} value={negForm.msgPostEvento} onChange={e=>setNegForm(p=>({...p,msgPostEvento:e.target.value}))} placeholder="Hola {nombre}! Fue un placer tenerte..." />
+            </div>
+            <button onClick={handleSaveNegocio} style={{width:"100%",padding:"12px",background:negSaved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s"}}>
+              {negSaved ? "✅ Guardado" : "💾 Guardar"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── ESPACIOS ── */}
+      <div style={{...card, padding:16}}>
+        <SectionHeader id="espacios" icon="🏠" title="Espacios" subtitle={`${recursos.length} espacio${recursos.length!==1?"s":""} configurado${recursos.length!==1?"s":""}`} />
+        {open==="espacios" && (
+          <div style={{marginTop:16}}>
+            {recursos.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:12}}>No hay espacios creados. Agregá uno para empezar.</div>}
+            {recursos.map(r=>(
+              <EspacioCard key={r.id} espacio={r} onDelete={()=>setRecursos(prev=>prev.filter(x=>x.id!==r.id))} />
             ))}
+            <AddEspacioForm recursos={recursos} setRecursos={setRecursos} plan={currentUser?.plan} />
           </div>
-        ))}
-        <button onClick={handleSave} style={{width:"100%",padding:"12px",background:saved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s"}}>
-          {saved?"✅ Guardado":"💾 Guardar precios"}
-        </button>
+        )}
       </div>
 
-      {planLimits.serviciosExtras === false ? (
-        <div style={{...card, padding:16, opacity:0.7}}>
-          <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>✨ Servicios Extras</div>
-          <div style={{fontSize:13,color:"#8B7355"}}>🔒 Tu plan actual no incluye servicios extras. Actualizá a Profesional o Premium para activarlos.</div>
-        </div>
-      ) : (
-        <div style={{...card}}>
-          <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>✨ Servicios Extras</div>
-          <div style={{fontSize:12,color:"#8B7355",marginBottom:12}}>Servicios adicionales disponibles para las reservas.</div>
-          {serviciosExtras.map(s=>(
-            <div key={s.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #F5EDE4"}}>
-              <div>
-                <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
-                <div style={{fontSize:12,color:"#8B7355"}}>{new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(s.precioActual)}</div>
-              </div>
-              <button onClick={async()=>{await sb.remove("servicios_extras",s.id);setServiciosExtras(prev=>prev.filter(x=>x.id!==s.id));}}
-                style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
-            </div>
-          ))}
-          <AddSrvForm serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />
-        </div>
-      )}
-
-      {/* ESPACIOS */}
-      <div style={{...card, marginTop:16}}>
-        <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:4,fontFamily:"'Playfair Display',serif"}}>🏠 Espacios</div>
-        <div style={{fontSize:12,color:"#8B7355",marginBottom:12}}>Espacios disponibles para reservar.</div>
-        {recursos.map(r=>(
-          <div key={r.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
-            <div>
-              <div style={{fontWeight:600,fontSize:13}}>{r.nombre}</div>
-              {r.capacidadMax>0 && <div style={{fontSize:11,color:"#8B7355"}}>Capacidad: {r.capacidadMax} personas</div>}
-            </div>
-            <button onClick={()=>setRecursos(prev=>prev.filter(x=>x.id!==r.id))}
-              style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
-          </div>
-        ))}
-        <AddEspacioForm recursos={recursos} setRecursos={setRecursos} plan={currentUser?.plan} />
+      {/* ── COLABORADORES ── */}
+      <div style={{...card, padding:16}}>
+        <SectionHeader id="colab" icon="👥" title="Colaboradores" subtitle={planLimits.colaboradores===0?"No disponible en tu plan":`Hasta ${planLimits.colaboradores} en tu plan`} />
+        {open==="colab" && <div style={{marginTop:16}}><ColaboradoresSection orgId={currentOrgId} plan={currentUser?.plan} embedded /></div>}
       </div>
 
-      {/* TURNOS POR ESPACIO */}
-      {recursos.length > 0 && <TurnosEspacioSection recursos={recursos} />}
+      {/* ── SERVICIOS EXTRAS ── */}
+      <div style={{...card, padding:16, opacity:planLimits.serviciosExtras===false?0.7:1}}>
+        <SectionHeader id="extras" icon="✨" title="Servicios Extras" subtitle={planLimits.serviciosExtras===false?"No disponible en tu plan":`${serviciosExtras.length} servicio${serviciosExtras.length!==1?"s":""}`} />
+        {open==="extras" && (
+          <div style={{marginTop:16}}>
+            {planLimits.serviciosExtras===false ? (
+              <div style={{fontSize:13,color:"#8B7355"}}>🔒 Tu plan actual no incluye servicios extras. Actualizá a Profesional o Premium para activarlos.</div>
+            ) : (
+              <>
+                {serviciosExtras.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:10}}>No hay servicios extras creados.</div>}
+                {serviciosExtras.map(s=>(
+                  <div key={s.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #F5EDE4"}}>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
+                      <div style={{fontSize:12,color:"#8B7355"}}>{fmtCurrency(s.precioActual)}</div>
+                    </div>
+                    <button onClick={async()=>{await sb.remove("servicios_extras",s.id);setServiciosExtras(prev=>prev.filter(x=>x.id!==s.id));}} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
+                  </div>
+                ))}
+                <AddSrvForm serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
