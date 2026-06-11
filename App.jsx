@@ -152,8 +152,10 @@ function LogoSVG({ size=48, color="#C4602B" }) {
 const PDF_CSS =
   "*{box-sizing:border-box;margin:0;padding:0}" +
   "body{font-family:Arial,sans-serif;color:#1C1C1E;padding:40px;max-width:760px;margin:0 auto;font-size:14px;line-height:1.5}" +
-  ".hdr{display:flex;justify-content:space-between;border-bottom:3px solid #C4602B;padding-bottom:14px;margin-bottom:20px}" +
+  ".hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #C4602B;padding-bottom:14px;margin-bottom:20px}" +
   ".logo{font-size:20px;font-weight:800;color:#C4602B}" +
+  ".logo-img{height:52px;width:52px;border-radius:50%;object-fit:cover;margin-right:12px}" +
+  ".hdr-left{display:flex;align-items:center}" +
   ".sub{font-size:12px;color:#8B7355;margin-top:3px}" +
   "h2{font-size:13px;font-weight:700;color:#5C4033;border-bottom:1px solid #EDE0D0;padding-bottom:5px;margin:18px 0 8px}" +
   ".row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F5EDE4;font-size:13px}" +
@@ -177,12 +179,18 @@ function buildDoc(title,body){
   return {title:title, html:html};
 }
 
+function pLogoHdr(negocio,subtitulo,derecha){
+  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
+  var logoImg=(negocio&&negocio.logoUrl)?'<img class="logo-img" src="'+negocio.logoUrl+'" alt="logo" crossorigin="anonymous">':'';
+  var izq='<div class="hdr-left">'+logoImg+'<div><div class="logo">'+nombreNeg+'</div><div class="sub">'+escHtml((negocio&&negocio.ciudad)||'')+' · '+subtitulo+'</div></div></div>';
+  return pDiv('hdr',izq+'<div style="text-align:right">'+derecha+'</div>');
+}
+
 function printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio){
   var te=resExtras.reduce(function(s,e){return s+(e.precioHistorico*e.cantidad);},0);
   var tp=resPagos.reduce(function(s,p){return s+p.monto;},0);
   var saldo=(reserva.montoPactado+te)-tp;
-  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
-  var hdr=pDiv('hdr',pDiv('',pDiv('logo',nombreNeg+' ✓')+pDiv('sub','Ficha de Evento'))+'<div>ID: '+reserva.id.slice(-8).toUpperCase()+'</div>');
+  var hdr=pLogoHdr(negocio,'Ficha de Evento','ID: '+reserva.id.slice(-8).toUpperCase());
   var body=hdr+pH2('Cliente')+pRow('Nombre',escHtml(clientName(cliente)));
   if(cliente&&cliente.whatsapp)body+=pRow('WhatsApp',escHtml(cliente.whatsapp));
   if(cliente&&cliente.email)body+=pRow('Email',escHtml(cliente.email));
@@ -203,8 +211,7 @@ function printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio){
 }
 
 function printRecibo(pago,reserva,cliente,negocio){
-  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
-  var hdr=pDiv('hdr',pDiv('',pDiv('logo',nombreNeg)+pDiv('sub','Comprobante de Pago'))+'<div><b>N '+pago.id.slice(-6).toUpperCase()+'</b><br>'+new Date().toLocaleDateString('es-AR')+'</div>');
+  var hdr=pLogoHdr(negocio,'Comprobante de Pago','<b>N° '+pago.id.slice(-6).toUpperCase()+'</b><br>'+new Date().toLocaleDateString('es-AR'));
   var texto='Recibi de '+escHtml(clientName(cliente))+' la suma de '+fmtCurrency(pago.monto)+' en concepto de pago para la reserva del dia '+fmtDate(reserva?reserva.fecha:'-')+' en '+nombreNeg+'. Metodo: '+escHtml(pago.metodo)+'.';
   if(pago.notas)texto+=' Ref: '+escHtml(pago.notas);
   var firma=pDiv('firma',pDiv('fitem',pDiv('fline','Firma prestador'))+pDiv('fitem',pDiv('fline','Conformidad cliente')));
@@ -212,8 +219,7 @@ function printRecibo(pago,reserva,cliente,negocio){
 }
 
 function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,porCobrar,negocio){
-  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
-  var hdr=pDiv('hdr',pDiv('',pDiv('logo',nombreNeg)+pDiv('sub','Reporte Financiero'))+'<b>'+MONTHS[month]+' '+year+'</b>');
+  var hdr=pLogoHdr(negocio,'Reporte Financiero','<b>'+MONTHS[month]+' '+year+'</b>');
   var body=hdr+pH2('Resumen del mes')+pRow('Ingresos cobrados',fmtCurrency(ingresos),'pos')+pRow('Gastos operacionales',fmtCurrency(gastos),'neg')+'<div class="total"><span>Ganancia Neta</span><span class="'+(ganancia>=0?'pos':'neg')+'">'+fmtCurrency(Math.abs(ganancia))+'</span></div>'+pH2('Ocupacion')+pRow('Eventos activos',String(confirmadas))+pRow('Por cobrar',fmtCurrency(porCobrar),'neg');
   if(catData.length>0){body+=pH2('Gastos por categoria');catData.forEach(function(c){body+=pRow(c.name,fmtCurrency(c.value));});}
   return buildDoc('Reporte '+MONTHS[month]+' '+year,body);
@@ -1886,7 +1892,7 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
     const css = "*{box-sizing:border-box;margin:0;padding:0}"
       +"body{font-family:Georgia,serif;color:#1C1C1E;padding:28px;max-width:820px;margin:0 auto;font-size:12px;line-height:1.5}"
       +".hdr{text-align:center;padding-bottom:14px;margin-bottom:20px;border-bottom:3px solid #C4602B}"
-      +".logo{font-size:22px;font-weight:bold;color:#C4602B}"
+      +".logo{font-size:22px;font-weight:bold;color:#C4602B}.logo-img{height:56px;width:56px;border-radius:50%;object-fit:cover;margin-right:14px}.hdr-left{display:flex;align-items:center}"
       +".sub{color:#8B7355;font-size:11px;margin-top:3px}"
       +".ttl{font-size:19px;font-weight:bold;margin-top:8px}"
       +".kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}"
@@ -1902,8 +1908,9 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
       +"tr:nth-child(even) td{background:#FDF8F3}"
       +".ft{text-align:center;margin-top:20px;color:#8B7355;font-size:9px;border-top:1px solid #EDE0D0;padding-top:10px}";
 
+    const logoTag = negocio?.logoUrl ? `<img class="logo-img" src="${negocio.logoUrl}" alt="logo" crossorigin="anonymous">` : "";
     const html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>"+css+"</style></head><body>"
-      +"<div class=\"hdr\"><div class=\"logo\">🏡 "+(negocio?.nombreNegocio||"Mi Negocio")+"</div><div class=\"sub\">"+(negocio?.ciudad||"")+"</div><div class=\"ttl\">Reporte Mensual — "+mes+" "+anio+"</div></div>"
+      +`<div class="hdr"><div class="hdr-left">${logoTag}<div><div class="logo">${negocio?.nombreNegocio||"Mi Negocio"}</div><div class="sub">${negocio?.ciudad||""}</div></div></div><div class="ttl">Reporte Mensual — ${mes} ${anio}</div></div>`
       +"<div class=\"kpis\">"
         +"<div class=\"kpi\"><div class=\"knum\">"+reservasMes.length+"</div><div class=\"klbl\">Reservas</div></div>"
         +"<div class=\"kpi\"><div class=\"knum\">"+fmt(totalCobrado)+"</div><div class=\"klbl\">Total cobrado</div></div>"
