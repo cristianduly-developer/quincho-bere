@@ -987,7 +987,7 @@ function EditPagoModal({ pago, onClose, onSave }) {
 function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueo, onBloquear, canBloquear, turnosRecurso, espacioFiltro }) {
   // Abre directo en reserva; si hay bloqueo abre en modo bloqueo
   const [mode, setMode] = useState(bloqueo ? "bloqueo" : "reserva");
-  const [bTurno, setBTurno] = useState(usaTurnosCustom&&!modoAgenda&&turnosDelEspacio[0]?.id ? turnosDelEspacio[0].id : "completo");
+  const [bTurno, setBTurno] = useState("completo");
   const [bMotivo, setBMotivo] = useState("");
   const [confirmUnblock, setConfirmUnblock] = useState(false);
 
