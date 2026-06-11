@@ -1657,13 +1657,25 @@ function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes
 // ─── CALENDAR WIDGET ──────────────────────────────────────
 // ─── CALENDAR WIDGET ──────────────────────────────────────
 
-function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick, recursos }) {
+function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick, recursos, turnosRecurso }) {
   const year = calDate.year;
   const month = calDate.month;
 
   const [cells, setCells] = useState([]);
   const multiEspacio = recursos && recursos.length > 1;
   const [espacioFiltro, setEspacioFiltro] = useState("all");
+
+  // Para el espacio filtrado, ¿cuántos turnos tiene configurados?
+  const turnosDelFiltro = (()=>{
+    const tr = turnosRecurso||[];
+    if(espacioFiltro==="all"){
+      const idsConTurnos=[...new Set(tr.map(t=>t.recursoId))];
+      if(idsConTurnos.length===1) return tr.filter(t=>t.recursoId===idsConTurnos[0]);
+      return [];
+    }
+    return tr.filter(t=>t.recursoId===espacioFiltro);
+  })();
+  const modoSlot = turnosDelFiltro.length > 4;
 
   useEffect(() => {
     // Reset absoluto antes de recalcular
@@ -1723,34 +1735,62 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
                 )}
               </div>
               {bloqueo&&<div style={{padding:"1px 3px",fontSize:7,color:"#6B7280",textAlign:"center"}}>🚫</div>}
-              {dr.map((r,ri)=>{
-                const t=TURNOS[r.turno];
-                const cl=clientes&&clientes.find(x=>x.id===r.clienteId);
-                const ini=cl?(cl.nombre?cl.nombre[0].toUpperCase():"")+(cl.apellido?cl.apellido[0].toUpperCase():""):"?";
-                var cellBg;
-                if(isPast){ cellBg="#9CA3AF"; }
-                else if(r.estado==="pendiente"){ cellBg="#6B7280"; }
-                else if(r.estado==="senada"||r.estado==="confirmada"){
-                  cellBg=TURNOS[r.turno]?.color||"#6B7280";
-                } else if(r.estado==="finalizada"){ cellBg="#9CA3AF"; }
-                else { cellBg="#6B7280"; }
-                return (
-                  <div key={`${year}-${month}-${day}-${ri}`} style={{flex:1,background:cellBg,display:"flex",alignItems:"center",gap:2,padding:"1px 3px",borderRadius:3,marginBottom:1}}>
-                    <div style={{fontSize:10,lineHeight:1}}>{t?t.icon:""}</div>
-                    <div style={{fontSize:8,fontWeight:800,color:"#FFF",lineHeight:1.1}}>{ini}</div>
-                  </div>
-                );
-              })}
+              {modoSlot ? (
+                /* Modo cancha/slot: barra de ocupación */
+                dr.length>0 && (()=>{
+                  const total=turnosDelFiltro.length;
+                  const ocup=dr.length;
+                  const pct=total>0?Math.round((ocup/total)*100):0;
+                  const barColor=pct===100?"#DC2626":pct>=60?"#D97706":"#16A34A";
+                  return (
+                    <div style={{padding:"2px 3px",flex:1,display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:2}}>
+                      <div style={{background:"#E5E7EB",borderRadius:3,height:4,overflow:"hidden"}}>
+                        <div style={{width:pct+"%",height:"100%",background:barColor,borderRadius:3,transition:"width 0.3s"}} />
+                      </div>
+                      <div style={{fontSize:7,fontWeight:800,color:barColor,textAlign:"center",lineHeight:1}}>{ocup}/{total}</div>
+                    </div>
+                  );
+                })()
+              ) : (
+                /* Modo turnos nombrados: chips con ícono + iniciales */
+                dr.map((r,ri)=>{
+                  const t=TURNOS[r.turno];
+                  const cl=clientes&&clientes.find(x=>x.id===r.clienteId);
+                  const ini=cl?(cl.nombre?cl.nombre[0].toUpperCase():"")+(cl.apellido?cl.apellido[0].toUpperCase():""):"?";
+                  const turnoCustom=turnosDelFiltro.find(x=>x.id===r.turnoId);
+                  var cellBg;
+                  if(isPast){ cellBg="#9CA3AF"; }
+                  else if(r.estado==="pendiente"){ cellBg="#6B7280"; }
+                  else if(r.estado==="senada"||r.estado==="confirmada"){
+                    cellBg=t?.color||"#C4602B";
+                  } else if(r.estado==="finalizada"){ cellBg="#9CA3AF"; }
+                  else { cellBg="#6B7280"; }
+                  return (
+                    <div key={`${year}-${month}-${day}-${ri}`} style={{flex:1,background:cellBg,display:"flex",alignItems:"center",gap:2,padding:"1px 3px",borderRadius:3,marginBottom:1}}>
+                      <div style={{fontSize:10,lineHeight:1}}>{t?t.icon:"📌"}</div>
+                      <div style={{fontSize:8,fontWeight:800,color:"#FFF",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{turnoCustom?turnoCustom.nombre:ini}</div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           );
         })}
       </div>
-      <div style={{padding:"8px 14px",borderTop:"1px solid #EDE0D0",display:"flex",gap:12,flexWrap:"wrap"}}>
-        {Object.entries(TURNOS).map(([k,v])=>(
-          <div key={k} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#8B7355"}}>
-            <div style={{width:12,height:4,borderRadius:2,background:v.color}} />{v.label}
-          </div>
-        ))}
+      <div style={{padding:"8px 14px",borderTop:"1px solid #EDE0D0",display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+        {modoSlot ? (
+          <>
+            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#8B7355"}}><div style={{width:12,height:4,borderRadius:2,background:"#16A34A"}} />Baja ocupación</div>
+            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#8B7355"}}><div style={{width:12,height:4,borderRadius:2,background:"#D97706"}} />Media</div>
+            <div style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#8B7355"}}><div style={{width:12,height:4,borderRadius:2,background:"#DC2626"}} />Lleno</div>
+          </>
+        ) : (
+          Object.entries(TURNOS).map(([k,v])=>(
+            <div key={k} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#8B7355"}}>
+              <div style={{width:12,height:4,borderRadius:2,background:v.color}} />{v.label}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -2095,7 +2135,7 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
   );
 }
 
-function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos }) {
+function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso }) {
   const today=toDateStr(new Date()), now=new Date();
   const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const monthRes=reservas.filter(r=>r.fecha&&r.fecha.startsWith(monthStr)&&r.estado!=="cancelada");
@@ -2191,7 +2231,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
 
       {/* ── Calendario ── */}
       <div style={{marginBottom:16}}>
-        <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={calDate} setCalDate={setCalDate} onDayClick={onDayClick} recursos={recursos} />
+        <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={calDate} setCalDate={setCalDate} onDayClick={onDayClick} recursos={recursos} turnosRecurso={turnosRecurso} />
       </div>
 
       {/* ── Próximas reservas ── */}
@@ -4025,7 +4065,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       </div>
 
       {/* Views */}
-      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>setDayModal({date:ds,reservas:dr,espacioFiltro:ef||"all"})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} />}
+      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>setDayModal({date:ds,reservas:dr,espacioFiltro:ef||"all"})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} />}
       {tab==="reservas" && <ReservasView reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} />}
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
       {tab==="gastos" && <ErrorBoundary><GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} /></ErrorBoundary>}
