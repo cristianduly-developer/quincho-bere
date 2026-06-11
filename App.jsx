@@ -3205,7 +3205,12 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
           <div style={{marginTop:16}}>
             {recursos.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:12}}>No hay espacios creados. Agregá uno para empezar.</div>}
             {recursos.map(r=>(
-              <EspacioCard key={r.id} espacio={r} onDelete={()=>setRecursos(prev=>prev.filter(x=>x.id!==r.id))} onTurnosChange={(recursoId,nuevos)=>setTurnosRecurso&&setTurnosRecurso(prev=>[...prev.filter(t=>t.recursoId!==recursoId),...nuevos])} />
+              <EspacioCard key={r.id} espacio={r} onDelete={async()=>{
+                if(!window.confirm(`¿Eliminás "${r.nombre}"? Esta acción no se puede deshacer.`)) return;
+                await supabase.from("recursos").delete().eq("id",r.id);
+                setRecursos(prev=>prev.filter(x=>x.id!==r.id));
+                if(setTurnosRecurso) setTurnosRecurso(prev=>prev.filter(t=>t.recursoId!==r.id));
+              }} onTurnosChange={(recursoId,nuevos)=>setTurnosRecurso&&setTurnosRecurso(prev=>[...prev.filter(t=>t.recursoId!==recursoId),...nuevos])} />
             ))}
             <AddEspacioForm recursos={recursos} setRecursos={setRecursos} plan={currentUser?.plan} />
           </div>
@@ -3716,6 +3721,7 @@ export default function App() {
   const [editReserva,setEditReserva]=useState(null);
   const [editCliente,setEditCliente]=useState(null);
   const [dayModal,setDayModal]=useState(null);
+  const [espacioPicker,setEspacioPicker]=useState(null); // {date, reservas} — picker de espacio antes de abrir DayModal
   const [initDate,setInitDate]=useState(null);
   const [initTurno,setInitTurno]=useState(null);
   const [pagoReservaId,setPagoReservaId]=useState(null);
@@ -4198,7 +4204,14 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       </div>
 
       {/* Views */}
-      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>setDayModal({date:ds,reservas:dr,espacioFiltro:ef||"all"})} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} />}
+      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>{
+  const filtro=ef||"all";
+  if(filtro==="all"&&recursos.length>1){
+    setEspacioPicker({date:ds,reservas:dr});
+  } else {
+    setDayModal({date:ds,reservas:dr,espacioFiltro:filtro});
+  }
+}} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} />}
       {tab==="reservas" && <ReservasView reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} />}
       {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
       {tab==="gastos" && <ErrorBoundary><GastosView gastos={gastos} onNewGasto={()=>setModal("gasto")} /></ErrorBoundary>}
@@ -4318,6 +4331,26 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {currentUser && ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
+      {espacioPicker && (
+        <BottomModal title={`📅 ${fmtDate(espacioPicker.date)} — ¿Qué espacio?`} onClose={()=>setEspacioPicker(null)}>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {recursos.map(r=>(
+              <button key={r.id} onClick={()=>{
+                setEspacioPicker(null);
+                setDayModal({date:espacioPicker.date,reservas:espacioPicker.reservas.filter(rv=>rv.recursoId===r.id),espacioFiltro:r.id});
+              }} style={{padding:"14px 16px",borderRadius:10,border:"1.5px solid #EDE0D0",background:"#FFF8F5",cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>🏠 {r.nombre}</div>
+                  {r.capacidadMax>0&&<div style={{fontSize:11,color:"#8B7355"}}>Cap. {r.capacidadMax} personas</div>}
+                </div>
+                <div style={{fontSize:12,color:"#C4602B",fontWeight:700}}>
+                  {espacioPicker.reservas.filter(rv=>rv.recursoId===r.id).length > 0 ? `${espacioPicker.reservas.filter(rv=>rv.recursoId===r.id).length} reserva${espacioPicker.reservas.filter(rv=>rv.recursoId===r.id).length!==1?"s":""}` : "libre"}
+                </div>
+              </button>
+            ))}
+          </div>
+        </BottomModal>
+      )}
       {dayModal && <DayModal
         date={dayModal.date}
         dayRes={dayModal.reservas}
