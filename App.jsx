@@ -1075,11 +1075,45 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
       {/* MODO RESERVA */}
       {mode === "reserva" && (
         <div>
-          <div style={{...lbl, marginBottom:10}}>Seleccioná el turno</div>
+          {/* Resumen del día — solo en modo agenda (cancha/slots) */}
+          {modoAgenda && usaTurnosCustom && (()=>{
+            const esFinde=(()=>{try{const d=new Date(date+"T12:00:00");const dow=d.getDay();return dow===0||dow===6;}catch(e){return false;}})();
+            const ocupados = turnosDelEspacio.filter(t=>isOccCustom(t.id)).length;
+            const libres = turnosDelEspacio.length - ocupados;
+            const potencialDia = turnosDelEspacio.reduce((s,t)=>s+(esFinde?t.precioFinde:t.precioSemana),0);
+            const cobradoDia = dayRes.reduce((s,r)=>s+(r.montoPactado||0),0);
+            const pct = turnosDelEspacio.length>0 ? Math.round((ocupados/turnosDelEspacio.length)*100) : 0;
+            const barColor = pct===100?"#DC2626":pct>=60?"#D97706":"#16A34A";
+            return (
+              <div style={{background:"#F9F6F2",borderRadius:10,padding:"12px 14px",marginBottom:14,border:"1px solid #EDE0D0"}}>
+                {/* Barra de ocupación */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <span style={{fontSize:12,fontWeight:700,color:"#1C1C1E"}}>{ocupados} ocupados · {libres} libres</span>
+                  <span style={{fontSize:11,fontWeight:700,color:barColor}}>{pct}%</span>
+                </div>
+                <div style={{background:"#E5E7EB",borderRadius:4,height:6,marginBottom:10,overflow:"hidden"}}>
+                  <div style={{width:pct+"%",height:"100%",background:barColor,borderRadius:4,transition:"width 0.3s"}} />
+                </div>
+                {/* Números clave */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <div style={{background:"#FFF",borderRadius:8,padding:"8px 10px",border:"1px solid #EDE0D0"}}>
+                    <div style={{fontSize:10,color:"#8B7355",marginBottom:2}}>Reservas cobradas</div>
+                    <div style={{fontSize:15,fontWeight:800,color:"#16A34A"}}>{fmtCurrency(cobradoDia)}</div>
+                  </div>
+                  <div style={{background:"#FFF",borderRadius:8,padding:"8px 10px",border:"1px solid #EDE0D0"}}>
+                    <div style={{fontSize:10,color:"#8B7355",marginBottom:2}}>Potencial del día</div>
+                    <div style={{fontSize:15,fontWeight:800,color:"#C4602B"}}>{fmtCurrency(potencialDia)}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div style={{...lbl, marginBottom:8}}>Turnos del día</div>
 
           {/* Turnos configurados del espacio */}
           {usaTurnosCustom ? (
-            <div style={modoAgenda?{maxHeight:340,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}:{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={modoAgenda?{maxHeight:300,overflowY:"auto",display:"flex",flexDirection:"column",gap:3}:{display:"flex",flexDirection:"column",gap:8}}>
               {turnosDelEspacio.map(t=>{
                 const busy = isOccCustom(t.id);
                 const res = dayRes.find(r=>r.turnoId===t.id);
