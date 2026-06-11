@@ -1882,13 +1882,15 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
                   if(isPast){ cellBg="#9CA3AF"; }
                   else if(r.estado==="pendiente"){ cellBg="#6B7280"; }
                   else if(r.estado==="senada"||r.estado==="confirmada"){
-                    cellBg=t?.color||"#C4602B";
+                    cellBg=turnoCustom?"#C4602B":(t?.color||"#C4602B");
                   } else if(r.estado==="finalizada"){ cellBg="#9CA3AF"; }
                   else { cellBg="#6B7280"; }
+                  const icono = turnoCustom?(turnoCustom.icono||"📌"):(t?t.icon:"📌");
+                  const label = turnoCustom?(turnoCustom.nombre.length>7?turnoCustom.horaInicio:turnoCustom.nombre):ini;
                   return (
                     <div key={`${year}-${month}-${day}-${ri}`} style={{flex:1,background:cellBg,display:"flex",alignItems:"center",gap:2,padding:"1px 3px",borderRadius:3,marginBottom:1}}>
-                      <div style={{fontSize:10,lineHeight:1}}>{t?t.icon:"📌"}</div>
-                      <div style={{fontSize:8,fontWeight:800,color:"#FFF",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{turnoCustom?(turnoCustom.nombre.length>7?turnoCustom.horaInicio:turnoCustom.nombre):ini}</div>
+                      <div style={{fontSize:10,lineHeight:1}}>{icono}</div>
+                      <div style={{fontSize:8,fontWeight:800,color:"#FFF",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</div>
                     </div>
                   );
                 })
@@ -2783,7 +2785,8 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
   const [turnos, setTurnos] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:""});
+  const [form, setForm] = useState({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:"",icono:"📌"});
+  const ICONOS_TURNO = ["📌","☀️","🌤️","🌆","🌙","⚽","🎾","🏊","🎉","🎪","🍖","🎸","💅","🏋️","🎭","🏠"];
   const [saving, setSaving] = useState(false);
   // modo local del espacio (fijo = manual, slot = generador)
   const [modo, setModo] = useState(espacio.modo||"fijo");
@@ -2807,11 +2810,11 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
   const handleAddTurno = async () => {
     if(!form.nombre||!form.horaInicio||!form.horaFin) return alert("Completá nombre, hora inicio y hora fin.");
     setSaving(true);
-    const nuevo = {recurso_id:espacio.id,org_id:currentOrgId,nombre:form.nombre.trim(),hora_inicio:form.horaInicio,hora_fin:form.horaFin,precio_semana:Number(form.precioSemana)||0,precio_finde:Number(form.precioFinde)||0,activo:true};
+    const nuevo = {recurso_id:espacio.id,org_id:currentOrgId,nombre:form.nombre.trim(),icono:form.icono||"📌",hora_inicio:form.horaInicio,hora_fin:form.horaFin,precio_semana:Number(form.precioSemana)||0,precio_finde:Number(form.precioFinde)||0,activo:true};
     const {data,error} = await supabase.from("turnos_recurso").insert(nuevo).select().single();
     if(error){alert("Error: "+error.message);setSaving(false);return;}
-    const mapped={id:data.id,recursoId:data.recurso_id,orgId:data.org_id,nombre:data.nombre||"",horaInicio:data.hora_inicio||"",horaFin:data.hora_fin||"",precioSemana:Number(data.precio_semana)||0,precioFinde:Number(data.precio_finde)||0,activo:true};
-    setTurnos(prev=>{const n=[...prev,data];if(onTurnosChange)onTurnosChange(espacio.id,n.map(x=>({id:x.id,recursoId:x.recurso_id||x.recursoId,orgId:x.org_id||x.orgId,nombre:x.nombre||"",horaInicio:x.hora_inicio||x.horaInicio||"",horaFin:x.hora_fin||x.horaFin||"",precioSemana:Number(x.precio_semana||x.precioSemana)||0,precioFinde:Number(x.precio_finde||x.precioFinde)||0,activo:true})));return n;});
+    const mapX=x=>({id:x.id,recursoId:x.recurso_id||x.recursoId,orgId:x.org_id||x.orgId,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||x.horaInicio||"",horaFin:x.hora_fin||x.horaFin||"",precioSemana:Number(x.precio_semana||x.precioSemana)||0,precioFinde:Number(x.precio_finde||x.precioFinde)||0,activo:true});
+    setTurnos(prev=>{const n=[...prev,data];if(onTurnosChange)onTurnosChange(espacio.id,n.map(mapX));return n;});
     setForm({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:""});
     setShowForm(false);setSaving(false);
   };
@@ -2820,7 +2823,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
     await supabase.from("turnos_recurso").update({activo:false}).eq("id",id);
     setTurnos(prev=>{
       const n=prev.filter(t=>t.id!==id);
-      if(onTurnosChange) onTurnosChange(espacio.id, n.map(x=>({id:x.id,recursoId:x.recurso_id||x.recursoId,orgId:x.org_id||x.orgId,nombre:x.nombre||"",horaInicio:x.hora_inicio||x.horaInicio||"",horaFin:x.hora_fin||x.horaFin||"",precioSemana:Number(x.precio_semana||x.precioSemana)||0,precioFinde:Number(x.precio_finde||x.precioFinde)||0,activo:true})));
+      if(onTurnosChange) onTurnosChange(espacio.id, n.map(x=>({id:x.id,recursoId:x.recurso_id||x.recursoId,orgId:x.org_id||x.orgId,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||x.horaInicio||"",horaFin:x.hora_fin||x.horaFin||"",precioSemana:Number(x.precio_semana||x.precioSemana)||0,precioFinde:Number(x.precio_finde||x.precioFinde)||0,activo:true})));
       return n;
     });
   };
@@ -2945,9 +2948,12 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
               {turnos.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:10}}>Sin turnos. Agregá al menos uno para poder tomar reservas en este espacio.</div>}
               {turnos.map(t=>(
                 <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>{t.nombre}</div>
-                    <div style={{fontSize:11,color:"#8B7355"}}>{t.hora_inicio} – {t.hora_fin} · Sem: {fmtCurrency(t.precio_semana)} · Finde: {fmtCurrency(t.precio_finde)}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:20}}>{t.icono||"📌"}</span>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>{t.nombre}</div>
+                      <div style={{fontSize:11,color:"#8B7355"}}>{t.hora_inicio} – {t.hora_fin} · Sem: {fmtCurrency(t.precio_semana)} · Finde: {fmtCurrency(t.precio_finde)}</div>
+                    </div>
                   </div>
                   <button onClick={()=>handleRemoveTurno(t.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",flexShrink:0}}>🗑️</button>
                 </div>
@@ -2958,6 +2964,17 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
                 <div style={{marginTop:10,padding:12,background:"#FDF5EE",borderRadius:10,border:"1px solid #EDE0D0"}}>
                   <div style={{fontSize:12,fontWeight:700,color:"#8B7355",marginBottom:8}}>Nuevo turno — {espacio.nombre}</div>
                   <input placeholder="Nombre (ej: Tarde, Noche, Turno 20hs)" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} style={{...inpS,marginBottom:8}} />
+                  <div style={{marginBottom:8}}>
+                    <div style={{fontSize:11,color:"#8B7355",marginBottom:4}}>Ícono</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {ICONOS_TURNO.map(ic=>(
+                        <button key={ic} onClick={()=>setForm(p=>({...p,icono:ic}))}
+                          style={{width:34,height:34,fontSize:18,border:`2px solid ${form.icono===ic?"#C4602B":"#EDE0D0"}`,borderRadius:8,background:form.icono===ic?"#FEF3EC":"#FFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          {ic}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
                     <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora inicio</div><input type="time" value={form.horaInicio} onChange={e=>setForm(p=>({...p,horaInicio:e.target.value}))} style={inpS} /></div>
                     <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora fin</div><input type="time" value={form.horaFin} onChange={e=>setForm(p=>({...p,horaFin:e.target.value}))} style={inpS} /></div>
@@ -3856,7 +3873,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
       if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",orgId:x.org_id})));
-      if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
+      if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
       setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
       if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
