@@ -2806,7 +2806,11 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
 
   const handleRemoveTurno = async (id) => {
     await supabase.from("turnos_recurso").update({activo:false}).eq("id",id);
-    setTurnos(prev=>prev.filter(t=>t.id!==id));
+    setTurnos(prev=>{
+      const n=prev.filter(t=>t.id!==id);
+      if(onTurnosChange) onTurnosChange(espacio.id, n.map(x=>({id:x.id,recursoId:x.recurso_id||x.recursoId,orgId:x.org_id||x.orgId,nombre:x.nombre||"",horaInicio:x.hora_inicio||x.horaInicio||"",horaFin:x.hora_fin||x.horaFin||"",precioSemana:Number(x.precio_semana||x.precioSemana)||0,precioFinde:Number(x.precio_finde||x.precioFinde)||0,activo:true})));
+      return n;
+    });
   };
 
   const handleGenerarSlots = async () => {
