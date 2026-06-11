@@ -3115,6 +3115,9 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
       // Registrar mapeo user_id → org_id para RLS
       await supabase.from("user_orgs").upsert({ user_id: authUser.id, org_id: orgId });
 
+      // Refrescar sesión para que el JWT quede sincronizado con los cambios de RLS
+      await supabase.auth.refreshSession();
+
       const user = {
         id: authUser.id,
         nombre: acceso.nombre_docente || email.split("@")[0],
