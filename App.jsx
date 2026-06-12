@@ -4093,6 +4093,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       const orgId = acceso.ret_org_id || cu.orgId;
       currentOrgId = orgId;
 
+      // Sincronizar user_orgs y refrescar JWT para que RLS funcione con el org_id correcto
+      await supabase.from("user_orgs").upsert({ user_id: session.user.id, org_id: orgId });
+      await supabase.auth.refreshSession();
+
       const user = { ...cu, orgId, plan: acceso.plan || cu.plan || "basico", suscripcionEstado: acceso.estado, diasRestantes: acceso.dias_restantes ?? null };
       setCurrentUser(user);
       localStorage.setItem("qb_user", JSON.stringify(user));
