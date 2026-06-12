@@ -1348,6 +1348,9 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
           )}
         </div>
       )}
+    </BottomModal>
+  );
+}
 
 function LoginScreen({ usuarios, onLogin }) {
   const [selectedUser, setSelectedUser] = useState(null);
