@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Component } from "react";
+import { useState, useEffect, useRef, Component, Fragment } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 // ─── ERROR BOUNDARY ───────────────────────────────────────
@@ -3767,7 +3767,7 @@ function OnboardingWizard({ onFinish }) {
         {/* Steps indicator */}
         <div style={{display:"flex",alignItems:"center",marginBottom:24}}>
           {steps.map((s,i)=>(
-            <React.Fragment key={i}>
+            <Fragment key={i}>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:1}}>
                 <div style={{width:28,height:28,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,
                   background:step>i+1?"#16A34A":step===i+1?"#C4602B":"#EDE0D0",
@@ -3777,7 +3777,7 @@ function OnboardingWizard({ onFinish }) {
                 <div style={{fontSize:10,fontWeight:600,color:step===i+1?"#C4602B":"#8B7355",marginTop:3}}>{s}</div>
               </div>
               {i<steps.length-1&&<div style={{flex:2,height:2,background:step>i+1?"#16A34A":"#EDE0D0",marginBottom:14,transition:"background 0.3s"}} />}
-            </React.Fragment>
+            </Fragment>
           ))}
         </div>
 
