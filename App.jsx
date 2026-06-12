@@ -464,7 +464,9 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         <Input label="Hora inicio" type="time" value={f.horario} onChange={set("horario")} />
         <Input label="Hora fin" type="time" value={f.horarioFin} onChange={set("horarioFin")} />
-        <Input label="Cant. personas" type="number" value={f.cantInvitados} onChange={set("cantInvitados")} min="1" placeholder="0" onFocus={e=>e.target.select()} />
+        {turnosDelEspacio.length <= 4 && (
+          <Input label="Cant. personas" type="number" value={f.cantInvitados} onChange={set("cantInvitados")} min="1" placeholder="0" onFocus={e=>e.target.select()} />
+        )}
       </div>
       <Input label="Monto pactado ($)" type="number" value={f.montoPactado} onChange={set("montoPactado")} required placeholder="0" />
       <div style={{padding:"8px 12px",background:"#F3F4F6",borderRadius:8,marginBottom:14,fontSize:12,color:"#6B7280"}}>
@@ -3770,7 +3772,7 @@ export default function App() {
   const [reservas,setReservas]=useState([]);
   const [pagos,setPagos]=useState([]);
   const [gastos,setGastos]=useState([]);
-  const [recursos,setRecursos]=useState(DEFAULT_RECURSOS);
+  const [recursos,setRecursos]=useState([]);
   const [turnosRecurso,setTurnosRecurso]=useState([]);
   const [extrasReserva,setExtrasReserva]=useState([]);
   const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
