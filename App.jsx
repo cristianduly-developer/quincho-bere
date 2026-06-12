@@ -2794,7 +2794,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
   const [saving, setSaving] = useState(false);
   // modo local del espacio (fijo = manual, slot = generador)
   const [modo, setModo] = useState(espacio.modo||"fijo");
-  const [slotForm, setSlotForm] = useState({horaInicio: espacio.slotHoraInicio||"08:00", horaFin: espacio.slotHoraFin||"23:00", duracion: espacio.slotDuracionMin||60, precioSemana:"", precioFinde:""});
+  const [slotForm, setSlotForm] = useState({horaInicio: espacio.slotHoraInicio||"08:00", horaFin: espacio.slotHoraFin||"23:00", duracion: espacio.slotDuracionMin||60, intervalo: espacio.slotIntervaloMin||0, precioSemana:"", precioFinde:""});
   const [generando, setGenerando] = useState(false);
 
   const inpS = {padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",width:"100%",boxSizing:"border-box",outline:"none"};
@@ -2839,10 +2839,11 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
     const inicioMin = hI*60+mI;
     const finMin = hF*60+mF;
     const dur = Number(slotForm.duracion);
+    const intervalo = Number(slotForm.intervalo)||0;
     if(finMin<=inicioMin||dur<=0||dur>finMin-inicioMin) return alert("Horarios o duración inválidos.");
     const slots=[];
-    for(let t=inicioMin;t+dur<=finMin;t+=dur){
-      const hh=h=>String(Math.floor(h/60)).padStart(2,"0")+":"+String(h%60).padStart(2,"0");
+    const hh=h=>String(Math.floor(h/60)).padStart(2,"0")+":"+String(h%60).padStart(2,"0");
+    for(let t=inicioMin;t+dur<=finMin;t+=dur+intervalo){
       slots.push({recurso_id:espacio.id,org_id:currentOrgId,nombre:hh(t)+" – "+hh(t+dur),hora_inicio:hh(t),hora_fin:hh(t+dur),precio_semana:Number(slotForm.precioSemana)||0,precio_finde:Number(slotForm.precioFinde)||0,activo:true});
     }
     if(slots.length===0) return alert("No se generaron turnos. Revisá los horarios.");
@@ -2851,7 +2852,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
     // Desactivar turnos existentes
     await supabase.from("turnos_recurso").update({activo:false}).eq("recurso_id",espacio.id);
     // Guardar parámetros del slot en el espacio
-    await supabase.from("recursos").update({modo:"slot",slot_hora_inicio:slotForm.horaInicio,slot_hora_fin:slotForm.horaFin,slot_duracion_min:dur}).eq("id",espacio.id);
+    await supabase.from("recursos").update({modo:"slot",slot_hora_inicio:slotForm.horaInicio,slot_hora_fin:slotForm.horaFin,slot_duracion_min:dur,slot_intervalo_min:intervalo}).eq("id",espacio.id);
     // Insertar nuevos slots
     const {data,error}=await supabase.from("turnos_recurso").insert(slots).select();
     if(error){alert("Error al generar turnos: "+error.message+"\n\nSi dice 'foreign key', corré el SQL de corrección en Supabase (consultá al soporte).");setGenerando(false);return;}
@@ -2913,14 +2914,27 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
                 <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Apertura</div><input type="time" value={slotForm.horaInicio} onChange={e=>setSlotForm(p=>({...p,horaInicio:e.target.value}))} style={inpS} /></div>
                 <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Cierre</div><input type="time" value={slotForm.horaFin} onChange={e=>setSlotForm(p=>({...p,horaFin:e.target.value}))} style={inpS} /></div>
               </div>
-              <div style={{marginBottom:8}}>
-                <div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Duración de cada turno</div>
-                <select value={slotForm.duracion} onChange={e=>setSlotForm(p=>({...p,duracion:e.target.value}))} style={inpS}>
-                  <option value={30}>30 minutos</option>
-                  <option value={60}>60 minutos (1 hora)</option>
-                  <option value={90}>90 minutos</option>
-                  <option value={120}>120 minutos (2 horas)</option>
-                </select>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                <div>
+                  <div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Duración del turno</div>
+                  <select value={slotForm.duracion} onChange={e=>setSlotForm(p=>({...p,duracion:e.target.value}))} style={inpS}>
+                    <option value={30}>30 min</option>
+                    <option value={45}>45 min</option>
+                    <option value={60}>60 min (1h)</option>
+                    <option value={90}>90 min</option>
+                    <option value={120}>120 min (2h)</option>
+                  </select>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Intervalo entre turnos</div>
+                  <select value={slotForm.intervalo} onChange={e=>setSlotForm(p=>({...p,intervalo:e.target.value}))} style={inpS}>
+                    <option value={0}>Sin intervalo</option>
+                    <option value={5}>5 min</option>
+                    <option value={10}>10 min</option>
+                    <option value={15}>15 min</option>
+                    <option value={30}>30 min</option>
+                  </select>
+                </div>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
                 <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" value={slotForm.precioSemana} onChange={e=>setSlotForm(p=>({...p,precioSemana:e.target.value}))} style={inpS} placeholder="0" /></div>
@@ -3740,7 +3754,7 @@ function OnboardingWizard({ onFinish }) {
   const [espacio, setEspacio] = useState({ nombre:"", capacidadMax:"", modo:"fijo" });
   const [turnos, setTurnos] = useState([]);
   const [turnoForm, setTurnoForm] = useState({ nombre:"", horaInicio:"", horaFin:"", precioSemana:"", precioFinde:"", icono:"📌" });
-  const [slotCfg, setSlotCfg] = useState({ horaInicio:"08:00", horaFin:"22:00", duracion:60, precioSemana:"", precioFinde:"" });
+  const [slotCfg, setSlotCfg] = useState({ horaInicio:"08:00", horaFin:"22:00", duracion:60, intervalo:0, precioSemana:"", precioFinde:"" });
   const [saving, setSaving] = useState(false);
 
   const inpS = {padding:"10px 12px",borderRadius:10,border:"1.5px solid #EDE0D0",fontSize:14,fontFamily:"inherit",width:"100%",boxSizing:"border-box",outline:"none",background:"#FFF"};
@@ -3864,18 +3878,30 @@ function OnboardingWizard({ onFinish }) {
                     <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora apertura</div><input type="time" style={inpS} value={slotCfg.horaInicio} onChange={e=>setSlotCfg(p=>({...p,horaInicio:e.target.value}))} /></div>
                     <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora cierre</div><input type="time" style={inpS} value={slotCfg.horaFin} onChange={e=>setSlotCfg(p=>({...p,horaFin:e.target.value}))} /></div>
                   </div>
-                  <div>
-                    <div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Duración de cada turno</div>
-                    <select style={inpS} value={slotCfg.duracion} onChange={e=>setSlotCfg(p=>({...p,duracion:Number(e.target.value)}))}>
-                      {[30,45,60,90,120].map(m=><option key={m} value={m}>{m} minutos</option>)}
-                    </select>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div>
+                      <div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Duración del turno</div>
+                      <select style={inpS} value={slotCfg.duracion} onChange={e=>setSlotCfg(p=>({...p,duracion:Number(e.target.value)}))}>
+                        {[30,45,60,90,120].map(m=><option key={m} value={m}>{m} min</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Intervalo entre turnos</div>
+                      <select style={inpS} value={slotCfg.intervalo} onChange={e=>setSlotCfg(p=>({...p,intervalo:Number(e.target.value)}))}>
+                        <option value={0}>Sin intervalo</option>
+                        <option value={5}>5 min</option>
+                        <option value={10}>10 min</option>
+                        <option value={15}>15 min</option>
+                        <option value={30}>30 min</option>
+                      </select>
+                    </div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" style={inpS} value={slotCfg.precioSemana} onChange={e=>setSlotCfg(p=>({...p,precioSemana:e.target.value}))} placeholder="0" /></div>
                     <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" style={inpS} value={slotCfg.precioFinde} onChange={e=>setSlotCfg(p=>({...p,precioFinde:e.target.value}))} placeholder="0" /></div>
                   </div>
                   <div style={{background:"#F0FDF4",borderRadius:8,padding:"10px 12px",border:"1px solid #BBF7D0",fontSize:12,color:"#166534"}}>
-                    ✓ Se van a generar turnos de {slotCfg.duracion} min entre las {slotCfg.horaInicio} y las {slotCfg.horaFin}
+                    ✓ Turnos de {slotCfg.duracion} min{slotCfg.intervalo>0?` + ${slotCfg.intervalo} min intervalo`:""} entre las {slotCfg.horaInicio} y las {slotCfg.horaFin}
                   </div>
                 </div>
               ) : (
@@ -4078,7 +4104,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
       if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
-      if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",orgId:x.org_id})));
+      if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,orgId:x.org_id})));
       if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
       setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
@@ -4571,40 +4597,46 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
       {onboarding && <OnboardingWizard
         onFinish={async(data)=>{
-          // 1. Guardar config del negocio
-          const row={org_id:currentOrgId,nombre_negocio:data.negocio.nombreNegocio,ciudad:data.negocio.ciudad,direccion:data.negocio.direccion,telefono:data.negocio.telefono,logo_url:"",msg_recordatorio:MSG_REC_DEFAULT,msg_post_evento:MSG_POST_DEFAULT,recordatorio_activo:true,post_evento_activo:true};
-          await supabase.from("config").upsert(row,{onConflict:"org_id"});
-          setNegocio({...negocio,...data.negocio,logoUrl:""});
-          // 2. Guardar espacio
-          const recId=genId();
-          const modoEsp=data.espacio.modo||"fijo";
-          const sc=data.slotCfg||{};
-          await supabase.from("recursos").insert({id:recId,nombre:data.espacio.nombre,capacidad_max:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slot_hora_inicio:sc.horaInicio||"08:00",slot_hora_fin:sc.horaFin||"22:00",slot_duracion_min:Number(sc.duracion)||60,org_id:currentOrgId,creado_en:new Date().toISOString()});
-          // 3. Generar turnos (manuales o slots automáticos)
-          const nuevoRec={id:recId,nombre:data.espacio.nombre,capacidadMax:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slotHoraInicio:sc.horaInicio||"08:00",slotHoraFin:sc.horaFin||"22:00",slotDuracionMin:Number(sc.duracion)||60,orgId:currentOrgId};
-          let turnosInsert=[];
-          if(modoEsp==="slot"){
-            const [h1,m1]=(sc.horaInicio||"08:00").split(":").map(Number);
-            const [h2,m2]=(sc.horaFin||"22:00").split(":").map(Number);
-            const dur=Number(sc.duracion)||60;
-            let cur=h1*60+m1, fin=h2*60+m2;
-            while(cur+dur<=fin){
-              const hI=String(Math.floor(cur/60)).padStart(2,"0")+":"+String(cur%60).padStart(2,"0");
-              const hF=String(Math.floor((cur+dur)/60)).padStart(2,"0")+":"+String((cur+dur)%60).padStart(2,"0");
-              turnosInsert.push({recurso_id:recId,org_id:currentOrgId,nombre:`${hI} – ${hF}`,icono:"📌",hora_inicio:hI,hora_fin:hF,precio_semana:Number(sc.precioSemana)||0,precio_finde:Number(sc.precioFinde)||0,activo:true});
-              cur+=dur;
+          try {
+            // 1. Guardar config del negocio
+            const row={org_id:currentOrgId,nombre_negocio:data.negocio.nombreNegocio,ciudad:data.negocio.ciudad,direccion:data.negocio.direccion,telefono:data.negocio.telefono,logo_url:"",msg_recordatorio:MSG_REC_DEFAULT,msg_post_evento:MSG_POST_DEFAULT,recordatorio_activo:true,post_evento_activo:true};
+            await supabase.from("config").upsert(row,{onConflict:"org_id"});
+            setNegocio({...negocio,...data.negocio,logoUrl:""});
+            // 2. Guardar espacio
+            const recId=genId();
+            const modoEsp=data.espacio.modo||"fijo";
+            const sc=data.slotCfg||{};
+            const {error:recErr}=await supabase.from("recursos").insert({id:recId,nombre:data.espacio.nombre,capacidad_max:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slot_hora_inicio:sc.horaInicio||"08:00",slot_hora_fin:sc.horaFin||"22:00",slot_duracion_min:Number(sc.duracion)||60,slot_intervalo_min:Number(sc.intervalo)||0,org_id:currentOrgId,creado_en:new Date().toISOString()});
+            if(recErr) throw new Error("Error al guardar espacio: "+recErr.message);
+            // 3. Generar turnos (manuales o slots automáticos)
+            const nuevoRec={id:recId,nombre:data.espacio.nombre,capacidadMax:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slotHoraInicio:sc.horaInicio||"08:00",slotHoraFin:sc.horaFin||"22:00",slotDuracionMin:Number(sc.duracion)||60,slotIntervaloMin:Number(sc.intervalo)||0,orgId:currentOrgId};
+            let turnosInsert=[];
+            if(modoEsp==="slot"){
+              const [h1,m1]=(sc.horaInicio||"08:00").split(":").map(Number);
+              const [h2,m2]=(sc.horaFin||"22:00").split(":").map(Number);
+              const dur=Number(sc.duracion)||60;
+              const intv=Number(sc.intervalo)||0;
+              let cur=h1*60+m1, fin=h2*60+m2;
+              const hh=v=>String(Math.floor(v/60)).padStart(2,"0")+":"+String(v%60).padStart(2,"0");
+              while(cur+dur<=fin){
+                turnosInsert.push({recurso_id:recId,org_id:currentOrgId,nombre:`${hh(cur)} – ${hh(cur+dur)}`,icono:"📌",hora_inicio:hh(cur),hora_fin:hh(cur+dur),precio_semana:Number(sc.precioSemana)||0,precio_finde:Number(sc.precioFinde)||0,activo:true});
+                cur+=dur+intv;
+              }
+            } else {
+              turnosInsert=data.turnos.map(t=>({recurso_id:recId,org_id:currentOrgId,nombre:t.nombre,icono:t.icono||"📌",hora_inicio:t.horaInicio,hora_fin:t.horaFin,precio_semana:Number(t.precioSemana)||0,precio_finde:Number(t.precioFinde)||0,activo:true}));
             }
-          } else {
-            turnosInsert=data.turnos.map(t=>({recurso_id:recId,org_id:currentOrgId,nombre:t.nombre,icono:t.icono||"📌",hora_inicio:t.horaInicio,hora_fin:t.horaFin,precio_semana:Number(t.precioSemana)||0,precio_finde:Number(t.precioFinde)||0,activo:true}));
+            let mappedTurnos=[];
+            if(turnosInsert.length>0){
+              const {data:td,error:tErr}=await supabase.from("turnos_recurso").insert(turnosInsert).select();
+              if(tErr) throw new Error("Error al guardar turnos: "+tErr.message);
+              mappedTurnos=(td||[]).map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:true}));
+            }
+            setRecursos([nuevoRec]);
+            setTurnosRecurso(mappedTurnos);
+            setOnboarding(false);
+          } catch(e) {
+            alert(e.message||"Error al guardar. Intentá de nuevo.");
           }
-          let mappedTurnos=[];
-          if(turnosInsert.length>0){
-            const {data:td}=await supabase.from("turnos_recurso").insert(turnosInsert).select();
-            mappedTurnos=(td||[]).map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:true}));
-          }
-          setRecursos([nuevoRec]);
-          setTurnosRecurso(mappedTurnos);
-          setOnboarding(false);
         }}
       />}
       {espacioPicker && (
