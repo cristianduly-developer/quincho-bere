@@ -3977,6 +3977,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const [bloqueoModal,setBloqueoModal]=useState(null);
   const [loaded,setLoaded]=useState(false);
 
+  // Mostrar onboarding cuando no hay espacios (primer uso o los borró todos)
+  useEffect(()=>{ if(loaded && !onboarding && recursos.length===0) setOnboarding(true); },[loaded,recursos.length]);
+
   // Detectar sesión expirada mientras la app está abierta
   useEffect(()=>{
     const { data:{ subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -4059,8 +4062,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         setNegocio({ nombreNegocio:cfgData.nombre_negocio||"", ciudad:cfgData.ciudad||"", direccion:cfgData.direccion||"", telefono:cfgData.telefono||"", logoUrl:cfgData.logo_url||"", msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT, msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT, recordatorioActivo:cfgData.recordatorio_activo!==false, postEventoActivo:cfgData.post_evento_activo!==false });
       }
 
-      // Mostrar onboarding si no hay espacios ni config de negocio
-      if(!rc?.length && !cfgData?.nombre_negocio) setOnboarding(true);
+      // Mostrar onboarding si no hay espacios configurados
+      if(!rc?.length) setOnboarding(true);
 
       if(window.location.hash?.includes("access_token")){
         window.history.replaceState(null,"",window.location.pathname);
