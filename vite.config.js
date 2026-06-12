@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png', 'icon-512.svg'],
       manifest: {
-        name: 'El Quincho de Bere',
-        short_name: 'Quincho Bere',
-        description: 'Gestión de eventos - El Quincho de Bere, Mar del Plata',
+        name: 'App Eventos',
+        short_name: 'App Eventos',
+        description: 'Gestión de reservas y eventos para espacios',
         theme_color: '#C4602B',
         background_color: '#FDF8F3',
         display: 'standalone',
