@@ -3242,7 +3242,8 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
             {recursos.map(r=>(
               <EspacioCard key={r.id} espacio={r} onDelete={async()=>{
                 if(!window.confirm(`¿Eliminás "${r.nombre}"? Esta acción no se puede deshacer.`)) return;
-                await supabase.from("recursos").delete().eq("id",r.id);
+                const {error:delErr} = await supabase.from("recursos").delete().eq("id",r.id);
+                if(delErr){ alert("No se pudo eliminar el espacio: "+delErr.message); return; }
                 setRecursos(prev=>prev.filter(x=>x.id!==r.id));
                 if(setTurnosRecurso) setTurnosRecurso(prev=>prev.filter(t=>t.recursoId!==r.id));
               }} onTurnosChange={(recursoId,nuevos)=>setTurnosRecurso&&setTurnosRecurso(prev=>[...prev.filter(t=>t.recursoId!==recursoId),...nuevos])} />
