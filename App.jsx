@@ -4008,7 +4008,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const [loaded,setLoaded]=useState(false);
 
   // Mostrar onboarding cuando no hay espacios (primer uso o los borró todos)
-  useEffect(()=>{ if(loaded && !onboarding && recursos.length===0) setOnboarding(true); },[loaded,recursos.length]);
+  useEffect(()=>{ if(loaded && currentUser && !onboarding && recursos.length===0) setOnboarding(true); },[loaded,currentUser,recursos.length]);
 
   // Detectar sesión expirada mientras la app está abierta
   useEffect(()=>{
@@ -4093,7 +4093,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       }
 
       // Mostrar onboarding si no hay espacios configurados
-      if(!rc?.length) setOnboarding(true);
+      if(!rc?.length && currentOrgId) setOnboarding(true);
 
       if(window.location.hash?.includes("access_token")){
         window.history.replaceState(null,"",window.location.pathname);
