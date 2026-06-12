@@ -3919,31 +3919,42 @@ function OnboardingWizard({ onFinish }) {
                       <button onClick={()=>setTurnos(prev=>prev.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#DC2626"}}>×</button>
                     </div>
                   ))}
-                  <div style={{background:"#FDF5EE",borderRadius:10,padding:12,border:"1px dashed #C4602B",marginBottom:14}}>
-                    <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:8}}>Agregar turno</div>
-                    <input style={{...inpS,marginBottom:8,fontSize:13}} placeholder="Nombre (ej: Noche, Turno 20hs)" value={turnoForm.nombre} onChange={e=>setTurnoForm(p=>({...p,nombre:e.target.value}))} />
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                      <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora inicio</div><input type="time" style={inpS} value={turnoForm.horaInicio} onChange={e=>setTurnoForm(p=>({...p,horaInicio:e.target.value}))} /></div>
-                      <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora fin</div><input type="time" style={inpS} value={turnoForm.horaFin} onChange={e=>setTurnoForm(p=>({...p,horaFin:e.target.value}))} /></div>
-                    </div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                      <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" style={inpS} value={turnoForm.precioSemana} onChange={e=>setTurnoForm(p=>({...p,precioSemana:e.target.value}))} placeholder="0" /></div>
-                      <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" style={inpS} value={turnoForm.precioFinde} onChange={e=>setTurnoForm(p=>({...p,precioFinde:e.target.value}))} placeholder="0" /></div>
-                    </div>
-                    <div style={{marginBottom:8}}>
-                      <div style={{fontSize:11,color:"#8B7355",marginBottom:4}}>Ícono</div>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                        {ICONOS_OB.map(ic=>(
-                          <button key={ic} onClick={()=>setTurnoForm(p=>({...p,icono:ic}))}
-                            style={{width:32,height:32,fontSize:16,border:`2px solid ${turnoForm.icono===ic?"#C4602B":"#EDE0D0"}`,borderRadius:7,background:turnoForm.icono===ic?"#FEF3EC":"#FFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                            {ic}
-                          </button>
-                        ))}
+                  {turnoForm.show ? (
+                    <div style={{background:"#FDF5EE",borderRadius:10,padding:12,border:"1px dashed #C4602B",marginBottom:10}}>
+                      <input style={{...inpS,marginBottom:8,fontSize:13}} placeholder="Nombre (ej: Noche, Turno 20hs)" value={turnoForm.nombre} onChange={e=>setTurnoForm(p=>({...p,nombre:e.target.value}))} autoFocus />
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                        <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora inicio</div><input type="time" style={inpS} value={turnoForm.horaInicio} onChange={e=>setTurnoForm(p=>({...p,horaInicio:e.target.value}))} /></div>
+                        <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora fin</div><input type="time" style={inpS} value={turnoForm.horaFin} onChange={e=>setTurnoForm(p=>({...p,horaFin:e.target.value}))} /></div>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                        <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" style={inpS} value={turnoForm.precioSemana} onChange={e=>setTurnoForm(p=>({...p,precioSemana:e.target.value}))} placeholder="0" /></div>
+                        <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" style={inpS} value={turnoForm.precioFinde} onChange={e=>setTurnoForm(p=>({...p,precioFinde:e.target.value}))} placeholder="0" /></div>
+                      </div>
+                      <div style={{marginBottom:8}}>
+                        <div style={{fontSize:11,color:"#8B7355",marginBottom:4}}>Ícono</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                          {ICONOS_OB.map(ic=>(
+                            <button key={ic} onClick={()=>setTurnoForm(p=>({...p,icono:ic}))}
+                              style={{width:32,height:32,fontSize:16,border:`2px solid ${turnoForm.icono===ic?"#C4602B":"#EDE0D0"}`,borderRadius:7,background:turnoForm.icono===ic?"#FEF3EC":"#FFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                              {ic}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>setTurnoForm(p=>({...p,show:false}))} style={{flex:1,padding:"8px",background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:8,color:"#8B7355",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>Cancelar</button>
+                        <button onClick={addTurno} style={{flex:2,padding:"8px",background:"#C4602B",border:"none",borderRadius:8,color:"#FFF",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar</button>
                       </div>
                     </div>
-                    <button onClick={addTurno} style={{width:"100%",padding:"8px",background:"#FFF",border:"1.5px solid #C4602B",borderRadius:8,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar</button>
+                  ) : (
+                    <button onClick={()=>setTurnoForm(p=>({...p,show:true}))}
+                      style={{width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>
+                      + Agregar turno
+                    </button>
+                  )}
+                  <div style={{textAlign:"center",marginBottom:6,fontSize:11,color:"#8B7355"}}>
+                    {turnos.length===0 ? "Podés agregar turnos ahora o hacerlo después desde Configuración." : `${turnos.length} turno${turnos.length!==1?"s":""} agregado${turnos.length!==1?"s":""}`}
                   </div>
-                  {turnos.length===0&&<div style={{textAlign:"center",marginBottom:10,fontSize:11,color:"#8B7355"}}>Podés saltear los turnos y cargarlos después desde Configuración.</div>}
                 </>
               )}
 
