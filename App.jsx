@@ -3116,7 +3116,7 @@ function TurnosEspacioSection({ recursos }) {
 }
 
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso }) {
-  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false });
+  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
   const [open, setOpen] = useState("negocio");
@@ -3125,10 +3125,10 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const toggle = s => setOpen(o => o===s ? null : s);
 
   const handleSaveNegocio = async () => {
-    const row = { org_id: currentOrgId, nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo };
+    const row = { org_id: currentOrgId, nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo };
     const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
     if (error) { alert("Error al guardar: " + error.message); return; }
-    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo });
+    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo });
     setNegSaved(true);
     setTimeout(()=>setNegSaved(false), 2000);
   };
@@ -3161,6 +3161,10 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
             <div style={{display:"flex",gap:8,marginBottom:12}}>
               <div style={{flex:1}}><label style={lblS}>Ciudad</label><input style={inpS} value={negForm.ciudad} onChange={e=>setNegForm(p=>({...p,ciudad:e.target.value}))} placeholder="Ej: Mar del Plata" /></div>
               <div style={{flex:1}}><label style={lblS}>Teléfono</label><input style={inpS} value={negForm.telefono} onChange={e=>setNegForm(p=>({...p,telefono:e.target.value}))} placeholder="Ej: 223-1234567" /></div>
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={lblS}>Dirección</label>
+              <input style={inpS} value={negForm.direccion} onChange={e=>setNegForm(p=>({...p,direccion:e.target.value}))} placeholder="Ej: San Martín 1234, Piso 2" />
             </div>
             <div style={{marginBottom:16}}>
               <label style={lblS}>Logo</label>
@@ -3739,6 +3743,172 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
   );
 }
 
+const ICONOS_OB = ["📌","☀️","🌤️","🌆","🌙","⚽","🎾","🏊","🎉","🎪","🍖","🎸","💅","🏋️","🎭","🏠"];
+
+function OnboardingWizard({ onFinish }) {
+  const [step, setStep] = useState(1);
+  const [negocio, setNegocio] = useState({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"" });
+  const [espacio, setEspacio] = useState({ nombre:"", capacidadMax:"" });
+  const [turnos, setTurnos] = useState([]);
+  const [turnoForm, setTurnoForm] = useState({ nombre:"", horaInicio:"", horaFin:"", precioSemana:"", precioFinde:"", icono:"📌" });
+  const [saving, setSaving] = useState(false);
+
+  const inpS = {padding:"10px 12px",borderRadius:10,border:"1.5px solid #EDE0D0",fontSize:14,fontFamily:"inherit",width:"100%",boxSizing:"border-box",outline:"none",background:"#FFF"};
+  const lblS = {fontSize:12,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.5,display:"block",marginBottom:4};
+
+  const addTurno = () => {
+    if(!turnoForm.nombre||!turnoForm.horaInicio||!turnoForm.horaFin) return alert("Completá nombre, hora inicio y hora fin.");
+    setTurnos(prev=>[...prev,{...turnoForm}]);
+    setTurnoForm({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:"",icono:"📌"});
+  };
+
+  const steps = ["Tu negocio","Tu espacio","Turnos"];
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#FDF5EE,#FFF8F3)",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{width:"100%",maxWidth:440}}>
+
+        {/* Logo / título */}
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{fontSize:40,marginBottom:8}}>🏡</div>
+          <div style={{fontSize:22,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif"}}>¡Bienvenido!</div>
+          <div style={{fontSize:13,color:"#8B7355",marginTop:4}}>Configurá tu espacio en 3 pasos</div>
+        </div>
+
+        {/* Steps indicator */}
+        <div style={{display:"flex",alignItems:"center",marginBottom:24}}>
+          {steps.map((s,i)=>(
+            <React.Fragment key={i}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:1}}>
+                <div style={{width:28,height:28,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:800,
+                  background:step>i+1?"#16A34A":step===i+1?"#C4602B":"#EDE0D0",
+                  color:step>=i+1?"#FFF":"#8B7355",transition:"background 0.3s"}}>
+                  {step>i+1?"✓":i+1}
+                </div>
+                <div style={{fontSize:10,fontWeight:600,color:step===i+1?"#C4602B":"#8B7355",marginTop:3}}>{s}</div>
+              </div>
+              {i<steps.length-1&&<div style={{flex:2,height:2,background:step>i+1?"#16A34A":"#EDE0D0",marginBottom:14,transition:"background 0.3s"}} />}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Card del paso */}
+        <div style={{background:"#FFF",borderRadius:16,padding:24,boxShadow:"0 4px 24px rgba(196,96,43,0.1)",border:"1px solid #EDE0D0"}}>
+
+          {step===1 && (
+            <>
+              <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E",marginBottom:16}}>¿Cómo se llama tu negocio?</div>
+              <div style={{marginBottom:12}}>
+                <label style={lblS}>Nombre del negocio *</label>
+                <input style={inpS} value={negocio.nombreNegocio} onChange={e=>setNegocio(p=>({...p,nombreNegocio:e.target.value}))} placeholder="Ej: El Quincho de Bere" autoFocus />
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                <div>
+                  <label style={lblS}>Ciudad</label>
+                  <input style={inpS} value={negocio.ciudad} onChange={e=>setNegocio(p=>({...p,ciudad:e.target.value}))} placeholder="Ej: Mar del Plata" />
+                </div>
+                <div>
+                  <label style={lblS}>Teléfono</label>
+                  <input style={inpS} value={negocio.telefono} onChange={e=>setNegocio(p=>({...p,telefono:e.target.value}))} placeholder="Ej: 223-1234567" />
+                </div>
+              </div>
+              <div style={{marginBottom:20}}>
+                <label style={lblS}>Dirección <span style={{fontWeight:400,color:"#8B7355"}}>(opcional)</span></label>
+                <input style={inpS} value={negocio.direccion} onChange={e=>setNegocio(p=>({...p,direccion:e.target.value}))} placeholder="Ej: San Martín 1234" />
+              </div>
+              <button onClick={()=>{ if(!negocio.nombreNegocio.trim()) return alert("Ingresá el nombre de tu negocio."); setStep(2); }}
+                style={{width:"100%",padding:13,background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
+                Continuar →
+              </button>
+            </>
+          )}
+
+          {step===2 && (
+            <>
+              <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>Tu primer espacio</div>
+              <div style={{fontSize:12,color:"#8B7355",marginBottom:16}}>Podés agregar más espacios después desde Configuración.</div>
+              <div style={{marginBottom:12}}>
+                <label style={lblS}>Nombre del espacio *</label>
+                <input style={inpS} value={espacio.nombre} onChange={e=>setEspacio(p=>({...p,nombre:e.target.value}))} placeholder="Ej: Quincho Principal, Cancha 1" autoFocus />
+              </div>
+              <div style={{marginBottom:20}}>
+                <label style={lblS}>Capacidad máxima <span style={{fontWeight:400,color:"#8B7355"}}>(personas, opcional)</span></label>
+                <input style={inpS} type="number" value={espacio.capacidadMax} onChange={e=>setEspacio(p=>({...p,capacidadMax:e.target.value}))} placeholder="Ej: 80" />
+              </div>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setStep(1)} style={{flex:1,padding:12,background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:10,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit",color:"#8B7355"}}>← Atrás</button>
+                <button onClick={()=>{ if(!espacio.nombre.trim()) return alert("Ingresá el nombre del espacio."); setStep(3); }}
+                  style={{flex:2,padding:12,background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+                  Continuar →
+                </button>
+              </div>
+            </>
+          )}
+
+          {step===3 && (
+            <>
+              <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>Turnos de {espacio.nombre}</div>
+              <div style={{fontSize:12,color:"#8B7355",marginBottom:14}}>Agregá los turnos disponibles. También podés hacerlo después desde Configuración.</div>
+
+              {/* Turnos ya agregados */}
+              {turnos.map((t,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:"#FDF5EE",borderRadius:8,marginBottom:6,border:"1px solid #EDE0D0"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:18}}>{t.icono}</span>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13}}>{t.nombre}</div>
+                      <div style={{fontSize:11,color:"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
+                    </div>
+                  </div>
+                  <button onClick={()=>setTurnos(prev=>prev.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#DC2626"}}>×</button>
+                </div>
+              ))}
+
+              {/* Form nuevo turno */}
+              <div style={{background:"#FDF5EE",borderRadius:10,padding:12,border:"1px dashed #C4602B",marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:8}}>Agregar turno</div>
+                <input style={{...inpS,marginBottom:8,fontSize:13}} placeholder="Nombre (ej: Noche, Turno 20hs)" value={turnoForm.nombre} onChange={e=>setTurnoForm(p=>({...p,nombre:e.target.value}))} />
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora inicio</div><input type="time" style={inpS} value={turnoForm.horaInicio} onChange={e=>setTurnoForm(p=>({...p,horaInicio:e.target.value}))} /></div>
+                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora fin</div><input type="time" style={inpS} value={turnoForm.horaFin} onChange={e=>setTurnoForm(p=>({...p,horaFin:e.target.value}))} /></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" style={inpS} value={turnoForm.precioSemana} onChange={e=>setTurnoForm(p=>({...p,precioSemana:e.target.value}))} placeholder="0" /></div>
+                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" style={inpS} value={turnoForm.precioFinde} onChange={e=>setTurnoForm(p=>({...p,precioFinde:e.target.value}))} placeholder="0" /></div>
+                </div>
+                <div style={{marginBottom:8}}>
+                  <div style={{fontSize:11,color:"#8B7355",marginBottom:4}}>Ícono</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                    {ICONOS_OB.map(ic=>(
+                      <button key={ic} onClick={()=>setTurnoForm(p=>({...p,icono:ic}))}
+                        style={{width:32,height:32,fontSize:16,border:`2px solid ${turnoForm.icono===ic?"#C4602B":"#EDE0D0"}`,borderRadius:7,background:turnoForm.icono===ic?"#FEF3EC":"#FFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {ic}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button onClick={addTurno} style={{width:"100%",padding:"8px",background:"#FFF",border:"1.5px solid #C4602B",borderRadius:8,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar</button>
+              </div>
+
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setStep(2)} style={{flex:1,padding:12,background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:10,fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:"#8B7355"}}>← Atrás</button>
+                <button onClick={async()=>{
+                  setSaving(true);
+                  await onFinish({negocio,espacio,turnos});
+                  setSaving(false);
+                }} disabled={saving} style={{flex:2,padding:12,background:saving?"#9E4A1E":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
+                  {saving?"Guardando...":"¡Empezar! 🎉"}
+                </button>
+              </div>
+              {turnos.length===0&&<div style={{textAlign:"center",marginTop:8,fontSize:11,color:"#8B7355"}}>Podés saltear los turnos y cargarlos después desde Configuración.</div>}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [tab,setTabRaw]=useState("inicio");
   const setTab = (t) => { setTabRaw(t); window.scrollTo(0,0); };
@@ -3794,7 +3964,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
 ¡Muchas gracias por elegirnos!`;
 
-  const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true });
+  const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true });
+  const [onboarding,setOnboarding]=useState(false); // wizard primer uso
   const [usuarios,setUsuarios]=useState([]);
   const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
   const [currentUser,setCurrentUser]=useState(null);
@@ -3885,8 +4056,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       // Cargar config (white-label + mensajes)
       const {data:cfgData}=await supabase.from("config").select("*").eq("org_id",orgId).maybeSingle();
       if(cfgData){
-        setNegocio({ nombreNegocio:cfgData.nombre_negocio||"", ciudad:cfgData.ciudad||"", telefono:cfgData.telefono||"", logoUrl:cfgData.logo_url||"", msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT, msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT, recordatorioActivo:cfgData.recordatorio_activo!==false, postEventoActivo:cfgData.post_evento_activo!==false });
+        setNegocio({ nombreNegocio:cfgData.nombre_negocio||"", ciudad:cfgData.ciudad||"", direccion:cfgData.direccion||"", telefono:cfgData.telefono||"", logoUrl:cfgData.logo_url||"", msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT, msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT, recordatorioActivo:cfgData.recordatorio_activo!==false, postEventoActivo:cfgData.post_evento_activo!==false });
       }
+
+      // Mostrar onboarding si no hay espacios ni config de negocio
+      if(!rc?.length && !cfgData?.nombre_negocio) setOnboarding(true);
 
       if(window.location.hash?.includes("access_token")){
         window.history.replaceState(null,"",window.location.pathname);
@@ -4362,6 +4536,28 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {currentUser && ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
+      {onboarding && <OnboardingWizard
+        onFinish={async(data)=>{
+          // 1. Guardar config del negocio
+          const row={org_id:currentOrgId,nombre_negocio:data.negocio.nombreNegocio,ciudad:data.negocio.ciudad,direccion:data.negocio.direccion,telefono:data.negocio.telefono,logo_url:"",msg_recordatorio:MSG_REC_DEFAULT,msg_post_evento:MSG_POST_DEFAULT,recordatorio_activo:true,post_evento_activo:true};
+          await supabase.from("config").upsert(row,{onConflict:"org_id"});
+          setNegocio({...negocio,...data.negocio,logoUrl:""});
+          // 2. Guardar espacio
+          const recId=genId();
+          await supabase.from("recursos").insert({id:recId,nombre:data.espacio.nombre,capacidad_max:Number(data.espacio.capacidadMax)||0,modo:"fijo",org_id:currentOrgId,creado_en:new Date().toISOString()});
+          // 3. Guardar turnos
+          const nuevoRec={id:recId,nombre:data.espacio.nombre,capacidadMax:Number(data.espacio.capacidadMax)||0,modo:"fijo",orgId:currentOrgId};
+          const turnosInsert=data.turnos.map(t=>({recurso_id:recId,org_id:currentOrgId,nombre:t.nombre,icono:t.icono||"📌",hora_inicio:t.horaInicio,hora_fin:t.horaFin,precio_semana:Number(t.precioSemana)||0,precio_finde:Number(t.precioFinde)||0,activo:true}));
+          let mappedTurnos=[];
+          if(turnosInsert.length>0){
+            const {data:td}=await supabase.from("turnos_recurso").insert(turnosInsert).select();
+            mappedTurnos=(td||[]).map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:true}));
+          }
+          setRecursos([nuevoRec]);
+          setTurnosRecurso(mappedTurnos);
+          setOnboarding(false);
+        }}
+      />}
       {espacioPicker && (
         <BottomModal title={`📅 ${fmtDate(espacioPicker.date)} — ¿Qué espacio?`} onClose={()=>setEspacioPicker(null)}>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
