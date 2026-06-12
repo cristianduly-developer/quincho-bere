@@ -3349,25 +3349,21 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
 
 
 function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtras }) {
-  const [showResForm,setShowResForm]=useState(false);
-  const [resForm,setResForm]=useState({nombre:"",capacidadMax:""});
   const [showSrvForm,setShowSrvForm]=useState(false);
   const [srvForm,setSrvForm]=useState({descripcion:"",precioActual:""});
-  const saveRec = d=>setRecursos(d);
   const saveSrv = async d=>{setServiciosExtras(d); await sb.upsert("servicios_extras", d.map(x=>({id:x.id,descripcion:x.descripcion||"",precio_actual:x.precioActual||0,activo:x.activo!==false,creado_en:x.creadoEn||new Date().toISOString()})));};
   return (
     <div style={{padding:"16px 16px 100px"}}>
-      {/* Recursos */}
+      {/* Espacios — solo lectura, gestión en Config */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontSize:15,fontWeight:700,color:"#1C1C1E"}}>🏠 Espacios / Quinchos</div>
-        <Btn small onClick={()=>setShowResForm(true)}>+ Agregar</Btn>
+        <div style={{fontSize:15,fontWeight:700,color:"#1C1C1E"}}>🏠 Espacios</div>
       </div>
       {recursos.map(r=>(
         <div key={r.id} style={{...card,padding:"14px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{fontWeight:700,fontSize:14}}>🏠 {r.nombre}</div><div style={{fontSize:12,color:"#8B7355",marginTop:2}}>Hasta {r.capacidadMax} personas</div></div>
-          <Btn small variant="danger" onClick={()=>saveRec(recursos.filter(x=>x.id!==r.id))}>🗑️</Btn>
+          <div><div style={{fontWeight:700,fontSize:14}}>🏠 {r.nombre}</div>{r.capacidadMax>0&&<div style={{fontSize:12,color:"#8B7355",marginTop:2}}>Hasta {r.capacidadMax} personas</div>}</div>
         </div>
       ))}
+      <div style={{fontSize:12,color:"#8B7355",marginBottom:20,marginTop:4}}>Para agregar o eliminar espacios, andá a Configuración → Espacios.</div>
 
       {/* Servicios extras catalog */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"24px 0 12px"}}>
@@ -3381,16 +3377,6 @@ function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtr
         </div>
       ))}
 
-      {showResForm && (
-        <BottomModal title="Nuevo Espacio" onClose={()=>setShowResForm(false)}>
-          <Input label="Nombre del espacio" value={resForm.nombre} onChange={v=>setResForm(p=>({...p,nombre:v}))} placeholder="Quincho Principal" />
-          <Input label="Capacidad máxima" type="number" value={resForm.capacidadMax} onChange={v=>setResForm(p=>({...p,capacidadMax:v}))} placeholder="100" />
-          <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-            <Btn variant="ghost" onClick={()=>setShowResForm(false)}>Cancelar</Btn>
-            <Btn onClick={()=>{if(!resForm.nombre)return;saveRec([...recursos,{id:genId(),nombre:resForm.nombre,capacidadMax:Number(resForm.capacidadMax)||0}]);setShowResForm(false);setResForm({nombre:"",capacidadMax:""});}}>Guardar</Btn>
-          </div>
-        </BottomModal>
-      )}
       {showSrvForm && (
         <BottomModal title="Nuevo Servicio Extra" onClose={()=>setShowSrvForm(false)}>
           <Input label="Descripción del servicio" value={srvForm.descripcion} onChange={v=>setSrvForm(p=>({...p,descripcion:v}))} placeholder="DJ, Vajilla, Limpieza..." />
