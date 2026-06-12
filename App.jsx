@@ -3737,9 +3737,10 @@ const ICONOS_OB = ["📌","☀️","🌤️","🌆","🌙","⚽","🎾","🏊","
 function OnboardingWizard({ onFinish }) {
   const [step, setStep] = useState(1);
   const [negocio, setNegocio] = useState({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"" });
-  const [espacio, setEspacio] = useState({ nombre:"", capacidadMax:"" });
+  const [espacio, setEspacio] = useState({ nombre:"", capacidadMax:"", modo:"fijo" });
   const [turnos, setTurnos] = useState([]);
   const [turnoForm, setTurnoForm] = useState({ nombre:"", horaInicio:"", horaFin:"", precioSemana:"", precioFinde:"", icono:"📌" });
+  const [slotCfg, setSlotCfg] = useState({ horaInicio:"08:00", horaFin:"22:00", duracion:60, precioSemana:"", precioFinde:"" });
   const [saving, setSaving] = useState(false);
 
   const inpS = {padding:"10px 12px",borderRadius:10,border:"1.5px solid #EDE0D0",fontSize:14,fontFamily:"inherit",width:"100%",boxSizing:"border-box",outline:"none",background:"#FFF"};
@@ -3820,9 +3821,22 @@ function OnboardingWizard({ onFinish }) {
                 <label style={lblS}>Nombre del espacio *</label>
                 <input style={inpS} value={espacio.nombre} onChange={e=>setEspacio(p=>({...p,nombre:e.target.value}))} placeholder="Ej: Quincho Principal, Cancha 1" autoFocus />
               </div>
-              <div style={{marginBottom:20}}>
+              <div style={{marginBottom:12}}>
                 <label style={lblS}>Capacidad máxima <span style={{fontWeight:400,color:"#8B7355"}}>(personas, opcional)</span></label>
                 <input style={inpS} type="number" value={espacio.capacidadMax} onChange={e=>setEspacio(p=>({...p,capacidadMax:e.target.value}))} placeholder="Ej: 80" />
+              </div>
+              <div style={{marginBottom:20}}>
+                <label style={lblS}>Tipo de espacio</label>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  {[{v:"fijo",icon:"🏡",label:"Quincho / Salón",desc:"Turnos fijos (ej: día, noche)"},{v:"slot",icon:"⚽",label:"Cancha / Pista",desc:"Reservas por hora"}].map(o=>(
+                    <button key={o.v} onClick={()=>setEspacio(p=>({...p,modo:o.v}))}
+                      style={{padding:"12px 10px",borderRadius:10,border:`2px solid ${espacio.modo===o.v?"#C4602B":"#EDE0D0"}`,background:espacio.modo===o.v?"#FEF3EC":"#FFF",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                      <div style={{fontSize:24,marginBottom:4}}>{o.icon}</div>
+                      <div style={{fontWeight:700,fontSize:12,color:"#1C1C1E"}}>{o.label}</div>
+                      <div style={{fontSize:10,color:"#8B7355",marginTop:2}}>{o.desc}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
               <div style={{display:"flex",gap:10}}>
                 <button onClick={()=>setStep(1)} style={{flex:1,padding:12,background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:10,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit",color:"#8B7355"}}>← Atrás</button>
@@ -3836,60 +3850,87 @@ function OnboardingWizard({ onFinish }) {
 
           {step===3 && (
             <>
-              <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>Turnos de {espacio.nombre}</div>
-              <div style={{fontSize:12,color:"#8B7355",marginBottom:14}}>Agregá los turnos disponibles. También podés hacerlo después desde Configuración.</div>
-
-              {/* Turnos ya agregados */}
-              {turnos.map((t,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:"#FDF5EE",borderRadius:8,marginBottom:6,border:"1px solid #EDE0D0"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontSize:18}}>{t.icono}</span>
-                    <div>
-                      <div style={{fontWeight:700,fontSize:13}}>{t.nombre}</div>
-                      <div style={{fontSize:11,color:"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
-                    </div>
-                  </div>
-                  <button onClick={()=>setTurnos(prev=>prev.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#DC2626"}}>×</button>
-                </div>
-              ))}
-
-              {/* Form nuevo turno */}
-              <div style={{background:"#FDF5EE",borderRadius:10,padding:12,border:"1px dashed #C4602B",marginBottom:14}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:8}}>Agregar turno</div>
-                <input style={{...inpS,marginBottom:8,fontSize:13}} placeholder="Nombre (ej: Noche, Turno 20hs)" value={turnoForm.nombre} onChange={e=>setTurnoForm(p=>({...p,nombre:e.target.value}))} />
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora inicio</div><input type="time" style={inpS} value={turnoForm.horaInicio} onChange={e=>setTurnoForm(p=>({...p,horaInicio:e.target.value}))} /></div>
-                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora fin</div><input type="time" style={inpS} value={turnoForm.horaFin} onChange={e=>setTurnoForm(p=>({...p,horaFin:e.target.value}))} /></div>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" style={inpS} value={turnoForm.precioSemana} onChange={e=>setTurnoForm(p=>({...p,precioSemana:e.target.value}))} placeholder="0" /></div>
-                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" style={inpS} value={turnoForm.precioFinde} onChange={e=>setTurnoForm(p=>({...p,precioFinde:e.target.value}))} placeholder="0" /></div>
-                </div>
-                <div style={{marginBottom:8}}>
-                  <div style={{fontSize:11,color:"#8B7355",marginBottom:4}}>Ícono</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                    {ICONOS_OB.map(ic=>(
-                      <button key={ic} onClick={()=>setTurnoForm(p=>({...p,icono:ic}))}
-                        style={{width:32,height:32,fontSize:16,border:`2px solid ${turnoForm.icono===ic?"#C4602B":"#EDE0D0"}`,borderRadius:7,background:turnoForm.icono===ic?"#FEF3EC":"#FFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                        {ic}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <button onClick={addTurno} style={{width:"100%",padding:"8px",background:"#FFF",border:"1.5px solid #C4602B",borderRadius:8,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar</button>
+              <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>
+                {espacio.modo==="slot" ? `Horarios de ${espacio.nombre}` : `Turnos de ${espacio.nombre}`}
               </div>
+              <div style={{fontSize:12,color:"#8B7355",marginBottom:14}}>
+                {espacio.modo==="slot" ? "Configurá el rango horario y la duración de cada turno." : "Agregá los turnos disponibles. También podés hacerlo después desde Configuración."}
+              </div>
+
+              {espacio.modo==="slot" ? (
+                /* ── MODO CANCHA: configuración de slots ── */
+                <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:14}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora apertura</div><input type="time" style={inpS} value={slotCfg.horaInicio} onChange={e=>setSlotCfg(p=>({...p,horaInicio:e.target.value}))} /></div>
+                    <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora cierre</div><input type="time" style={inpS} value={slotCfg.horaFin} onChange={e=>setSlotCfg(p=>({...p,horaFin:e.target.value}))} /></div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Duración de cada turno</div>
+                    <select style={inpS} value={slotCfg.duracion} onChange={e=>setSlotCfg(p=>({...p,duracion:Number(e.target.value)}))}>
+                      {[30,45,60,90,120].map(m=><option key={m} value={m}>{m} minutos</option>)}
+                    </select>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                    <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" style={inpS} value={slotCfg.precioSemana} onChange={e=>setSlotCfg(p=>({...p,precioSemana:e.target.value}))} placeholder="0" /></div>
+                    <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" style={inpS} value={slotCfg.precioFinde} onChange={e=>setSlotCfg(p=>({...p,precioFinde:e.target.value}))} placeholder="0" /></div>
+                  </div>
+                  <div style={{background:"#F0FDF4",borderRadius:8,padding:"10px 12px",border:"1px solid #BBF7D0",fontSize:12,color:"#166534"}}>
+                    ✓ Se van a generar turnos de {slotCfg.duracion} min entre las {slotCfg.horaInicio} y las {slotCfg.horaFin}
+                  </div>
+                </div>
+              ) : (
+                /* ── MODO QUINCHO: turnos manuales ── */
+                <>
+                  {turnos.map((t,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"7px 10px",background:"#FDF5EE",borderRadius:8,marginBottom:6,border:"1px solid #EDE0D0"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{fontSize:18}}>{t.icono}</span>
+                        <div>
+                          <div style={{fontWeight:700,fontSize:13}}>{t.nombre}</div>
+                          <div style={{fontSize:11,color:"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
+                        </div>
+                      </div>
+                      <button onClick={()=>setTurnos(prev=>prev.filter((_,j)=>j!==i))} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#DC2626"}}>×</button>
+                    </div>
+                  ))}
+                  <div style={{background:"#FDF5EE",borderRadius:10,padding:12,border:"1px dashed #C4602B",marginBottom:14}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:8}}>Agregar turno</div>
+                    <input style={{...inpS,marginBottom:8,fontSize:13}} placeholder="Nombre (ej: Noche, Turno 20hs)" value={turnoForm.nombre} onChange={e=>setTurnoForm(p=>({...p,nombre:e.target.value}))} />
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                      <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora inicio</div><input type="time" style={inpS} value={turnoForm.horaInicio} onChange={e=>setTurnoForm(p=>({...p,horaInicio:e.target.value}))} /></div>
+                      <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Hora fin</div><input type="time" style={inpS} value={turnoForm.horaFin} onChange={e=>setTurnoForm(p=>({...p,horaFin:e.target.value}))} /></div>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                      <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" style={inpS} value={turnoForm.precioSemana} onChange={e=>setTurnoForm(p=>({...p,precioSemana:e.target.value}))} placeholder="0" /></div>
+                      <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" style={inpS} value={turnoForm.precioFinde} onChange={e=>setTurnoForm(p=>({...p,precioFinde:e.target.value}))} placeholder="0" /></div>
+                    </div>
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:11,color:"#8B7355",marginBottom:4}}>Ícono</div>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                        {ICONOS_OB.map(ic=>(
+                          <button key={ic} onClick={()=>setTurnoForm(p=>({...p,icono:ic}))}
+                            style={{width:32,height:32,fontSize:16,border:`2px solid ${turnoForm.icono===ic?"#C4602B":"#EDE0D0"}`,borderRadius:7,background:turnoForm.icono===ic?"#FEF3EC":"#FFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            {ic}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button onClick={addTurno} style={{width:"100%",padding:"8px",background:"#FFF",border:"1.5px solid #C4602B",borderRadius:8,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar</button>
+                  </div>
+                  {turnos.length===0&&<div style={{textAlign:"center",marginBottom:10,fontSize:11,color:"#8B7355"}}>Podés saltear los turnos y cargarlos después desde Configuración.</div>}
+                </>
+              )}
 
               <div style={{display:"flex",gap:10}}>
                 <button onClick={()=>setStep(2)} style={{flex:1,padding:12,background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:10,fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:"#8B7355"}}>← Atrás</button>
                 <button onClick={async()=>{
                   setSaving(true);
-                  await onFinish({negocio,espacio,turnos});
+                  await onFinish({negocio,espacio,turnos,slotCfg});
                   setSaving(false);
                 }} disabled={saving} style={{flex:2,padding:12,background:saving?"#9E4A1E":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
                   {saving?"Guardando...":"¡Empezar! 🎉"}
                 </button>
               </div>
-              {turnos.length===0&&<div style={{textAlign:"center",marginTop:8,fontSize:11,color:"#8B7355"}}>Podés saltear los turnos y cargarlos después desde Configuración.</div>}
             </>
           )}
         </div>
@@ -4536,10 +4577,26 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           setNegocio({...negocio,...data.negocio,logoUrl:""});
           // 2. Guardar espacio
           const recId=genId();
-          await supabase.from("recursos").insert({id:recId,nombre:data.espacio.nombre,capacidad_max:Number(data.espacio.capacidadMax)||0,modo:"fijo",org_id:currentOrgId,creado_en:new Date().toISOString()});
-          // 3. Guardar turnos
-          const nuevoRec={id:recId,nombre:data.espacio.nombre,capacidadMax:Number(data.espacio.capacidadMax)||0,modo:"fijo",orgId:currentOrgId};
-          const turnosInsert=data.turnos.map(t=>({recurso_id:recId,org_id:currentOrgId,nombre:t.nombre,icono:t.icono||"📌",hora_inicio:t.horaInicio,hora_fin:t.horaFin,precio_semana:Number(t.precioSemana)||0,precio_finde:Number(t.precioFinde)||0,activo:true}));
+          const modoEsp=data.espacio.modo||"fijo";
+          const sc=data.slotCfg||{};
+          await supabase.from("recursos").insert({id:recId,nombre:data.espacio.nombre,capacidad_max:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slot_hora_inicio:sc.horaInicio||"08:00",slot_hora_fin:sc.horaFin||"22:00",slot_duracion_min:Number(sc.duracion)||60,org_id:currentOrgId,creado_en:new Date().toISOString()});
+          // 3. Generar turnos (manuales o slots automáticos)
+          const nuevoRec={id:recId,nombre:data.espacio.nombre,capacidadMax:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slotHoraInicio:sc.horaInicio||"08:00",slotHoraFin:sc.horaFin||"22:00",slotDuracionMin:Number(sc.duracion)||60,orgId:currentOrgId};
+          let turnosInsert=[];
+          if(modoEsp==="slot"){
+            const [h1,m1]=(sc.horaInicio||"08:00").split(":").map(Number);
+            const [h2,m2]=(sc.horaFin||"22:00").split(":").map(Number);
+            const dur=Number(sc.duracion)||60;
+            let cur=h1*60+m1, fin=h2*60+m2;
+            while(cur+dur<=fin){
+              const hI=String(Math.floor(cur/60)).padStart(2,"0")+":"+String(cur%60).padStart(2,"0");
+              const hF=String(Math.floor((cur+dur)/60)).padStart(2,"0")+":"+String((cur+dur)%60).padStart(2,"0");
+              turnosInsert.push({recurso_id:recId,org_id:currentOrgId,nombre:`${hI} – ${hF}`,icono:"📌",hora_inicio:hI,hora_fin:hF,precio_semana:Number(sc.precioSemana)||0,precio_finde:Number(sc.precioFinde)||0,activo:true});
+              cur+=dur;
+            }
+          } else {
+            turnosInsert=data.turnos.map(t=>({recurso_id:recId,org_id:currentOrgId,nombre:t.nombre,icono:t.icono||"📌",hora_inicio:t.horaInicio,hora_fin:t.horaFin,precio_semana:Number(t.precioSemana)||0,precio_finde:Number(t.precioFinde)||0,activo:true}));
+          }
           let mappedTurnos=[];
           if(turnosInsert.length>0){
             const {data:td}=await supabase.from("turnos_recurso").insert(turnosInsert).select();
