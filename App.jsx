@@ -50,7 +50,6 @@ const TURNO_HORARIOS = {
 const EXPENSE_CATS = ["Mantenimiento", "Limpieza", "Servicios", "Insumos","Otros"];
 const CAT_COLORS = { Mantenimiento: "#6366F1", Limpieza: "#06B6D4", Servicios: "#F59E0B", Insumos: "#8B5CF6" };
 
-const DEFAULT_RECURSOS = [{ id: "rec1", nombre: "Quincho Principal", capacidadMax: 100 }];
 const DEFAULT_USUARIOS = [];
 
 const DEFAULT_CONFIG = {
