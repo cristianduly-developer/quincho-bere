@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Fondo naranja -->
+  <rect width="512" height="512" rx="80" fill="#C4602B"/>
+  <!-- Cuerpo del calendario -->
+  <rect x="96" y="160" width="320" height="272" rx="24" fill="white"/>
+  <!-- Franja superior del calendario -->
+  <rect x="96" y="160" width="320" height="72" rx="24" fill="white"/>
+  <rect x="96" y="208" width="320" height="24" fill="white"/>
+  <!-- Argollas del calendario -->
+  <rect x="172" y="108" width="36" height="80" rx="18" fill="white"/>
+  <rect x="304" y="108" width="36" height="80" rx="18" fill="white"/>
+  <!-- Checkmark -->
+  <polyline points="152,290 228,366 368,220" fill="none" stroke="#C4602B" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

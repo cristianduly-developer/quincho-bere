@@ -2796,6 +2796,13 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
   const [modo, setModo] = useState(espacio.modo||"fijo");
   const [slotForm, setSlotForm] = useState({horaInicio: espacio.slotHoraInicio||"08:00", horaFin: espacio.slotHoraFin||"23:00", duracion: espacio.slotDuracionMin||60, intervalo: espacio.slotIntervaloMin||0, precioSemana:"", precioFinde:""});
   const [generando, setGenerando] = useState(false);
+  const [calActiva, setCalActiva] = useState(espacio.calificacionActiva!==false);
+
+  const toggleCalActiva = async () => {
+    const nv=!calActiva;
+    setCalActiva(nv);
+    await supabase.from("recursos").update({calificacion_activa:nv}).eq("id",espacio.id);
+  };
 
   const inpS = {padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",width:"100%",boxSizing:"border-box",outline:"none"};
 
@@ -2903,6 +2910,12 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
               ⏰ Por franja horaria
             </button>
           </div>
+
+          {/* Toggle calificación post-evento */}
+          <button onClick={toggleCalActiva} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"8px 10px",marginBottom:12,background:calActiva?"#FEF3EC":"#F5F5F5",border:"1.5px solid",borderColor:calActiva?"#C4602B":"#D1D5DB",borderRadius:8,cursor:"pointer",fontFamily:"inherit"}}>
+            <span style={{fontSize:12,color:calActiva?"#C4602B":"#8B7355",fontWeight:600}}>⭐ Calificación post-evento</span>
+            <span style={{fontSize:12,color:calActiva?"#C4602B":"#8B7355",fontWeight:700}}>{calActiva?"Activa":"Inactiva"}</span>
+          </button>
 
           {!loaded ? (
             <div style={{fontSize:13,color:"#8B7355"}}>Cargando turnos...</div>
@@ -4119,7 +4132,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
       if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
-      if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,orgId:x.org_id})));
+      if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
       if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
       setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
@@ -4171,7 +4184,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       current=res.map(r=>toClose.some(x=>x.id===r.id)?{...r,estado:'finalizada'}:r);
       saveR(current);
     }
-    const needsRating=current.filter(r=>r.estado==='finalizada'&&!r.calificacion&&r.clienteId&&!snoozedRatings.has(r.id));
+    const needsRating=current.filter(r=>r.estado==='finalizada'&&!r.calificacion&&r.clienteId&&!snoozedRatings.has(r.id)&&recursos.find(rc=>rc.id===r.recursoId)?.calificacionActiva!==false);
     setRatingQueue(needsRating);
     // Check due recordatorios
     const now2=new Date();
