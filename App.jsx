@@ -117,7 +117,9 @@ const sb = {
     return true;
   },
   async remove(table, id) {
-    const { error } = await supabase.from(table).delete().eq("id", id);
+    let q = supabase.from(table).delete().eq("id", id);
+    if (currentOrgId) q = q.eq("org_id", currentOrgId);
+    const { error } = await q;
     if (error) { console.error("SB remove error:", table, error); return null; }
     return true;
   },
@@ -3719,7 +3721,7 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
     setLoading(true);
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: "https://quincho-bere.vercel.app" },
+      options: { redirectTo: window.location.origin },
     });
   };
 
@@ -4285,11 +4287,20 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
             : (r.turno===data.turno||r.turno==="completo"||data.turno==="completo")
         ));
         if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);return alert("Conflicto: ya existe una reserva de "+clientName(c)+" en ese espacio, día y turno.");}
-        const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turno||b.turno==="completo"||data.turno==="completo"));
+        const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turno||b.turno===data.turnoId||b.turno==="completo"||data.turno==="completo"));
         if(bloqueoConflict)return alert("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.");
       }
-      if(editReserva) await saveR(reservas.map(r=>r.id===editReserva.id?{...r,...data}:r));
-      else await saveR([...reservas,{id:genId(),...data,creadoEn:new Date().toISOString(),fechaCreacion:toDateStr(new Date()),creadoPor:currentUser?.nombre||"",recordatorioEnviado:false,postEventoProcesado:false}]);
+      if(editReserva){
+        await saveR(reservas.map(r=>r.id===editReserva.id?{...r,...data}:r));
+      } else {
+        const nuevaReserva={id:genId(),...data,creadoEn:new Date().toISOString(),fechaCreacion:toDateStr(new Date()),creadoPor:currentUser?.nombre||"",recordatorioEnviado:false,postEventoProcesado:false};
+        const {error:insErr}=await supabase.from("reservas").insert(mapReserva(nuevaReserva));
+        if(insErr){
+          if(insErr.code==="23505") return alert("⚠️ Ya existe una reserva en ese espacio, día y turno. Alguien más acaba de tomarlo.");
+          return alert("Error al guardar la reserva: "+insErr.message);
+        }
+        setReservas(prev=>[...prev,nuevaReserva]);
+      }
       setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);
     } finally { setSavingReserva(false); }
   };
