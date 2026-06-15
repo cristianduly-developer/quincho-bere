@@ -42,11 +42,6 @@ const TURNOS = {
 };
 
 const PAYMENT_METHODS = ["Efectivo", "Transferencia", "Tarjeta"];
-const TURNO_HORARIOS = {
-  dia:      { horario: "11:00", horarioFin: "17:00" },
-  noche:    { horario: "19:00", horarioFin: "23:59" },
-  completo: { horario: "11:00", horarioFin: "23:00" },
-};
 const EXPENSE_CATS = ["Mantenimiento", "Limpieza", "Servicios", "Insumos","Otros"];
 const CAT_COLORS = { Mantenimiento: "#6366F1", Limpieza: "#06B6D4", Servicios: "#F59E0B", Insumos: "#8B5CF6" };
 
@@ -90,13 +85,13 @@ const getSaldo        = (res, extrasReserva, pagos) => (res.montoPactado + getTo
 // ─── SUPABASE CLIENTS ────────────────────────────────────
 
 // Supabase propio (data del negocio)
-const SUPA_URL = "https://pmohyepcqfvkwijmljee.supabase.co";
-const SUPA_KEY = "sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
+const SUPA_URL = import.meta.env.VITE_SUPA_URL;
+const SUPA_KEY = import.meta.env.VITE_SUPA_KEY;
 const supabase = createClient(SUPA_URL, SUPA_KEY);
 
 // Supabase central (verifica suscripciones)
-const CENTRAL_URL = "https://ngymvfvlknaltsvsrvjm.supabase.co";
-const CENTRAL_KEY = "sb_publishable_XhsLlwmbDz5ne7JoeEoVHw_Qo56KJmd";
+const CENTRAL_URL = import.meta.env.VITE_CENTRAL_URL;
+const CENTRAL_KEY = import.meta.env.VITE_CENTRAL_KEY;
 const supabaseCentral = createClient(CENTRAL_URL, CENTRAL_KEY);
 
 // org_id activo — se setea al login, lo usan todos los métodos de sb
@@ -1814,13 +1809,30 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
   }, [year, month]);
 
   const todayStr = toDateStr(new Date());
+
+  const reservasByDate = useMemo(()=>{
+    const idx={};
+    reservas.forEach(r=>{
+      if(r.estado==="cancelada") return;
+      if(!idx[r.fecha]) idx[r.fecha]=[];
+      idx[r.fecha].push(r);
+    });
+    return idx;
+  },[reservas]);
+
+  const bloqueosByDate = useMemo(()=>{
+    const idx={};
+    bloqueos.forEach(b=>{ idx[b.fecha]=b; });
+    return idx;
+  },[bloqueos]);
+
   const getDay = (day) => {
     const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    return reservas.filter(r=>r.fecha===ds&&r.estado!=="cancelada"&&(espacioFiltro==="all"||r.recursoId===espacioFiltro));
+    return (reservasByDate[ds]||[]).filter(r=>espacioFiltro==="all"||r.recursoId===espacioFiltro);
   };
   const getBloqueo = (day) => {
     const ds = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-    return bloqueos.find(b=>b.fecha===ds);
+    return bloqueosByDate[ds];
   };
 
   return (
@@ -1994,7 +2006,7 @@ function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras,
 
     const logoTag = negocio?.logoUrl ? `<img class="logo-img" src="${negocio.logoUrl}" alt="logo" crossorigin="anonymous">` : "";
     const html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>"+css+"</style></head><body>"
-      +`<div class="hdr"><div class="hdr-left">${logoTag}<div><div class="logo">${negocio?.nombreNegocio||"Mi Negocio"}</div><div class="sub">${negocio?.ciudad||""}</div></div></div><div class="ttl">Reporte Mensual — ${mes} ${anio}</div></div>`
+      +`<div class="hdr"><div class="hdr-left">${logoTag}<div><div class="logo">${escHtml(negocio?.nombreNegocio||"Mi Negocio")}</div><div class="sub">${escHtml(negocio?.ciudad||"")}</div></div></div><div class="ttl">Reporte Mensual — ${escHtml(mes)} ${anio}</div></div>`
       +"<div class=\"kpis\">"
         +"<div class=\"kpi\"><div class=\"knum\">"+reservasMes.length+"</div><div class=\"klbl\">Reservas</div></div>"
         +"<div class=\"kpi\"><div class=\"knum\">"+fmt(totalCobrado)+"</div><div class=\"klbl\">Total cobrado</div></div>"
@@ -4275,7 +4287,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         const limits = getPlanLimits(currentUser?.plan);
         if(limits.reservasMes !== null){
           const mesActual = toDateStr(new Date()).slice(0,7);
-          const reservasMes = reservas.filter(r=>r.fecha?.slice(0,7)===mesActual && r.estado!=="cancelada").length;
+          const reservasMes = reservas.filter(r=>r.creadoEn?.slice(0,7)===mesActual && r.estado!=="cancelada").length;
           if(reservasMes >= limits.reservasMes){
             return alert(`Tu plan ${currentUser?.plan||"actual"} permite hasta ${limits.reservasMes} reservas por mes. Ya alcanzaste el límite de este mes.\n\nContactá al administrador para actualizar tu plan.`);
           }
@@ -4389,9 +4401,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     await supabase.from("recordatorios").delete().eq("cliente_id",id);
     if(resIds.length) await supabase.from("recordatorios").delete().in("reserva_id",resIds);
     // 2. Borrar pagos y extras de cada reserva
-    for(const rid of resIds){
-      await supabase.from("pagos").delete().eq("reserva_id",rid);
-      await supabase.from("extras_reserva").delete().eq("reserva_id",rid);
+    if(resIds.length){
+      await supabase.from("pagos").delete().in("reserva_id",resIds);
+      await supabase.from("extras_reserva").delete().in("reserva_id",resIds);
     }
     // 3. Borrar reservas
     if(resIds.length) await supabase.from("reservas").delete().in("id",resIds);
