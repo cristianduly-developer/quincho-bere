@@ -14,4 +14,10 @@ export const getSaldo       = (res, extrasReserva, pagos) => (res.montoPactado+g
 
 export const getTurnoNombre = (r) => r.turno || (r.turnoId ? r.turnoId : "—");
 
+export const calcEstadoReserva = (totalPagado, totalEvento) => {
+  if (totalPagado <= 0) return "pendiente";
+  if (totalPagado >= totalEvento) return "confirmada";
+  return "senada";
+};
+
 export const formatMes = (m, y) => `${MONTHS[m]} ${y}`;
