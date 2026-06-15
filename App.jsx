@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef, Component, Fragment } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { useState, useEffect, useRef, useMemo, Component, Fragment } from "react";
+import { MONTHS, MONTHS_SHORT, DAYS_SHORT, STATUS, TURNOS, PAYMENT_METHODS, EXPENSE_CATS, CAT_COLORS, DEFAULT_CONFIG, PLAN_LIMITS, getPlanLimits } from "./src/lib/constants.js";
+import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, getTotalExtras, getTotalPagado, getSaldo } from "./src/lib/utils.js";
+import { supabase, supabaseCentral, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor } from "./src/lib/supabase.js";
+import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario } from "./src/lib/mappers.js";
 
 // ─── ERROR BOUNDARY ───────────────────────────────────────
 class ErrorBoundary extends Component {
@@ -21,104 +24,10 @@ class ErrorBoundary extends Component {
   }
 }
 
-// ─── CONSTANTS ────────────────────────────────────────────
-
-const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-const DAYS_SHORT = ["D","L","M","X","J","V","S"];
-
-const STATUS = {
-  pendiente:  { label:"Pendiente",  color:"#6B7280", bg:"#F3F4F6", border:"#D1D5DB" },
-  senada:     { label:"Señada",     color:"#0284C7", bg:"#E0F2FE", border:"#7DD3FC" },
-  confirmada: { label:"Confirmada", color:"#16A34A", bg:"#DCFCE7", border:"#86EFAC" },
-  finalizada: { label:"Finalizada", color:"#1D4ED8", bg:"#DBEAFE", border:"#93C5FD" },
-  cancelada:  { label: "Cancelada",  color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
-};
-
-const TURNOS = {
-  dia:      { label: "Día",          icon: "☀️", color: "#D97706", bg: "#FEF3C7" },
-  noche:    { label: "Tarde/Noche",  icon: "🌙", color: "#4F46E5", bg: "#EEF2FF" },
-  completo: { label: "Día Completo", icon: "⭐", color: "#059669", bg: "#D1FAE5" },
-};
-
-const PAYMENT_METHODS = ["Efectivo", "Transferencia", "Tarjeta"];
-const EXPENSE_CATS = ["Mantenimiento", "Limpieza", "Servicios", "Insumos","Otros"];
-const CAT_COLORS = { Mantenimiento: "#6366F1", Limpieza: "#06B6D4", Servicios: "#F59E0B", Insumos: "#8B5CF6" };
-
 const DEFAULT_USUARIOS = [];
-
-const DEFAULT_CONFIG = {
-  precios: {
-    dia_semana:    { dia: 80000,  noche: 100000, completo: 160000 },
-    dia_finde:     { dia: 120000, noche: 150000, completo: 250000 },
-  },
-};
-
 const DEFAULT_SERVICIOS = [];
-
-// ─── PLAN LIMITS ─────────────────────────────────────────
-const PLAN_LIMITS = {
-  basico:       { reservasMes: 50,  colaboradores: 0, espacios: 1, recordatorios: false, serviciosExtras: false },
-  profesional:  { reservasMes: 100, colaboradores: 1, espacios: 3, recordatorios: true,  serviciosExtras: true  },
-  premium:      { reservasMes: null,colaboradores: 3, espacios: 5, recordatorios: true,  serviciosExtras: true  },
-  sincargo:     { reservasMes: null,colaboradores: 3, espacios: 5, recordatorios: true,  serviciosExtras: true  },
-  demo:         { reservasMes: 100, colaboradores: 1, espacios: 3, recordatorios: true,  serviciosExtras: true  },
-};
-const getPlanLimits = (plan) => PLAN_LIMITS[plan] || PLAN_LIMITS.basico;
-
-// ─── UTILS ────────────────────────────────────────────────
-
-const genId = () => crypto.randomUUID();
-const escHtml = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-const fmtCurrency = (n = 0) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n);
-const fmtDate = (d) => { if (!d) return "—"; const [y, m, day] = d.split("-"); return `${day}/${m}/${y}`; };
-const toDateStr = (date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
-const clientName = (c) => c ? `${c.nombre||""} ${c.apellido||""}`.trim() || "Sin nombre" : "Sin cliente";
-const monthKey = (d) => d ? d.slice(0,7) : "";
-
-// ─── VIRTUAL COLUMN HELPERS ───────────────────────────────
-
-const getTotalExtras  = (rid, extrasReserva) => extrasReserva.filter(e=>e.reservaId===rid).reduce((s,e)=>s+(e.precioHistorico*e.cantidad),0);
-const getTotalPagado  = (rid, pagos)         => pagos.filter(p=>p.reservaId===rid).reduce((s,p)=>s+p.monto,0);
-const getSaldo        = (res, extrasReserva, pagos) => (res.montoPactado + getTotalExtras(res.id, extrasReserva)) - getTotalPagado(res.id, pagos);
-
-// ─── SUPABASE CLIENTS ────────────────────────────────────
-
-// Supabase propio (data del negocio)
-const SUPA_URL = import.meta.env.VITE_SUPA_URL;
-const SUPA_KEY = import.meta.env.VITE_SUPA_KEY;
-const supabase = createClient(SUPA_URL, SUPA_KEY);
-
-// Supabase central (verifica suscripciones)
-const CENTRAL_URL = import.meta.env.VITE_CENTRAL_URL;
-const CENTRAL_KEY = import.meta.env.VITE_CENTRAL_KEY;
-const supabaseCentral = createClient(CENTRAL_URL, CENTRAL_KEY);
-
-// org_id activo — se setea al login, lo usan todos los métodos de sb
+// currentOrgId local — se sincroniza con src/lib/supabase.js via setCurrentOrgId()
 let currentOrgId = null;
-
-const sb = {
-  async getAll(table) {
-    let q = supabase.from(table).select("*").order("creado_en", { ascending: true });
-    if (currentOrgId) q = q.eq("org_id", currentOrgId);
-    const { data } = await q;
-    return data || [];
-  },
-  async upsert(table, rows) {
-    const arr = Array.isArray(rows) ? rows : [rows];
-    if (!arr.length) return true;
-    const { error } = await supabase.from(table).upsert(arr);
-    if (error) { console.error("SB upsert error:", table, error); return null; }
-    return true;
-  },
-  async remove(table, id) {
-    let q = supabase.from(table).delete().eq("id", id);
-    if (currentOrgId) q = q.eq("org_id", currentOrgId);
-    const { error } = await q;
-    if (error) { console.error("SB remove error:", table, error); return null; }
-    return true;
-  },
-};
 
 
 
@@ -222,16 +131,7 @@ function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,po
 }
 
 
-// ─── FIELD MAPPERS (camelCase -> snake_case for Supabase) ─
-function mapReserva(r){ return {id:r.id,org_id:r.orgId||currentOrgId,cliente_id:r.clienteId,recurso_id:r.recursoId,turno_id:r.turnoId||null,fecha:r.fecha,turno:r.turno,horario:r.horario||"",horario_fin:r.horarioFin||"",cant_invitados:r.cantInvitados||35,monto_pactado:r.montoPactado||0,estado:r.estado||"pendiente",notas:r.notas||"",creado_por:r.creadoPor||"",creado_en:r.creadoEn||new Date().toISOString(),fecha_creacion:r.fechaCreacion||null,recordatorio_enviado:!!r.recordatorioEnviado,post_evento_procesado:!!r.postEventoProcesado,calificacion:r.calificacion||null}; }
-function mapCliente(c){ return {id:c.id,org_id:c.orgId||currentOrgId,nombre:c.nombre||"",apellido:c.apellido||"",whatsapp:c.whatsapp||"",email:c.email||"",localidad:c.localidad||"",notas_internas:c.notasInternas||"",creado_en:c.creadoEn||new Date().toISOString()}; }
-function mapPago(p){ return {id:p.id,org_id:p.orgId||currentOrgId,reserva_id:p.reservaId,monto:p.monto||0,fecha:p.fecha,metodo:p.metodo||"Transferencia",notas:p.notas||"",comprobante:p.comprobante||"",creado_por:p.creadoPor||"",creado_en:p.creadoEn||new Date().toISOString()}; }
-function mapGasto(g){ return {id:g.id,org_id:g.orgId||currentOrgId,concepto:g.concepto||"",monto:g.monto||0,fecha:g.fecha,categoria:g.categoria||"Otros",metodo:g.metodo||"Efectivo",creado_por:g.creadoPor||"",creado_en:g.creadoEn||new Date().toISOString()}; }
-function mapExtra(e){ return {id:e.id,org_id:e.orgId||currentOrgId,reserva_id:e.reservaId,servicio_id:e.servicioId||null,descripcion:e.descripcion||"",cantidad:e.cantidad||1,precio_historico:e.precioHistorico||0,creado_en:e.creadoEn||new Date().toISOString()}; }
-function mapBloqueo(b){ return {id:b.id,org_id:b.orgId||currentOrgId,fecha:b.fecha,turno:b.turno,motivo:b.motivo||"",creado_por:b.creadoPor||"",creado_en:b.creadoEn||new Date().toISOString()}; }
-function mapTarea(t){ return {id:t.id,org_id:t.orgId||currentOrgId,descripcion:t.descripcion||"",estado:t.estado||"pendiente",fecha_registro:t.fechaRegistro||null,creado_por:t.creadoPor||"",creado_en:t.creadoEn||new Date().toISOString()}; }
-function mapRecordatorio(r){ return {id:r.id,org_id:r.orgId||currentOrgId,reserva_id:r.reservaId||null,cliente_id:r.clienteId||null,tipo:r.tipo||"",nota:r.nota||"",fecha_alerta:r.fechaAlerta,hora_alerta:r.horaAlerta||"09:00",estado:r.estado||"Pendiente",creado_en:r.creadoEn||new Date().toISOString()}; }
-function mapUsuario(u){ return {id:u.id,nombre:u.nombre||"",apellido:u.apellido||"",email:u.email||"",whatsapp:u.whatsapp||"",puesto:u.puesto||"",rol:u.rol||"Personal",estado:u.estado||"Activo",permiso_root:!!u.permisoRoot,ver_finanzas:!!u.verFinanzas,modificar_caja:!!u.modificarCaja,gestion_operativa:!!u.gestionOperativa}; }
+// mappers importados desde src/lib/mappers.js
 
 
 // ─── SHARED STYLES ────────────────────────────────────────
@@ -4118,7 +4018,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
       // ── PASO 3: configurar org y cargar datos ──
       const orgId = acceso.ret_org_id || cu.orgId;
-      currentOrgId = orgId;
+      currentOrgId = orgId; setCurrentOrgId(orgId);
 
       // Sincronizar user_orgs y refrescar JWT para que RLS funcione con el org_id correcto
       await supabase.from("user_orgs").upsert({ user_id: session.user.id, org_id: orgId });
@@ -4264,7 +4164,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     };
   },[loaded]);
 
-  const handleLogin=(user)=>{ currentOrgId=user.orgId; setCurrentUser(user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
+  const handleLogin=(user)=>{ currentOrgId=user.orgId; setCurrentOrgId(user.orgId); setCurrentUser(user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
   const handleLogout=async()=>{
     try{ await supabase.auth.signOut(); }catch(e){}
     setCurrentUser(null);
@@ -4300,7 +4200,12 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     setSavingReserva(true);
     try{
       if(!editReserva){
-        // Chequeo límite de reservas del plan
+        // Chequeo límite de reservas — verificación server-side (RPC) + fallback cliente
+        const limiteServer = await verificarLimiteServidor("reserva");
+        if(!limiteServer.permitido){
+          return alert(`🔒 ${limiteServer.motivo||"Límite del plan alcanzado."}\n\nContactá al administrador para actualizar tu plan.`);
+        }
+        // Fallback cliente (por si la RPC no existe aún)
         const limits = getPlanLimits(currentUser?.plan);
         if(limits.reservasMes !== null){
           const mesActual = toDateStr(new Date()).slice(0,7);
