@@ -6,8 +6,11 @@ import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTar
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
 import { Field, Input, Select, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
 
-const GastosViewLazy    = lazy(() => import("./src/views/GastosView.jsx"));
-const ReportesViewLazy  = lazy(() => import("./src/views/ReportesView.jsx"));
+const GastosViewLazy        = lazy(() => import("./src/views/GastosView.jsx"));
+const ReportesViewLazy      = lazy(() => import("./src/views/ReportesView.jsx"));
+const RecordatoriosViewLazy = lazy(() => import("./src/views/RecordatoriosView.jsx"));
+const ClientesViewLazy      = lazy(() => import("./src/views/ClientesView.jsx"));
+const ReservasViewLazy      = lazy(() => import("./src/views/ReservasView.jsx"));
 
 // â”€â”€â”€ ERROR BOUNDARY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class ErrorBoundary extends Component {
@@ -1493,107 +1496,7 @@ function BloqueoModal({ date, bloqueoExistente, onClose, onBloquear, onDesbloque
 
 // â”€â”€â”€ RECORDATORIOS VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const TIPO_RECORDATORIO = ["Cobro pendiente","Llamar al cliente","Confirmar asistencia","Preparar evento","Comprar insumos"];
-
-function RecordatoriosView({ recordatorios, setRecordatorios, reservas, clientes, pagos, extrasReserva, onVerCliente, onVerEvento, onNewPago, negocio }) {
-  const [tab, setTab] = useState("hoy");
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({reservaId:"",clienteId:"",tipo:"Cobro pendiente",nota:"",fechaAlerta:toDateStr(new Date()),horaAlerta:"09:00"});
-  const today = toDateStr(new Date());
-
-  const pending = recordatorios.filter(r=>r.estado==="Pendiente");
-  const hoy     = pending.filter(r=>r.fechaAlerta===today);
-  const proximos= pending.filter(r=>r.fechaAlerta>today);
-  const historial=recordatorios.filter(r=>r.estado!=="Pendiente");
-
-  const save=d=>setRecordatorios(d);
-  const markDone=(id)=>save(recordatorios.map(r=>r.id===id?{...r,estado:"Procesado"}:r));
-  const snooze=(id,hours)=>{
-    const d=new Date(); d.setHours(d.getHours()+hours);
-    save(recordatorios.map(r=>r.id===id?{...r,fechaAlerta:toDateStr(d),horaAlerta:String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"),estado:"Pospuesto"}:r));
-  };
-
-  const lista = tab==="hoy"?hoy : tab==="proximos"?proximos : historial;
-
-  return (
-    <div style={{padding:"16px 16px 100px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>ðŸ“‹ Recordatorios</div>
-        <Btn small onClick={()=>setShowForm(true)}>+ Nuevo</Btn>
-      </div>
-      <div style={{display:"flex",gap:0,marginBottom:16,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0"}}>
-        {[{v:"hoy",l:`Para hoy (${hoy.length})`},{v:"proximos",l:`PrÃ³ximos (${proximos.length})`},{v:"historial",l:"Historial"}].map(o=>(
-          <button key={o.v} onClick={()=>setTab(o.v)} style={{flex:1,padding:"9px 4px",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",fontFamily:"inherit",background:tab===o.v?"#C4602B":"#FDF8F3",color:tab===o.v?"#FFF":"#8B7355"}}>{o.l}</button>
-        ))}
-      </div>
-
-      {lista.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:"#8B7355"}}><div style={{fontSize:36,marginBottom:8}}>âœ…</div><div>Sin recordatorios en esta secciÃ³n</div></div>}
-
-      {lista.map(rec=>{
-        const c=clientes.find(x=>x.id===rec.clienteId);
-        const r=reservas.find(x=>x.id===rec.reservaId);
-        const overdue=rec.fechaAlerta<today&&rec.estado==="Pendiente";
-        return (
-          <div key={rec.id} style={{...card,padding:"14px 16px",marginBottom:10,borderLeft:`3px solid ${overdue?"#DC2626":"#C4602B"}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-              <div>
-                <div style={{fontWeight:700,fontSize:13,color:overdue?"#DC2626":"#1C1C1E"}}>{rec.tipo}</div>
-                {c&&<div style={{fontSize:12,color:"#8B7355",marginTop:2}}>ðŸ‘¤ {clientName(c)}</div>}
-                {rec.nota&&<div style={{fontSize:12,color:"#5C4033",marginTop:2}}>ðŸ“ {rec.nota}</div>}
-                <div style={{fontSize:11,color:overdue?"#DC2626":"#8B7355",marginTop:2}}>ðŸ—“ {fmtDate(rec.fechaAlerta)} {rec.horaAlerta}</div>
-              </div>
-              <span style={{padding:"3px 8px",borderRadius:99,fontSize:10,fontWeight:700,background:rec.estado==="Procesado"?"#DCFCE7":rec.estado==="Pospuesto"?"#FEF3C7":"#FEF2F2",color:rec.estado==="Procesado"?"#16A34A":rec.estado==="Pospuesto"?"#D97706":"#DC2626"}}>{rec.estado}</span>
-            </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {c&&<Btn small variant="secondary" onClick={()=>onVerCliente(c)}>ðŸ‘¤ Ver cliente</Btn>}
-              {r&&<Btn small variant="secondary" onClick={()=>onVerEvento(r)}>ðŸ“‹ Ver evento</Btn>}
-              {rec.tipo==="Cobro pendiente"&&r&&<Btn small onClick={()=>onNewPago(r.id)}>ðŸ’° Cobro</Btn>}
-              {c&&c.whatsapp&&(
-                <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent("Hola "+clientName(c)+"! Te contactamos desde "+(negocio?.nombreNegocio||"nuestro negocio")+". "+rec.nota)}
-                  target="_blank" rel="noreferrer"
-                  style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 12px",background:"#25D366",color:"#FFF",borderRadius:8,fontSize:12,fontWeight:600,textDecoration:"none"}}>
-                  ðŸ’¬ WA
-                </a>
-              )}
-              {rec.estado==="Pendiente"&&(
-                <>
-                  <button onClick={()=>snooze(rec.id,1)} style={{padding:"6px 10px",background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:8,fontSize:11,cursor:"pointer",fontFamily:"inherit",color:"#D97706",fontWeight:600}}>+1h</button>
-                  <button onClick={()=>snooze(rec.id,24)} style={{padding:"6px 10px",background:"#FEF3C7",border:"1px solid #FCD34D",borderRadius:8,fontSize:11,cursor:"pointer",fontFamily:"inherit",color:"#D97706",fontWeight:600}}>MaÃ±ana</button>
-                  <Btn small variant="ghost" onClick={()=>markDone(rec.id)}>âœ“ Listo</Btn>
-                </>
-              )}
-            </div>
-          </div>
-        );
-      })}
-
-      {showForm&&(
-        <BottomModal title="Nuevo Recordatorio" onClose={()=>setShowForm(false)}>
-          <Select label="Tipo" value={form.tipo} onChange={v=>setForm(p=>({...p,tipo:v}))} options={TIPO_RECORDATORIO.map(t=>({value:t,label:t}))} />
-          <Select label="Reserva (opcional)" value={form.reservaId} onChange={v=>{
-            const r=reservas.find(x=>x.id===v);
-            setForm(p=>({...p,reservaId:v,clienteId:r?.clienteId||p.clienteId}));
-          }} options={[{value:"",label:"â€” Sin vincular â€”"},...reservas.filter(r=>r.estado!=="cancelada"&&r.estado!=="finalizada").map(r=>{const c=clientes.find(x=>x.id===r.clienteId);return{value:r.id,label:clientName(c)+" Â· "+fmtDate(r.fecha)};})]} />
-          <TextArea label="Nota / descripciÃ³n" value={form.nota} onChange={v=>setForm(p=>({...p,nota:v}))} placeholder="Detalle del recordatorio..." rows={2} />
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <Input label="Fecha alerta" type="date" value={form.fechaAlerta} onChange={v=>setForm(p=>({...p,fechaAlerta:v}))} />
-            <Input label="Hora alerta" type="time" value={form.horaAlerta} onChange={v=>setForm(p=>({...p,horaAlerta:v}))} />
-          </div>
-          <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-            <Btn variant="ghost" onClick={()=>setShowForm(false)}>Cancelar</Btn>
-            <Btn onClick={()=>{
-              save([...recordatorios,{id:genId(),...form,estado:"Pendiente",creadoEn:new Date().toISOString()}]);
-              setShowForm(false);
-            }}>Guardar</Btn>
-          </div>
-        </BottomModal>
-      )}
-    </div>
-  );
-}
-
-// â”€â”€â”€ CALENDAR WIDGET â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€â”€ CALENDAR WIDGET â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// RecordatoriosView → src/views/RecordatoriosView.jsx (lazy-loaded)
 
 function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick, recursos, turnosRecurso }) {
   const year = calDate.year;
@@ -2025,119 +1928,9 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
 }
 
 
-function ReservasView({ reservas, clientes, pagos, recursos, extrasReserva, onReservaClick, onNewReserva }) {
-  const ACTIVAS=["pendiente","senada","confirmada"];
-  const [scope,setScope]=useState("activas");
-  const [filter,setFilter]=useState("all");
-  const [search,setSearch]=useState("");
-  const scoped=scope==="activas"?reservas.filter(r=>ACTIVAS.includes(r.estado)):scope==="finalizadas"?reservas.filter(r=>r.estado==="finalizada"||r.estado==="cancelada"):reservas;
-  const filtered=scoped
-    .filter(r=>filter==="all"||r.estado===filter)
-    .filter(r=>{ if(!search)return true; const c=clientes.find(x=>x.id===r.clienteId); return clientName(c).toLowerCase().includes(search.toLowerCase())||r.fecha.includes(search); })
-    .sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  return (
-    <div style={{padding:"16px 16px 100px"}}>
-      <div style={{display:"flex",gap:0,marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0"}}>
-        {[{v:"activas",l:"Activas"},{v:"all",l:"Todas"},{v:"finalizadas",l:"Historial"}].map(o=>(
-          <button key={o.v} onClick={()=>{setScope(o.v);setFilter("all");}} style={{flex:1,padding:"10px 0",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:scope===o.v?"#C4602B":"#FDF8F3",color:scope===o.v?"#FFF":"#8B7355"}}>{o.l}</button>
-        ))}
-      </div>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="ðŸ” Buscar por cliente o fecha..." style={{...inputStyle,marginBottom:12}} />
-      <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,marginBottom:16}}>
-        {[{value:"all",label:"Todas"},...Object.entries(STATUS).map(([k,v])=>({value:k,label:v.label}))].map(opt=>(
-          <button key={opt.value} onClick={()=>setFilter(opt.value)} style={{
-            padding:"6px 14px",borderRadius:20,fontSize:12,fontWeight:600,flexShrink:0,whiteSpace:"nowrap",
-            background:filter===opt.value?"#C4602B":"#FDF8F3",color:filter===opt.value?"#FFF":"#8B7355",
-            border:`1px solid ${filter===opt.value?"#C4602B":"#EDE0D0"}`,cursor:"pointer",fontFamily:"inherit",
-          }}>{opt.label}</button>
-        ))}
-      </div>
-      {filtered.length===0 ? (
-        <div style={{textAlign:"center",padding:"48px 0",color:"#8B7355"}}>
-          <div style={{fontSize:44,marginBottom:10}}>ðŸ“‹</div>
-          <div style={{fontWeight:600}}>No hay reservas{search?" con ese criterio":""}</div>
-          <div style={{marginTop:14}}><Btn small onClick={onNewReserva}>+ Nueva reserva</Btn></div>
-        </div>
-      ) : filtered.map(r=>{
-        const c=clientes.find(x=>x.id===r.clienteId);
-        const rec=recursos.find(x=>x.id===r.recursoId);
-        const saldo=getSaldo(r,extrasReserva,pagos);
-        const deuda=saldo>0;
-        return (
-          <div key={r.id} onClick={()=>onReservaClick(r)} style={{...card,padding:"14px 16px",marginBottom:10,cursor:"pointer",borderLeft:`3px solid ${deuda?"#DC2626":TURNOS[r.turno]?.color||"#EDE0D0"}`,borderRadius:"0 12px 12px 0"}}
-          onMouseEnter={e=>e.currentTarget.style.background="#FDF5EE"}
-          onMouseLeave={e=>e.currentTarget.style.background="#FFF"}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:700,fontSize:15,color:deuda?"#DC2626":"#1C1C1E",marginBottom:2}}>
-                  {deuda&&"âš ï¸ "}{clientName(c)}
-                </div>
-                <div style={{fontSize:12,color:"#8B7355"}}>{fmtDate(r.fecha)} Â· {TURNOS[r.turno]?.icon} {TURNOS[r.turno]?.label}{r.cantInvitados>0?` Â· ðŸ‘¥ ${r.cantInvitados} pers.`:""}</div>
-              </div>
-              <StatusBadge estado={r.estado} />
-            </div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:12,color:"#8B7355"}}>ðŸ  {rec?.nombre||"Sin espacio"}</span>
-              <span style={{fontSize:13,fontWeight:700,color:deuda?"#DC2626":"#16A34A"}}>
-                {deuda?`âš ï¸ Saldo: ${fmtCurrency(saldo)}`:`âœ… ${fmtCurrency(r.montoPactado)}`}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-      <div style={{marginTop:20,textAlign:"center"}}><Btn onClick={onNewReserva}>+ Nueva Reserva</Btn></div>
-    </div>
-  );
-}
+// ReservasView → src/views/ReservasView.jsx (lazy-loaded)
 
-function ClientesView({ clientes, reservas, onClienteClick, onNewCliente }) {
-  const [scope,setScope]=useState("all");
-  const [search,setSearch]=useState("");
-  const today=toDateStr(new Date());
-  const activeIds=new Set(reservas.filter(r=>r.fecha>=today&&(r.estado==="senada"||r.estado==="confirmada")).map(r=>r.clienteId));
-  const scopedClientes=scope==="activos"?clientes.filter(c=>activeIds.has(c.id)):clientes;
-  const filtered=scopedClientes.filter(c=>clientName(c).toLowerCase().includes(search.toLowerCase())||(c.whatsapp||"").includes(search));
-  return (
-    <div style={{padding:"16px 16px 100px"}}>
-      <div style={{display:"flex",gap:0,marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0"}}>
-        {[{v:"activos",l:"Activos / SeÃ±ados"},{v:"all",l:"Todos"}].map(o=>(
-          <button key={o.v} onClick={()=>setScope(o.v)} style={{flex:1,padding:"10px 0",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:scope===o.v?"#C4602B":"#FDF8F3",color:scope===o.v?"#FFF":"#8B7355",transition:"all 0.15s"}}>{o.l}</button>
-        ))}
-      </div>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="ðŸ” Buscar cliente..." style={{...inputStyle,marginBottom:12}} />
-      {filtered.length===0 ? (
-        <div style={{textAlign:"center",padding:"48px 0",color:"#8B7355"}}>
-          <div style={{fontSize:44,marginBottom:10}}>ðŸ‘¥</div>
-          <div style={{fontWeight:600}}>AÃºn no hay clientes</div>
-          <div style={{marginTop:14}}><Btn small onClick={onNewCliente}>+ Nuevo cliente</Btn></div>
-        </div>
-      ) : filtered.map(c=>{
-        const cr=reservas.filter(r=>r.clienteId===c.id&&r.estado!=="cancelada");
-        return (
-          <div key={c.id} onClick={()=>onClienteClick(c)} style={{...card,padding:"14px 16px",marginBottom:10,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}
-          onMouseEnter={e=>e.currentTarget.style.background="#FDF5EE"}
-          onMouseLeave={e=>e.currentTarget.style.background="#FFF"}>
-            <Avatar nombre={c.nombre} />
-            <div style={{flex:1}}>
-              <div style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>{clientName(c)}</div>
-              <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
-                {c.localidad&&`ðŸ“ ${c.localidad}`}{c.localidad&&c.whatsapp&&" Â· "}{c.whatsapp&&`ðŸ“± ${c.whatsapp}`}
-              </div>
-            </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{fontSize:11,color:"#8B7355"}}>{cr.length} reserva{cr.length!==1?"s":""}</div>
-              {c.whatsapp && (
-                <a href={`https://wa.me/${c.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
-                  onClick={e=>e.stopPropagation()} style={{display:"inline-block",marginTop:4,padding:"3px 8px",borderRadius:6,background:"#25D366",color:"#FFF",fontSize:11,fontWeight:600,textDecoration:"none"}}>ðŸ’¬</a>
-              )}
-            </div>
-          </div>
-        );
-      })}
-      <div style={{marginTop:20,textAlign:"center"}}><Btn onClick={onNewCliente}>+ Nuevo Cliente</Btn></div>
-    </div>
-  );
-}
+// ClientesView → src/views/ClientesView.jsx (lazy-loaded)
 
 // GastosView → src/views/GastosView.jsx (lazy-loaded)
 function AddUsuarioForm({ usuarios, setUsuarios }) {
@@ -4026,12 +3819,12 @@ Te esperamos nuevamente. Si podÃ©s etiquetarnos en tus fotos nos ayudÃ¡s un 
     setDayModal({date:ds,reservas:dr,espacioFiltro:filtro});
   }
 }} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} />}
-      {tab==="reservas" && <ReservasView reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} />}
-      {tab==="clientes" && <ClientesView clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} />}
+      {tab==="reservas" && <Suspense fallback={<div style={{padding:40,textAlign:"center",color:"#8B7355"}}>Cargando…</div>}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} /></Suspense>}
+      {tab==="clientes" && <Suspense fallback={<div style={{padding:40,textAlign:"center",color:"#8B7355"}}>Cargando…</div>}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} /></Suspense>}
       {tab==="gastos" && <ErrorBoundary><Suspense fallback={<div style={{padding:40,textAlign:"center",color:"#8B7355"}}>Cargando…</div>}><GastosViewLazy gastos={gastos} onNewGasto={()=>setModal("gasto")} /></Suspense></ErrorBoundary>}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
       {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} />}
-      {tab==="recordatorios" && <RecordatoriosView recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} />}
+      {tab==="recordatorios" && <Suspense fallback={<div style={{padding:40,textAlign:"center",color:"#8B7355"}}>Cargando…</div>}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
       {tab==="reportes" && <ErrorBoundary><Suspense fallback={<div style={{padding:40,textAlign:"center",color:"#8B7355"}}>Cargando…</div>}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} /></Suspense></ErrorBoundary>}
 
