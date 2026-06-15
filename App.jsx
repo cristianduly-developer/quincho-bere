@@ -4232,11 +4232,26 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     };
     document.addEventListener('visibilitychange', onVisible);
 
+    let tickCount=0;
     // Chequeo periódico como fallback (cuando la tab está activa)
     const interval=setInterval(()=>{
       setCheckTick(t=>t+1);
       if(Date.now() - lastActivityRef.current > INACTIVITY_MS) {
         handleLogout();
+      }
+      // Re-verificar suscripción cada hora (60 ticks × 60s)
+      tickCount++;
+      if(tickCount>=60){
+        tickCount=0;
+        const email=currentUser?.email;
+        if(email){
+          supabaseCentral.rpc("verificar_acceso_email",{email_param:email,app_id_param:"quincho"}).then(({data})=>{
+            const acceso=Array.isArray(data)?data[0]:data;
+            if(!acceso?.tiene_acceso||acceso.estado==="impago"||acceso.estado==="suspendido"){
+              handleLogout();
+            }
+          });
+        }
       }
     }, 60000);
 
@@ -4278,6 +4293,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
   const [savingReserva,setSavingReserva]=useState(false);
   const [savingPago,setSavingPago]=useState(false);
+  const [savingGasto,setSavingGasto]=useState(false);
+  const [savingExtra,setSavingExtra]=useState(false);
   const handleSaveReserva=async(data)=>{
     if(savingReserva) return;
     setSavingReserva(true);
@@ -4360,11 +4377,19 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     setModal(null);setPagoReservaId(null);
     }finally{setSavingPago(false);}
   };
-  const handleSaveGasto=(data)=>{saveG([...gastos,{id:genId(),...data,creadoEn:new Date().toISOString()}]);setModal(null);};
-  const handleSaveExtra=(data)=>{
+  const handleSaveGasto=async(data)=>{
+    if(savingGasto) return;
+    setSavingGasto(true);
+    try{ await saveG([...gastos,{id:genId(),...data,creadoEn:new Date().toISOString()}]); setModal(null); }
+    finally{ setSavingGasto(false); }
+  };
+  const handleSaveExtra=async(data)=>{
+    if(savingExtra) return;
     const res=reservas.find(r=>r.id===data.reservaId);
     if(res&&['cancelada','finalizada'].includes(res.estado)){alert("No se puede agregar un extra a una reserva "+res.estado+".");return;}
-    saveER([...extrasReserva,{id:genId(),...data,creadoEn:new Date().toISOString()}]);setModal(null);setExtraReservaId(null);
+    setSavingExtra(true);
+    try{ await saveER([...extrasReserva,{id:genId(),...data,creadoEn:new Date().toISOString()}]); setModal(null); setExtraReservaId(null); }
+    finally{ setSavingExtra(false); }
   };
   const handleDeleteReserva=async(id)=>{
     const prevReservas=reservas; const prevPagos=pagos; const prevExtras=extrasReserva;

@@ -29,9 +29,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/pmohyepcqfvkwijmljee\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'supabase-cache-v3', networkTimeoutSeconds: 10 },
+            urlPattern: /^https:\/\/pmohyepcqfvkwijmljee\.supabase\.co\/storage\/.*/i,
+            handler: 'CacheFirst',
+            options: { cacheName: 'supabase-storage-v1', expiration: { maxEntries: 50, maxAgeSeconds: 86400 } },
           },
         ],
       },
