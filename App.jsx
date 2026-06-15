@@ -3363,10 +3363,8 @@ Te esperamos nuevamente. Si podÃ©s etiquetarnos en tus fotos nos ayudÃ¡s un 
 
       if(!session?.user){ try{localStorage.removeItem("qb_user");}catch(e){} return; }
       if(cu?.email && cu.email !== session.user.email){ try{localStorage.removeItem("qb_user");}catch(e){} cu=null; }
-      // Si no hay qb_user en localStorage pero sí sesión Supabase (primer login / cache limpio),
-      // usamos el email del JWT — así funciona para usuarios nuevos también
-      const emailParaVerificar = cu?.email || session.user.email;
-      if(!emailParaVerificar) return;
+      if(!cu?.email) return;
+      const emailParaVerificar = cu.email;
 
       // â”€â”€ PASO 2: verificar suscripciÃ³n en central â”€â”€
       const { data:accesoArr } = await supabaseCentral.rpc("verificar_acceso_email", {
