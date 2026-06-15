@@ -3303,7 +3303,7 @@ export default function App() {
   const [recursos,setRecursos]=useState([]);
   const [turnosRecurso,setTurnosRecurso]=useState([]);
   const [extrasReserva,setExtrasReserva]=useState([]);
-  const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
+  const [serviciosExtras,setServiciosExtras]=useState([]);
   const [config,setConfig]=useState(DEFAULT_CONFIG);
   const MSG_REC_DEFAULT = `Hola {nombre}! ðŸ‘‹
 Te contactamos desde {nombre_negocio} para recordarte tu evento maÃ±ana {fecha}, de {horario_inicio} a {horario_fin}.
