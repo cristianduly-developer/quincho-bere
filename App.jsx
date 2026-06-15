@@ -3363,11 +3363,14 @@ Te esperamos nuevamente. Si podÃ©s etiquetarnos en tus fotos nos ayudÃ¡s un 
 
       if(!session?.user){ try{localStorage.removeItem("qb_user");}catch(e){} return; }
       if(cu?.email && cu.email !== session.user.email){ try{localStorage.removeItem("qb_user");}catch(e){} cu=null; }
-      if(!cu?.email) return;
+      // Si no hay qb_user en localStorage pero sí sesión Supabase (primer login / cache limpio),
+      // usamos el email del JWT — así funciona para usuarios nuevos también
+      const emailParaVerificar = cu?.email || session.user.email;
+      if(!emailParaVerificar) return;
 
       // â”€â”€ PASO 2: verificar suscripciÃ³n en central â”€â”€
       const { data:accesoArr } = await supabaseCentral.rpc("verificar_acceso_email", {
-        email_param: cu.email,
+        email_param: emailParaVerificar,
         app_id_param: "quincho",
       });
       const acceso = Array.isArray(accesoArr) ? accesoArr[0] : accesoArr;
@@ -3381,14 +3384,14 @@ Te esperamos nuevamente. Si podÃ©s etiquetarnos en tus fotos nos ayudÃ¡s un 
       }
 
       // â”€â”€ PASO 3: configurar org y cargar datos â”€â”€
-      const orgId = acceso.ret_org_id || cu.orgId;
+      const orgId = acceso.ret_org_id || cu?.orgId;
       currentOrgId = orgId; setCurrentOrgId(orgId);
 
       // Sincronizar user_orgs y refrescar JWT para que RLS funcione con el org_id correcto
       await supabase.from("user_orgs").upsert({ user_id: session.user.id, org_id: orgId });
       await supabase.auth.refreshSession();
 
-      const user = { ...cu, orgId, plan: acceso.plan || cu.plan || "basico", suscripcionEstado: acceso.estado, diasRestantes: acceso.dias_restantes ?? null };
+      const user = { email: emailParaVerificar, nombre: session.user.user_metadata?.full_name || session.user.user_metadata?.name || emailParaVerificar.split("@")[0], avatarUrl: session.user.user_metadata?.avatar_url || null, ...(cu||{}), orgId, plan: acceso.plan || cu?.plan || "basico", suscripcionEstado: acceso.estado, diasRestantes: acceso.dias_restantes ?? null };
       setCurrentUser(user);
       localStorage.setItem("qb_user", JSON.stringify(user));
 
@@ -4034,3 +4037,4 @@ Te esperamos nuevamente. Si podÃ©s etiquetarnos en tus fotos nos ayudÃ¡s un 
     </div>
   );
 }
+
