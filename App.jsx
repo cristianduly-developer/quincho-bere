@@ -3517,10 +3517,12 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   };
 
   const handleLogin=async(user)=>{
-    currentOrgId=user.orgId; setCurrentOrgId(user.orgId); setCurrentUser(user);
+    currentOrgId=user.orgId; setCurrentOrgId(user.orgId);
     try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){}
-    // Cargar datos desde Supabase (necesario cuando viene de GoogleLoginScreen)
+    // Cargar datos ANTES de setCurrentUser para que el efecto de onboarding
+    // no vea recursos vacíos y dispare el wizard prematuramente
     if(user.orgId) await cargarDatos(user.orgId);
+    setCurrentUser(user);
   };
   const handleLogout=async()=>{
     try{ await supabase.auth.signOut(); }catch(e){}
