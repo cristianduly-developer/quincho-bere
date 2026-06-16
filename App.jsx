@@ -2185,6 +2185,15 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
       const next=preciosTemp.map(p=>p.id===existing.id?updated:p);
       setPreciosTemp(next);
       if(onTemporadasChange) onTemporadasChange(espacio.id,temporadas.map(t=>({...t,recursoId:espacio.id})),next);
+    } else {
+      // No había fila para este turno+temporada (ej: turno creado después de la temporada) → la creamos
+      const base={precioSemana:0,precioFinde:0,activo:true,[field]:field==="activo"?value:Number(value)||0};
+      const {data,error}=await supabase.from("precios_temporada").insert({org_id:currentOrgId,temporada_id:temporadaId,turno_id:turnoId,precio_semana:base.precioSemana,precio_finde:base.precioFinde,activo:base.activo}).select().single();
+      if(error){alert("Error: "+error.message);return;}
+      const mapped={id:data.id,temporadaId:data.temporada_id,turnoId:data.turno_id,precioSemana:Number(data.precio_semana)||0,precioFinde:Number(data.precio_finde)||0,activo:data.activo!==false};
+      const next=[...preciosTemp,mapped];
+      setPreciosTemp(next);
+      if(onTemporadasChange) onTemporadasChange(espacio.id,temporadas.map(t=>({...t,recursoId:espacio.id})),next);
     }
   };
 
@@ -2201,6 +2210,17 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
     if(error){alert("Error: "+error.message);setSaving(false);return;}
     const mapX=x=>({id:x.id,recursoId:x.recurso_id||x.recursoId,orgId:x.org_id||x.orgId,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||x.horaInicio||"",horaFin:x.hora_fin||x.horaFin||"",precioSemana:Number(x.precio_semana||x.precioSemana)||0,precioFinde:Number(x.precio_finde||x.precioFinde)||0,activo:true});
     setTurnos(prev=>{const n=[...prev,data];if(onTurnosChange)onTurnosChange(espacio.id,n.map(mapX));return n;});
+    // Si ya hay temporadas configuradas, crear también el precio de este turno para cada una (default: precio base)
+    if(temporadas.length){
+      const filas=temporadas.map(tmp=>({org_id:currentOrgId,temporada_id:tmp.id,turno_id:data.id,precio_semana:data.precio_semana||0,precio_finde:data.precio_finde||0,activo:true}));
+      const {data:ptData}=await supabase.from("precios_temporada").insert(filas).select();
+      if(ptData?.length){
+        const mappedPt=ptData.map(x=>({id:x.id,temporadaId:x.temporada_id,turnoId:x.turno_id,precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:true}));
+        const nextPt=[...preciosTemp,...mappedPt];
+        setPreciosTemp(nextPt);
+        if(onTemporadasChange) onTemporadasChange(espacio.id,temporadas.map(t=>({...t,recursoId:espacio.id})),nextPt);
+      }
+    }
     setForm({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:""});
     setShowForm(false);setSaving(false);
   };
