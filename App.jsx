@@ -2986,12 +2986,10 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin, skipBrowserRedirect: true },
+      options: { redirectTo: window.location.origin },
     });
-    if (error) { alert("Error al iniciar sesión: " + error.message); setLoading(false); return; }
-    if (data?.url) window.location.href = data.url;
   };
 
   return (
