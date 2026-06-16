@@ -2637,7 +2637,7 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
           const newSrv={id:genId(),descripcion:form.descripcion,precioActual:Number(form.precioActual),activo:true};
           const updated=[...serviciosExtras,newSrv];
           setServiciosExtras(updated);
-          await sb.upsert("servicios_extras",[{id:newSrv.id,descripcion:newSrv.descripcion,precio_actual:newSrv.precioActual,activo:true,creado_en:new Date().toISOString()}]);
+          await sb.upsert("servicios_extras",[{id:newSrv.id,org_id:getCurrentOrgId(),descripcion:newSrv.descripcion,precio_actual:newSrv.precioActual,activo:true,creado_en:new Date().toISOString()}]);
           setForm({descripcion:"",precioActual:""});setShow(false);
         }} style={{flex:2,padding:"8px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
       </div>
@@ -2649,7 +2649,7 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
 function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtras }) {
   const [showSrvForm,setShowSrvForm]=useState(false);
   const [srvForm,setSrvForm]=useState({descripcion:"",precioActual:""});
-  const saveSrv = async d=>{setServiciosExtras(d); await sb.upsert("servicios_extras", d.map(x=>({id:x.id,descripcion:x.descripcion||"",precio_actual:x.precioActual||0,activo:x.activo!==false,creado_en:x.creadoEn||new Date().toISOString()})));};
+  const saveSrv = async d=>{setServiciosExtras(d); await sb.upsert("servicios_extras", d.map(x=>({id:x.id,org_id:getCurrentOrgId(),descripcion:x.descripcion||"",precio_actual:x.precioActual||0,activo:x.activo!==false,creado_en:x.creadoEn||new Date().toISOString()})));};
   return (
     <div style={{padding:"16px 16px 100px"}}>
       {/* Espacios — solo lectura, gestión en Config */}
