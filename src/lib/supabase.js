@@ -7,7 +7,8 @@ export const supabase = createClient(
 
 export const supabaseCentral = createClient(
   import.meta.env.VITE_CENTRAL_URL,
-  import.meta.env.VITE_CENTRAL_KEY
+  import.meta.env.VITE_CENTRAL_KEY,
+  { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } }
 );
 
 // org_id activo — se setea al login
