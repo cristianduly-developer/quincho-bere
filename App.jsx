@@ -144,7 +144,24 @@ function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,po
 
 // ─── MODALS ───────────────────────────────────────────────
 
-function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config, saving, turnosRecurso }) {
+function getPrecioTemporada(fecha, esFinDeSemana, temporadas, recursoId) {
+  if(!fecha||!temporadas?.length) return null;
+  const d = new Date(fecha+"T12:00:00");
+  const mes = d.getMonth()+1;
+  const dia = d.getDate();
+  const actual = mes*100+dia;
+  const t = temporadas.find(t=>{
+    if(recursoId && t.recursoId!==recursoId) return false;
+    const desde = t.mesDesde*100+t.diaDesde;
+    const hasta = t.mesHasta*100+t.diaHasta;
+    if(desde>hasta) return actual>=desde||actual<=hasta; // cruza año (ej: dic–mar)
+    return actual>=desde&&actual<=hasta;
+  });
+  if(!t) return null;
+  return esFinDeSemana ? t.precioFinde : t.precioSemana;
+}
+
+function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config, saving, turnosRecurso, temporadasPrecio }) {
   const isEdit = !!reserva;
 
   const esFinde = (fecha) => {
@@ -155,10 +172,13 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     (turnosRecurso||[]).filter(t=>t.recursoId===recursoId && t.activo!==false);
 
   const getPrecioFromTurnos = (turnoId, fecha, recursoId) => {
+    const esFin = esFinde(fecha);
+    const tmpPrecio = getPrecioTemporada(fecha, esFin, temporadasPrecio, recursoId);
+    if(tmpPrecio!=null) return tmpPrecio||"";
     const ts = getTurnosEspacio(recursoId);
     const t = ts.find(x=>x.id===turnoId);
     if(!t) return "";
-    return esFinde(fecha) ? (t.precioFinde||"") : (t.precioSemana||"");
+    return esFin ? (t.precioFinde||"") : (t.precioSemana||"");
   };
 
   // Si initialTurno es un UUID de turno custom, detectar el espacio automáticamente
@@ -202,7 +222,8 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     if(!t) return;
     const fecha = f.fecha;
     const esFin = esFinde(fecha);
-    const precio = esFin ? (t.precioFinde||"") : (t.precioSemana||"");
+    const tmpPrecio = getPrecioTemporada(fecha, esFin, temporadasPrecio, t.recursoId);
+    const precio = tmpPrecio!=null ? tmpPrecio : (esFin ? (t.precioFinde||"") : (t.precioSemana||""));
     setF(p => {
       if(p.turnoId === t.id) return p; // ya está bien, no hacer nada
       return {...p, recursoId:t.recursoId, turnoId:t.id, horario:t.horaInicio, horarioFin:t.horaFin, montoPactado:precio||p.montoPactado};
@@ -217,13 +238,17 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     if(k==="recursoId") {
       const ts = getTurnosEspacio(v);
       const primerTurno = ts[0];
-      const precio = primerTurno ? (esFinde(p.fecha) ? primerTurno.precioFinde : primerTurno.precioSemana) : "";
+      const esFin = esFinde(p.fecha);
+      const tmpPrecio = getPrecioTemporada(p.fecha, esFin, temporadasPrecio, v);
+      const precio = tmpPrecio!=null ? tmpPrecio : (primerTurno ? (esFin ? primerTurno.precioFinde : primerTurno.precioSemana) : "");
       return {...p, recursoId:v, turnoId:primerTurno?.id||"", horario:primerTurno?.horaInicio||"", horarioFin:primerTurno?.horaFin||"", montoPactado:precio||""};
     }
     if(k==="turnoId") {
       const ts = getTurnosEspacio(p.recursoId);
       const t = ts.find(x=>x.id===v);
-      const precio = t ? (esFinde(p.fecha) ? t.precioFinde : t.precioSemana) : "";
+      const esFin = esFinde(p.fecha);
+      const tmpPrecio = getPrecioTemporada(p.fecha, esFin, temporadasPrecio, p.recursoId);
+      const precio = tmpPrecio!=null ? tmpPrecio : (t ? (esFin ? t.precioFinde : t.precioSemana) : "");
       return {...p, turnoId:v, horario:t?.horaInicio||p.horario, horarioFin:t?.horaFin||p.horarioFin, montoPactado:precio||p.montoPactado};
     }
     if(k==="fecha") {
@@ -285,6 +310,20 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
         )}
       </div>
       <Input label="Monto pactado ($)" type="number" value={f.montoPactado} onChange={set("montoPactado")} required placeholder="0" />
+      {(()=>{
+        const esFin=esFinde(f.fecha);
+        const tmp=temporadasPrecio?.find(t=>{
+          if(t.recursoId!==f.recursoId) return false;
+          const d=new Date(f.fecha+"T12:00:00");
+          const actual=(d.getMonth()+1)*100+d.getDate();
+          const desde=t.mesDesde*100+t.diaDesde;
+          const hasta=t.mesHasta*100+t.diaHasta;
+          if(desde>hasta) return actual>=desde||actual<=hasta;
+          return actual>=desde&&actual<=hasta;
+        });
+        if(!tmp) return null;
+        return <div style={{padding:"8px 12px",background:"#FFF8EC",border:"1px solid #F5C842",borderRadius:8,marginBottom:8,fontSize:12,color:"#92680A"}}>🌡️ Precio de <strong>{tmp.nombre}</strong> aplicado ({esFin?"fin de semana":"semana"})</div>;
+      })()}
       <div style={{padding:"8px 12px",background:"#F3F4F6",borderRadius:8,marginBottom:14,fontSize:12,color:"#6B7280"}}>
         🔒 Estado: <strong>{STATUS[f.estado]?.label||"Pendiente"}</strong> — cambia automáticamente con los cobros
       </div>
@@ -506,7 +545,7 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
 
 // ─── DETAIL PANELS ────────────────────────────────────────
 
-function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, canModifyCaja, negocio }) {
+function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, canModifyCaja, negocio, plan }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -590,7 +629,9 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       <div style={{marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={labelStyle}>🎉 Extras contratados</div>
-          <Btn small variant="secondary" onClick={onNewExtra}>+ Extra</Btn>
+          {getPlanLimits(plan).serviciosExtras===false
+            ? <span style={{fontSize:11,color:"#8B7355",fontStyle:"italic"}}>🔒 No disponible en tu plan</span>
+            : <Btn small variant="secondary" onClick={onNewExtra}>+ Extra</Btn>}
         </div>
         {resExtras.length===0 ? (
           <div style={{...card,padding:"12px 14px",textAlign:"center",color:"#8B7355",fontSize:13}}>Sin extras aún</div>
@@ -2053,12 +2094,16 @@ function ColaboradoresSection({ orgId, plan, embedded }) {
   );
 }
 
-function EspacioCard({ espacio, onDelete, onTurnosChange }) {
+function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) {
   const [expanded, setExpanded] = useState(false);
   const [turnos, setTurnos] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:"",icono:"📌"});
+  const [temporadas, setTemporadas] = useState([]);
+  const [showTmpForm, setShowTmpForm] = useState(false);
+  const [tmpForm, setTmpForm] = useState({nombre:"Temporada Alta",mesDesde:"12",diaDesde:"1",mesHasta:"3",diaHasta:"31",precioSemana:"",precioFinde:""});
+  const MESES = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
   const ICONOS_TURNO = ["📌","☀️","🌤️","🌆","🌙","⚽","🎾","🏊","🎉","🎪","🍖","🎸","💅","🏋️","🎭","🏠"];
   const [saving, setSaving] = useState(false);
   // modo local del espacio (fijo = manual, slot = generador)
@@ -2077,9 +2122,34 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
 
   const loadTurnos = async () => {
     if(loaded) return;
-    const {data} = await supabase.from("turnos_recurso").select("*").eq("recurso_id",espacio.id).eq("activo",true).order("hora_inicio");
-    setTurnos(data||[]);
+    const [{data:trData},{data:tmpData}] = await Promise.all([
+      supabase.from("turnos_recurso").select("*").eq("recurso_id",espacio.id).eq("activo",true).order("hora_inicio"),
+      supabase.from("temporadas_precio").select("*").eq("recurso_id",espacio.id).order("mes_desde"),
+    ]);
+    setTurnos(trData||[]);
+    const mappedTmp=(tmpData||[]).map(x=>({id:x.id,nombre:x.nombre||"Temporada",mesDesde:x.mes_desde,diaDesde:x.dia_desde,mesHasta:x.mes_hasta,diaHasta:x.dia_hasta,precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0}));
+    setTemporadas(mappedTmp);
     setLoaded(true);
+  };
+
+  const handleAddTemporada = async () => {
+    if(!tmpForm.mesDesde||!tmpForm.mesHasta) return alert("Completá los meses.");
+    const nuevo={org_id:currentOrgId,recurso_id:espacio.id,nombre:tmpForm.nombre||"Temporada",mes_desde:Number(tmpForm.mesDesde),dia_desde:Number(tmpForm.diaDesde)||1,mes_hasta:Number(tmpForm.mesHasta),dia_hasta:Number(tmpForm.diaHasta)||28,precio_semana:Number(tmpForm.precioSemana)||0,precio_finde:Number(tmpForm.precioFinde)||0};
+    const {data,error}=await supabase.from("temporadas_precio").insert(nuevo).select().single();
+    if(error){alert("Error: "+error.message);return;}
+    const mapped={id:data.id,nombre:data.nombre,mesDesde:data.mes_desde,diaDesde:data.dia_desde,mesHasta:data.mes_hasta,diaHasta:data.dia_hasta,precioSemana:Number(data.precio_semana)||0,precioFinde:Number(data.precio_finde)||0};
+    const next=[...temporadas,mapped];
+    setTemporadas(next);
+    if(onTemporadasChange) onTemporadasChange(espacio.id,next.map(t=>({...t,recursoId:espacio.id,orgId:currentOrgId})));
+    setShowTmpForm(false);
+    setTmpForm({nombre:"Temporada Alta",mesDesde:"12",diaDesde:"1",mesHasta:"3",diaHasta:"31",precioSemana:"",precioFinde:""});
+  };
+
+  const handleRemoveTemporada = async (id) => {
+    await supabase.from("temporadas_precio").delete().eq("id",id);
+    const next=temporadas.filter(t=>t.id!==id);
+    setTemporadas(next);
+    if(onTemporadasChange) onTemporadasChange(espacio.id,next.map(t=>({...t,recursoId:espacio.id,orgId:currentOrgId})));
   };
 
   const handleExpand = () => {
@@ -2291,6 +2361,44 @@ function EspacioCard({ espacio, onDelete, onTurnosChange }) {
               )}
             </>
           )}
+
+          {/* ── TEMPORADAS DE PRECIO ── */}
+          <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #EDE0D0"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>🌡️ Temporadas de precio</div>
+            <div style={{fontSize:11,color:"#8B7355",marginBottom:10}}>Definí precios especiales por temporada (ej: alta temporada dic–mar). Tienen prioridad sobre los precios del turno.</div>
+            {temporadas.length===0 && <div style={{fontSize:12,color:"#8B7355",marginBottom:8}}>Sin temporadas configuradas. El precio base es el del turno.</div>}
+            {temporadas.map(t=>(
+              <div key={t.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F5EDE4"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>{t.nombre}</div>
+                  <div style={{fontSize:11,color:"#8B7355"}}>{MESES[t.mesDesde]} {t.diaDesde} → {MESES[t.mesHasta]} {t.diaHasta} · Sem: {fmtCurrency(t.precioSemana)} · Finde: {fmtCurrency(t.precioFinde)}</div>
+                </div>
+                <button onClick={()=>handleRemoveTemporada(t.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",flexShrink:0}}>🗑️</button>
+              </div>
+            ))}
+            {!showTmpForm ? (
+              <button onClick={()=>setShowTmpForm(true)} style={{marginTop:10,width:"100%",padding:"8px",background:"#FDF8F3",border:"1.5px dashed #8B7355",borderRadius:8,color:"#8B7355",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar temporada</button>
+            ) : (
+              <div style={{marginTop:10,padding:12,background:"#FDF5EE",borderRadius:10,border:"1px solid #EDE0D0"}}>
+                <div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Nombre</div>
+                <input value={tmpForm.nombre} onChange={e=>setTmpForm(p=>({...p,nombre:e.target.value}))} style={{...inpS,marginBottom:10}} placeholder="ej: Temporada Alta" />
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:10}}>
+                  <div><div style={{fontSize:10,color:"#8B7355",marginBottom:2}}>Mes desde</div><input type="number" min="1" max="12" value={tmpForm.mesDesde} onChange={e=>setTmpForm(p=>({...p,mesDesde:e.target.value}))} style={inpS} /></div>
+                  <div><div style={{fontSize:10,color:"#8B7355",marginBottom:2}}>Día desde</div><input type="number" min="1" max="31" value={tmpForm.diaDesde} onChange={e=>setTmpForm(p=>({...p,diaDesde:e.target.value}))} style={inpS} /></div>
+                  <div><div style={{fontSize:10,color:"#8B7355",marginBottom:2}}>Mes hasta</div><input type="number" min="1" max="12" value={tmpForm.mesHasta} onChange={e=>setTmpForm(p=>({...p,mesHasta:e.target.value}))} style={inpS} /></div>
+                  <div><div style={{fontSize:10,color:"#8B7355",marginBottom:2}}>Día hasta</div><input type="number" min="1" max="31" value={tmpForm.diaHasta} onChange={e=>setTmpForm(p=>({...p,diaHasta:e.target.value}))} style={inpS} /></div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" value={tmpForm.precioSemana} onChange={e=>setTmpForm(p=>({...p,precioSemana:e.target.value}))} style={inpS} /></div>
+                  <div><div style={{fontSize:11,color:"#8B7355",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" value={tmpForm.precioFinde} onChange={e=>setTmpForm(p=>({...p,precioFinde:e.target.value}))} style={inpS} /></div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>setShowTmpForm(false)} style={{flex:1,padding:"9px",background:"#FFF",border:"1px solid #EDE0D0",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#8B7355",fontWeight:600}}>Cancelar</button>
+                  <button onClick={handleAddTemporada} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar temporada</button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -2413,7 +2521,7 @@ function TurnosEspacioSection({ recursos }) {
   );
 }
 
-function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso }) {
+function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio }) {
   const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
@@ -2544,7 +2652,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                 if(delErr){ alert("No se pudo eliminar el espacio: "+delErr.message); return; }
                 setRecursos(prev=>prev.filter(x=>x.id!==r.id));
                 if(setTurnosRecurso) setTurnosRecurso(prev=>prev.filter(t=>t.recursoId!==r.id));
-              }} onTurnosChange={(recursoId,nuevos)=>setTurnosRecurso&&setTurnosRecurso(prev=>[...prev.filter(t=>t.recursoId!==recursoId),...nuevos])} />
+              }} onTurnosChange={(recursoId,nuevos)=>setTurnosRecurso&&setTurnosRecurso(prev=>[...prev.filter(t=>t.recursoId!==recursoId),...nuevos])} onTemporadasChange={(recursoId,nuevas)=>setTemporadasPrecio&&setTemporadasPrecio(prev=>[...prev.filter(t=>t.recursoId!==recursoId),...nuevas])} />
             ))}
             <AddEspacioForm recursos={recursos} setRecursos={setRecursos} plan={currentUser?.plan} />
           </div>
@@ -3293,6 +3401,7 @@ export default function App() {
   const [gastos,setGastos]=useState([]);
   const [recursos,setRecursos]=useState([]);
   const [turnosRecurso,setTurnosRecurso]=useState([]);
+  const [temporadasPrecio,setTemporadasPrecio]=useState([]);
   const [extrasReserva,setExtrasReserva]=useState([]);
   const [serviciosExtras,setServiciosExtras]=useState(DEFAULT_SERVICIOS);
   const [config,setConfig]=useState(DEFAULT_CONFIG);
@@ -3487,7 +3596,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   },[loaded]);
 
   const cargarDatos=async(orgId)=>{
-    const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:tr},{data:er},{data:se},{data:t},{data:bl},{data:rec}]=await Promise.all([
+    const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:tr},{data:er},{data:se},{data:t},{data:bl},{data:rec},{data:tmp}]=await Promise.all([
       supabase.from("clientes").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
       supabase.from("reservas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
       supabase.from("pagos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
@@ -3499,6 +3608,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       supabase.from("tareas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
       supabase.from("bloqueos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
       supabase.from("recordatorios").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("temporadas_precio").select("*").eq("org_id",orgId).order("mes_desde",{ascending:true}),
     ]);
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
     if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
@@ -3511,6 +3621,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
     if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
     if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
+    if(tmp?.length) setTemporadasPrecio(tmp.map(x=>({id:x.id,orgId:x.org_id,recursoId:x.recurso_id,nombre:x.nombre||"Temporada",mesDesde:x.mes_desde,diaDesde:x.dia_desde,mesHasta:x.mes_hasta,diaHasta:x.dia_hasta,precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0})));
     const {data:cfgData}=await supabase.from("config").select("*").eq("org_id",orgId).maybeSingle();
     if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false});
     if(!rc?.length && orgId) setOnboarding(true);
@@ -3820,7 +3931,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {tab==="clientes" && <Suspense fallback={null}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} /></Suspense>}
       {tab==="gastos" && <ErrorBoundary><Suspense fallback={null}><GastosViewLazy gastos={gastos} onNewGasto={()=>setModal("gasto")} /></Suspense></ErrorBoundary>}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
-      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} />}
+      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} setTemporadasPrecio={setTemporadasPrecio} />}
       {tab==="recordatorios" && <Suspense fallback={null}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
       {tab==="reportes" && <ErrorBoundary><Suspense fallback={null}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} /></Suspense></ErrorBoundary>}
@@ -3843,7 +3954,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} negocio={negocio} />
 
       {/* Modals */}
-      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} turnosRecurso={turnosRecurso} />}
+      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} turnosRecurso={turnosRecurso} temporadasPrecio={temporadasPrecio} />}
       {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} />}
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} />}
       {modal==="gasto" && <GastoModal onClose={()=>setModal(null)} onSave={handleSaveGasto} />}
@@ -3909,6 +4020,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         onNewPago={()=>{setPagoReservaId(detailReserva.id);setDetailReserva(null);setModal("pago");}}
         onNewExtra={()=>{setExtraReservaId(detailReserva.id);setDetailReserva(null);setModal("extra");}}
         negocio={negocio}
+        plan={currentUser?.plan}
       />}
       {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas}
         onClose={()=>setDetailCliente(null)}
