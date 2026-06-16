@@ -3383,40 +3383,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       setCurrentUser(user);
       localStorage.setItem("qb_user", JSON.stringify(user));
 
-      const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:tr},{data:er},{data:se},{data:t},{data:bl},{data:rec}]=await Promise.all([
-        supabase.from("clientes").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("reservas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("pagos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("gastos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("recursos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("turnos_recurso").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("extras_reserva").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("servicios_extras").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("tareas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("bloqueos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-        supabase.from("recordatorios").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      ]);
-
-      if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
-      if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
-      if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
-      if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
-      if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
-      if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-      if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
-      setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
-      if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
-      if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
-      if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
-
-      // Cargar config (white-label + mensajes)
-      const {data:cfgData}=await supabase.from("config").select("*").eq("org_id",orgId).maybeSingle();
-      if(cfgData){
-        setNegocio({ nombreNegocio:cfgData.nombre_negocio||"", ciudad:cfgData.ciudad||"", direccion:cfgData.direccion||"", telefono:cfgData.telefono||"", logoUrl:cfgData.logo_url||"", msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT, msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT, recordatorioActivo:cfgData.recordatorio_activo!==false, postEventoActivo:cfgData.post_evento_activo!==false });
-      }
-
-      // Mostrar onboarding si no hay espacios configurados
-      if(!rc?.length && currentOrgId) setOnboarding(true);
+      await cargarDatos(orgId);
 
       if(window.location.hash?.includes("access_token")){
         window.history.replaceState(null,"",window.location.pathname);
@@ -3519,7 +3486,42 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     };
   },[loaded]);
 
-  const handleLogin=(user)=>{ currentOrgId=user.orgId; setCurrentOrgId(user.orgId); setCurrentUser(user); try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){} };
+  const cargarDatos=async(orgId)=>{
+    const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:tr},{data:er},{data:se},{data:t},{data:bl},{data:rec}]=await Promise.all([
+      supabase.from("clientes").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("reservas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("pagos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("gastos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("recursos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("turnos_recurso").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("extras_reserva").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("servicios_extras").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("tareas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("bloqueos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+      supabase.from("recordatorios").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
+    ]);
+    if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
+    if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
+    if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
+    if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
+    if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
+    if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
+    setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
+    if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
+    if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
+    if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
+    const {data:cfgData}=await supabase.from("config").select("*").eq("org_id",orgId).maybeSingle();
+    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false});
+    if(!rc?.length && orgId) setOnboarding(true);
+  };
+
+  const handleLogin=async(user)=>{
+    currentOrgId=user.orgId; setCurrentOrgId(user.orgId); setCurrentUser(user);
+    try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){}
+    // Cargar datos desde Supabase (necesario cuando viene de GoogleLoginScreen)
+    if(user.orgId) await cargarDatos(user.orgId);
+  };
   const handleLogout=async()=>{
     try{ await supabase.auth.signOut(); }catch(e){}
     setCurrentUser(null);
