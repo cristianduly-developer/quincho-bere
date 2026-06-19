@@ -1756,6 +1756,94 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
   );
 }
 
+function AgendaDiaView({ diaVista, setDiaVista, reservas, clientes, bloqueos, recursos, turnosRecurso, onDayClick, onReservaClick }) {
+  const today2=toDateStr(new Date());
+  const multiEspacio=recursos&&recursos.length>1;
+  const espacioConTurnos=recursos?.find(r=>(turnosRecurso||[]).some(t=>t.recursoId===r.id));
+  const [espacioDia,setEspacioDia]=useState(espacioConTurnos?.id||"all");
+  const irDia=(delta)=>{const d=new Date(diaVista+"T12:00:00");d.setDate(d.getDate()+delta);setDiaVista(toDateStr(d));};
+  const todosLosTurnos=turnosRecurso||[];
+  const espacioEfectivo=espacioDia!=="all"?espacioDia:(recursos?.length===1?recursos[0]?.id:([...new Set(todosLosTurnos.map(t=>t.recursoId))].length===1?todosLosTurnos[0]?.recursoId:null));
+  const turnosDia=espacioEfectivo?todosLosTurnos.filter(t=>t.recursoId===espacioEfectivo&&t.activo!==false).sort((a,b)=>(a.horaInicio||"").localeCompare(b.horaInicio||"")):[];
+  const reservasDia=reservas.filter(r=>r.fecha===diaVista&&r.estado!=="cancelada"&&(espacioEfectivo?r.recursoId===espacioEfectivo:true));
+  const bloqueosDia=bloqueos.filter(b=>b.fecha===diaVista);
+  const hayBloqueoCompleto=bloqueosDia.some(b=>b.turno==="completo");
+  const isSlotBloqueado=(turnoId)=>hayBloqueoCompleto||bloqueosDia.some(b=>b.turno===turnoId);
+  const esFinde=(()=>{const d=new Date(diaVista+"T12:00:00");return d.getDay()===0||d.getDay()===6;})();
+  const isPast=diaVista<today2;
+  const ocupados=turnosDia.filter(t=>reservasDia.some(r=>r.turnoId===t.id)).length;
+  const libres=turnosDia.filter(t=>!reservasDia.some(r=>r.turnoId===t.id)&&!isSlotBloqueado(t.id)).length;
+  const potencial=turnosDia.reduce((s,t)=>s+(esFinde?t.precioFinde||0:t.precioSemana||0),0);
+  const fmtDiaVista=()=>{const d=new Date(diaVista+"T12:00:00");const dias=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];const meses=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];return `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;};
+  return (
+    <div style={{...card,overflow:"hidden",marginBottom:16}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",background:"linear-gradient(135deg,#C4602B,#9E4A1E)",borderRadius:"12px 12px 0 0"}}>
+        <button onClick={()=>irDia(-1)} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20,fontFamily:"inherit"}}>‹</button>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif",color:"#FFF"}}>{fmtDiaVista()}</div>
+          {diaVista===today2&&<div style={{fontSize:10,color:"rgba(255,255,255,0.8)",fontWeight:700,letterSpacing:1}}>HOY</div>}
+        </div>
+        <button onClick={()=>irDia(1)} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20,fontFamily:"inherit"}}>›</button>
+      </div>
+      {multiEspacio&&(
+        <div style={{padding:"8px 12px",background:"#FDF5EE",borderBottom:"1px solid #EDE0D0",display:"flex",gap:6,overflowX:"auto"}}>
+          {recursos.map(r=>(
+            <button key={r.id} onClick={()=>setEspacioDia(r.id)}
+              style={{flexShrink:0,padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
+                border:"1.5px solid "+(espacioDia===r.id?"#C4602B":"#EDE0D0"),
+                background:espacioDia===r.id?"#C4602B":"#FFF",color:espacioDia===r.id?"#FFF":"#8B7355"}}>
+              🏠 {r.nombre}
+            </button>
+          ))}
+        </div>
+      )}
+      {turnosDia.length>0&&(
+        <div style={{padding:"8px 14px",background:"#F9F6F2",borderBottom:"1px solid #EDE0D0",display:"flex",gap:14,alignItems:"center"}}>
+          <span style={{fontSize:12,color:"#DC2626",fontWeight:700}}>🔴 {ocupados} ocupados</span>
+          <span style={{fontSize:12,color:"#16A34A",fontWeight:700}}>✅ {libres} libres</span>
+          {potencial>0&&<span style={{fontSize:12,color:"#C4602B",fontWeight:700,marginLeft:"auto"}}>💰 {fmtCurrency(potencial)}</span>}
+        </div>
+      )}
+      <div style={{padding:"8px 12px"}}>
+        {turnosDia.length===0?(
+          <div style={{textAlign:"center",padding:"24px 0",color:"#B5A090",fontSize:13}}>Sin turnos configurados para este espacio</div>
+        ):(
+          turnosDia.map(t=>{
+            const res=reservasDia.find(r=>r.turnoId===t.id);
+            const bloqueado=isSlotBloqueado(t.id);
+            const cli=res?clientes.find(c=>c.id===res.clienteId):null;
+            const precio=esFinde?(t.precioFinde||0):(t.precioSemana||0);
+            return (
+              <button key={t.id}
+                onClick={()=>{if(res){onReservaClick(res);}else if(!bloqueado&&!isPast){onDayClick(diaVista,reservasDia,espacioEfectivo||"all");}}}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,width:"100%",marginBottom:6,
+                  border:`1px solid ${bloqueado?"#374151":res?"#FECACA":"#EDE0D0"}`,
+                  background:bloqueado?"#1F2937":res?"#FEF2F2":"#FFF",
+                  cursor:(res||(!bloqueado&&!isPast))?"pointer":"default",fontFamily:"inherit",textAlign:"left"}}>
+                <div style={{fontSize:11,fontWeight:700,color:bloqueado?"#9CA3AF":"#8B7355",width:96,flexShrink:0}}>{t.horaInicio} – {t.horaFin}</div>
+                <div style={{flex:1}}>
+                  {res?<div style={{fontSize:13,fontWeight:700,color:"#DC2626"}}>{cli?clientName(cli):"🔴 Ocupado"}</div>
+                    :bloqueado?<div style={{fontSize:13,color:"#6B7280"}}>🚫 Bloqueado</div>
+                    :<div style={{fontSize:13,color:"#16A34A",fontWeight:600}}>✅ Disponible</div>}
+                  <div style={{fontSize:10,color:bloqueado?"#6B7280":"#B5A090"}}>{t.nombre}</div>
+                </div>
+                {precio>0&&<div style={{fontSize:12,color:res?"#DC2626":bloqueado?"#6B7280":"#C4602B",fontWeight:700,flexShrink:0}}>{fmtCurrency(precio)}</div>}
+              </button>
+            );
+          })
+        )}
+        {!isPast&&!hayBloqueoCompleto&&(
+          <button onClick={()=>onDayClick(diaVista,reservasDia,espacioEfectivo||"all")}
+            style={{width:"100%",padding:"10px",marginTop:4,border:"1.5px dashed #C4602B",borderRadius:8,
+              background:"#FFF8F5",color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+            + Nueva reserva este día
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso }) {
   const today=toDateStr(new Date()), now=new Date();
   const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
@@ -1798,6 +1886,9 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const buildPostMsg=(r)=>applyTemplate(negocio?.msgPostEvento||"Hola {nombre}! Gracias por tu evento en {nombre_negocio}. \u00a1Te esperamos nuevamente!",r);
   const nextEvento=upcoming[0]||null;
   const [newTarea,setNewTarea]=useState("");
+  const tieneSlots=recursos?.some(r=>r.modo==="slot");
+  const [vistaModo,setVistaModo]=useState(()=>{try{const s=localStorage.getItem("vistaModoInicio");if(s)return s;}catch(e){}return tieneSlots?"dia":"mes";});
+  const [diaVista,setDiaVista]=useState(today);
 
   const addTarea=()=>{
     if(!newTarea.trim())return;
@@ -1850,10 +1941,23 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
         <div style={{...card,padding:"14px 16px"}}><div style={{fontSize:22}}>💰</div><div style={{fontSize:20,fontWeight:800,color:"#16A34A",fontFamily:"'Playfair Display', serif",lineHeight:1.1,marginTop:4}}>{fmtCurrency(monthRevenue)}</div><div style={{fontSize:11,color:"#8B7355",marginTop:3}}>Cobrado este mes</div></div>
       </div>
 
-      {/* ── Calendario ── */}
-      <div style={{marginBottom:16}}>
-        <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={calDate} setCalDate={setCalDate} onDayClick={onDayClick} recursos={recursos} turnosRecurso={turnosRecurso} />
+      {/* ── Calendario / Agenda ── */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <div style={{fontWeight:700,fontSize:12,color:"#8B7355",letterSpacing:0.5,textTransform:"uppercase"}}>{vistaModo==="mes"?"Calendario":"Agenda del día"}</div>
+        <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1.5px solid #EDE0D0"}}>
+          <button onClick={()=>{setVistaModo("mes");try{localStorage.setItem("vistaModoInicio","mes");}catch(e){}}}
+            style={{padding:"4px 12px",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",fontFamily:"inherit",background:vistaModo==="mes"?"#C4602B":"#FDF8F3",color:vistaModo==="mes"?"#FFF":"#8B7355"}}>📅 Mes</button>
+          <button onClick={()=>{setVistaModo("dia");try{localStorage.setItem("vistaModoInicio","dia");}catch(e){}}}
+            style={{padding:"4px 12px",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",fontFamily:"inherit",background:vistaModo==="dia"?"#C4602B":"#FDF8F3",color:vistaModo==="dia"?"#FFF":"#8B7355"}}>🕐 Día</button>
+        </div>
       </div>
+      {vistaModo==="mes"?(
+        <div style={{marginBottom:16}}>
+          <CalendarWidget reservas={reservas} clientes={clientes} bloqueos={bloqueos} calDate={calDate} setCalDate={setCalDate} onDayClick={onDayClick} recursos={recursos} turnosRecurso={turnosRecurso} />
+        </div>
+      ):(
+        <AgendaDiaView diaVista={diaVista} setDiaVista={setDiaVista} reservas={reservas} clientes={clientes} bloqueos={bloqueos} recursos={recursos} turnosRecurso={turnosRecurso} onDayClick={onDayClick} onReservaClick={onReservaClick} />
+      )}
 
       {/* ── Próximas reservas ── */}
       {/* Post-event fidelization */}
