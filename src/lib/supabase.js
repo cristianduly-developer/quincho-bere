@@ -16,8 +16,8 @@ export const getCurrentOrgId = () => _currentOrgId;
 export const setCurrentOrgId = (id) => { _currentOrgId = id; };
 
 export const sb = {
-  async getAll(table) {
-    let q = supabase.from(table).select("*").order("creado_en", { ascending: true });
+  async getAll(table, limit = 1000) {
+    let q = supabase.from(table).select("*").order("creado_en", { ascending: true }).limit(limit);
     if (_currentOrgId) q = q.eq("org_id", _currentOrgId);
     const { data } = await q;
     return data || [];
@@ -48,7 +48,8 @@ export const verificarLimiteServidor = async (accion) => {
   });
   if (error) {
     console.error("verificar_limite_plan error:", error);
-    return { permitido: true }; // fail-open para no bloquear por error técnico
+    // fail-closed: ante duda, no permitir. El usuario verá un mensaje claro.
+    return { permitido: false, motivo: "No se pudo verificar el límite de tu plan. Reintentá en un momento." };
   }
-  return data || { permitido: true };
+  return data || { permitido: false, motivo: "Respuesta inesperada del servidor." };
 };

@@ -37,6 +37,40 @@ const DEFAULT_SERVICIOS = [];
 // currentOrgId local — se sincroniza con src/lib/supabase.js via setCurrentOrgId()
 let currentOrgId = null;
 
+// ─── TOAST GLOBAL ─────────────────────────────────────────────
+// Función accesible desde cualquier componente sin prop drilling.
+let _setToastGlobal = null;
+function showToast(msg, type = "ok") {
+  if (_setToastGlobal) _setToastGlobal({ msg, type, id: Date.now() });
+}
+
+function ToastContainer() {
+  const [toast, setToast] = useState(null);
+  useEffect(() => { _setToastGlobal = setToast; return () => { _setToastGlobal = null; }; }, []);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(t);
+  }, [toast]);
+  if (!toast) return null;
+  const colors = { ok: { bg: "#16A34A", icon: "✅" }, error: { bg: "#DC2626", icon: "❌" }, warn: { bg: "#D97706", icon: "⚠️" }, info: { bg: "#2563EB", icon: "ℹ️" } };
+  const c = colors[toast.type] || colors.ok;
+  return (
+    <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", zIndex: 99999,
+      background: c.bg, color: "#FFF", padding: "10px 18px", borderRadius: 12,
+      fontWeight: 700, fontSize: 13, fontFamily: "inherit",
+      boxShadow: "0 4px 20px rgba(0,0,0,0.25)", display: "flex", alignItems: "center", gap: 8,
+      animation: "fadeIn 0.2s ease", maxWidth: "calc(100vw - 40px)" }}>
+      <span>{c.icon}</span><span>{toast.msg}</span>
+    </div>
+  );
+}
+
+// ─── localStorage SAFE ────────────────────────────────────────
+function lsSet(key, value) { try { localStorage.setItem(key, value); } catch(e) {} }
+function lsGet(key) { try { return localStorage.getItem(key); } catch(e) { return null; } }
+function lsRemove(key) { try { localStorage.removeItem(key); } catch(e) {} }
+
 
 
 
@@ -1887,7 +1921,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const nextEvento=upcoming[0]||null;
   const [newTarea,setNewTarea]=useState("");
   const tieneSlots=recursos?.some(r=>r.modo==="slot");
-  const [vistaModo,setVistaModo]=useState(()=>{try{const s=localStorage.getItem("vistaModoInicio");if(s)return s;}catch(e){}return tieneSlots?"dia":"mes";});
+  const [vistaModo,setVistaModo]=useState(()=>{const s=lsGet("vistaModoInicio");if(s)return s;return tieneSlots?"dia":"mes";});
   const [diaVista,setDiaVista]=useState(today);
 
   const addTarea=()=>{
@@ -1945,9 +1979,9 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
         <div style={{fontWeight:700,fontSize:12,color:"#8B7355",letterSpacing:0.5,textTransform:"uppercase"}}>{vistaModo==="mes"?"Calendario":"Agenda del día"}</div>
         <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1.5px solid #EDE0D0"}}>
-          <button onClick={()=>{setVistaModo("mes");try{localStorage.setItem("vistaModoInicio","mes");}catch(e){}}}
+          <button onClick={()=>{setVistaModo("mes");lsSet("vistaModoInicio","mes");}}
             style={{padding:"4px 12px",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",fontFamily:"inherit",background:vistaModo==="mes"?"#C4602B":"#FDF8F3",color:vistaModo==="mes"?"#FFF":"#8B7355"}}>📅 Mes</button>
-          <button onClick={()=>{setVistaModo("dia");try{localStorage.setItem("vistaModoInicio","dia");}catch(e){}}}
+          <button onClick={()=>{setVistaModo("dia");lsSet("vistaModoInicio","dia");}}
             style={{padding:"4px 12px",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",fontFamily:"inherit",background:vistaModo==="dia"?"#C4602B":"#FDF8F3",color:vistaModo==="dia"?"#FFF":"#8B7355"}}>🕐 Día</button>
         </div>
       </div>
@@ -2285,19 +2319,22 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
     const existing = preciosTemp.find(p=>p.temporadaId===temporadaId&&p.turnoId===turnoId);
     if(existing){
       const updated={...existing,[field]:field==="activo"?value:Number(value)||0};
-      await supabase.from("precios_temporada").update({precio_semana:updated.precioSemana,precio_finde:updated.precioFinde,activo:updated.activo}).eq("id",existing.id);
+      const {error}=await supabase.from("precios_temporada").update({precio_semana:updated.precioSemana,precio_finde:updated.precioFinde,activo:updated.activo}).eq("id",existing.id);
+      if(error){showToast("Error al guardar precio","error");return;}
       const next=preciosTemp.map(p=>p.id===existing.id?updated:p);
       setPreciosTemp(next);
       if(onTemporadasChange) onTemporadasChange(espacio.id,temporadas.map(t=>({...t,recursoId:espacio.id})),next);
+      if(field!=="activo") showToast("Precio guardado","ok");
     } else {
       // No había fila para este turno+temporada (ej: turno creado después de la temporada) → la creamos
       const base={precioSemana:0,precioFinde:0,activo:true,[field]:field==="activo"?value:Number(value)||0};
       const {data,error}=await supabase.from("precios_temporada").insert({org_id:currentOrgId,temporada_id:temporadaId,turno_id:turnoId,precio_semana:base.precioSemana,precio_finde:base.precioFinde,activo:base.activo}).select().single();
-      if(error){alert("Error: "+error.message);return;}
+      if(error){showToast("Error al guardar precio: "+error.message,"error");return;}
       const mapped={id:data.id,temporadaId:data.temporada_id,turnoId:data.turno_id,precioSemana:Number(data.precio_semana)||0,precioFinde:Number(data.precio_finde)||0,activo:data.activo!==false};
       const next=[...preciosTemp,mapped];
       setPreciosTemp(next);
       if(onTemporadasChange) onTemporadasChange(espacio.id,temporadas.map(t=>({...t,recursoId:espacio.id})),next);
+      if(field!=="activo") showToast("Precio guardado","ok");
     }
   };
 
@@ -2618,15 +2655,27 @@ function LogoUploadButton({ orgId, onUploaded }) {
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) return alert("Solo se permiten imágenes.");
-    if (file.size > 2 * 1024 * 1024) return alert("La imagen no puede superar 2MB.");
+    // Whitelist estricta: no SVG (puede contener JS embebido)
+    const ALLOWED = ["image/jpeg","image/png","image/webp","image/gif"];
+    if (!ALLOWED.includes(file.type)) {
+      showToast("Solo se permiten JPG, PNG, WEBP o GIF.", "error");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("La imagen no puede superar 2MB.", "error");
+      e.target.value = "";
+      return;
+    }
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `logos/${orgId || "default"}.${ext}`;
+    const EXT = { "image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif" };
+    const ext = EXT[file.type] || "jpg";
+    const path = `logos/${orgId || "default"}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("negocio-assets").upload(path, file, { upsert: true, contentType: file.type });
-    if (error) { alert("Error al subir imagen: " + error.message); setUploading(false); return; }
+    if (error) { showToast("Error al subir imagen: " + error.message, "error"); setUploading(false); return; }
     const { data } = supabase.storage.from("negocio-assets").getPublicUrl(path);
     onUploaded(data.publicUrl + "?t=" + Date.now());
+    showToast("Logo actualizado correctamente.", "ok");
     setUploading(false);
   };
 
@@ -3303,7 +3352,7 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
         suscripcionEstado: acceso.estado,
         diasRestantes: acceso.dias_restantes ?? null,
       };
-      localStorage.setItem("qb_user", JSON.stringify(user));
+      lsSet("qb_user", JSON.stringify(user));
       onLogin(user);
     } catch(e) {
       setError("Error al verificar acceso: " + e.message);
@@ -3442,13 +3491,28 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
 const ICONOS_OB = ["📌","☀️","🌤️","🌆","🌙","⚽","🎾","🏊","🎉","🎪","🍖","🎸","💅","🏋️","🎭","🏠"];
 
 function OnboardingWizard({ onFinish }) {
-  const [step, setStep] = useState(1);
-  const [negocio, setNegocio] = useState({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"" });
-  const [espacio, setEspacio] = useState({ nombre:"", capacidadMax:"", modo:"fijo" });
-  const [turnos, setTurnos] = useState([]);
+  // Persiste estado en sessionStorage para sobrevivir un refresh accidental
+  const _loadWiz = () => { try { const s=sessionStorage.getItem("qb_wizard"); return s?JSON.parse(s):null; } catch(e){return null;} };
+  const _saveWiz = (data) => { try { sessionStorage.setItem("qb_wizard", JSON.stringify(data)); } catch(e){} };
+  const _clearWiz = () => { try { sessionStorage.removeItem("qb_wizard"); } catch(e){} };
+
+  const saved = _loadWiz();
+  const [step, setStepRaw] = useState(saved?.step||1);
+  const [negocio, setNegocioRaw] = useState(saved?.negocio||{ nombreNegocio:"", ciudad:"", direccion:"", telefono:"" });
+  const [espacio, setEspacioRaw] = useState(saved?.espacio||{ nombre:"", capacidadMax:"", modo:"fijo" });
+  const [turnos, setTurnos] = useState(saved?.turnos||[]);
   const [turnoForm, setTurnoForm] = useState({ nombre:"", horaInicio:"", horaFin:"", precioSemana:"", precioFinde:"", icono:"📌" });
-  const [slotCfg, setSlotCfg] = useState({ horaInicio:"08:00", horaFin:"22:00", duracion:60, intervalo:0, precioSemana:"", precioFinde:"" });
+  const [slotCfg, setSlotCfgRaw] = useState(saved?.slotCfg||{ horaInicio:"08:00", horaFin:"22:00", duracion:60, intervalo:0, precioSemana:"", precioFinde:"" });
   const [saving, setSaving] = useState(false);
+
+  const persist = (patch) => {
+    const next = { step, negocio, espacio, turnos, slotCfg, ...patch };
+    _saveWiz(next);
+  };
+  const setStep = (v) => { setStepRaw(v); persist({ step: v }); };
+  const setNegocio = (fn) => setNegocioRaw(prev => { const next=typeof fn==="function"?fn(prev):fn; persist({negocio:next}); return next; });
+  const setEspacio = (fn) => setEspacioRaw(prev => { const next=typeof fn==="function"?fn(prev):fn; persist({espacio:next}); return next; });
+  const setSlotCfg = (fn) => setSlotCfgRaw(prev => { const next=typeof fn==="function"?fn(prev):fn; persist({slotCfg:next}); return next; });
 
   const inpS = {padding:"10px 12px",borderRadius:10,border:"1.5px solid #EDE0D0",fontSize:14,fontFamily:"inherit",width:"100%",boxSizing:"border-box",outline:"none",background:"#FFF"};
   const lblS = {fontSize:12,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.5,display:"block",marginBottom:4};
@@ -3656,6 +3720,7 @@ function OnboardingWizard({ onFinish }) {
                 <button onClick={async()=>{
                   setSaving(true);
                   await onFinish({negocio,espacio,turnos,slotCfg});
+                  _clearWiz();
                   setSaving(false);
                 }} disabled={saving} style={{flex:2,padding:12,background:saving?"#9E4A1E":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
                   {saving?"Guardando...":"¡Empezar! 🎉"}
@@ -3748,7 +3813,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(event === "SIGNED_OUT") {
         setCurrentUser(prev => {
           if(prev) {
-            try{ localStorage.removeItem("qb_user"); }catch(e){}
+            lsRemove("qb_user");
             alert("Tu sesión expiró. Por favor, iniciá sesión nuevamente.");
           }
           return null;
@@ -3763,10 +3828,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     try {
       // ── PASO 1: verificar sesión Supabase ──
       const { data:{ session } } = await supabase.auth.getSession();
-      var cu=null; try{const s=localStorage.getItem("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
+      var cu=null; try{const s=lsGet("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
 
-      if(!session?.user){ try{localStorage.removeItem("qb_user");}catch(e){} return; }
-      if(cu?.email && cu.email !== session.user.email){ try{localStorage.removeItem("qb_user");}catch(e){} cu=null; }
+      if(!session?.user){ lsRemove("qb_user"); return; }
+      if(cu?.email && cu.email !== session.user.email){ lsRemove("qb_user"); cu=null; }
       if(!cu?.email) return;
 
       // ── PASO 2: verificar suscripción en central ──
@@ -3777,7 +3842,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       const acceso = Array.isArray(accesoArr) ? accesoArr[0] : accesoArr;
 
       if(!acceso?.tiene_acceso || acceso.estado==="impago" || acceso.estado==="suspendido"){
-        localStorage.removeItem("qb_user");
+        lsRemove("qb_user");
         await supabase.auth.signOut();
         setBloqueadoMotivo(acceso?.motivo || acceso?.estado || "sin_suscripcion");
         setLoaded(true);
@@ -3794,7 +3859,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
       const user = { ...cu, orgId, plan: acceso.plan || cu.plan || "basico", suscripcionEstado: acceso.estado, diasRestantes: acceso.dias_restantes ?? null };
       setCurrentUser(user);
-      localStorage.setItem("qb_user", JSON.stringify(user));
+      lsSet("qb_user", JSON.stringify(user));
 
       await cargarDatos(orgId);
 
@@ -3937,7 +4002,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
   const handleLogin=async(user)=>{
     currentOrgId=user.orgId; setCurrentOrgId(user.orgId);
-    try{localStorage.setItem("qb_user",JSON.stringify(user));}catch(e){}
+    lsSet("qb_user",JSON.stringify(user));
     // Cargar datos ANTES de setCurrentUser para que el efecto de onboarding
     // no vea recursos vacíos y dispare el wizard prematuramente
     if(user.orgId) await cargarDatos(user.orgId);
@@ -3946,17 +4011,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const handleLogout=async()=>{
     try{ await supabase.auth.signOut(); }catch(e){}
     setCurrentUser(null);
-    try{
-      // Limpiar todo rastro de sesión local
-      localStorage.removeItem("qb_user");
-      localStorage.removeItem("qb_access_token");
-      // La SDK de Supabase guarda la sesión bajo esta clave
-      localStorage.removeItem(`sb-${SUPA_URL.split("//")[1].split(".")[0]}-auth-token`);
-    }catch(e){}
+    lsRemove("qb_user");
+    lsRemove("qb_access_token");
+    lsRemove(`sb-${SUPA_URL.split("//")[1].split(".")[0]}-auth-token`);
   };
   const saveConfig=async(cfg)=>{
     setConfig(cfg);
-    try{localStorage.setItem("quincho_config",JSON.stringify(cfg));}catch(e){}
+    lsSet("quincho_config",JSON.stringify(cfg));
     await supabase.from("config").upsert({id:"main",precios:cfg.precios,actualizado_en:new Date().toISOString()});
   };
   const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
@@ -4446,6 +4507,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           }
         }}
       />}
+      <ToastContainer />
     </div>
   );
 }
