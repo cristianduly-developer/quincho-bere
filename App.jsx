@@ -3240,7 +3240,7 @@ function BannerDemo({ diasRestantes }) {
   );
 }
 
-const WA_SOPORTE = '5491140902990';
+const WA_SOPORTE = '5492235767784';
 
 function GoogleLoginScreen({ onLogin, onBlocked }) {
   const [loading,  setLoading]  = useState(false);
