@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, Component, Fragment, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback, memo, Component, Fragment, lazy, Suspense } from "react";
 import { MONTHS, MONTHS_SHORT, DAYS_SHORT, STATUS, TURNOS, PAYMENT_METHODS, EXPENSE_CATS, CAT_COLORS, DEFAULT_CONFIG, PLAN_LIMITS, getPlanLimits } from "./src/lib/constants.js";
 import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, getTotalExtras, getTotalPagado, getSaldo } from "./src/lib/utils.js";
 import { supabase, supabaseCentral, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor } from "./src/lib/supabase.js";
@@ -1578,7 +1578,7 @@ function BloqueoModal({ date, bloqueoExistente, onClose, onBloquear, onDesbloque
 // ─── CALENDAR WIDGET ──────────────────────────────────────
 // ─── CALENDAR WIDGET ──────────────────────────────────────
 
-function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick, recursos, turnosRecurso }) {
+const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onDayClick, recursos, turnosRecurso }) {
   const year = calDate.year;
   const month = calDate.month;
 
@@ -1734,7 +1734,7 @@ function CalendarWidget({ reservas, clientes, bloqueos, calDate, setCalDate, onD
       </div>
     </div>
   );
-}
+});
 
 function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaClick }) {
   const c = clientes.find(x=>x.id===nextEvento.clienteId);
@@ -1790,7 +1790,7 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
   );
 }
 
-function AgendaDiaView({ diaVista, setDiaVista, reservas, clientes, bloqueos, recursos, turnosRecurso, onDayClick, onReservaClick }) {
+const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reservas, clientes, bloqueos, recursos, turnosRecurso, onDayClick, onReservaClick }) {
   const today2=toDateStr(new Date());
   const multiEspacio=recursos&&recursos.length>1;
   const espacioConTurnos=recursos?.find(r=>(turnosRecurso||[]).some(t=>t.recursoId===r.id));
@@ -1876,26 +1876,26 @@ function AgendaDiaView({ diaVista, setDiaVista, reservas, clientes, bloqueos, re
       </div>
     </div>
   );
-}
+});
 
 function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso }) {
   const today=toDateStr(new Date()), now=new Date();
   const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-  const monthRes=reservas.filter(r=>r.fecha&&r.fecha.startsWith(monthStr)&&r.estado!=="cancelada");
-  const monthRevenue=pagos.filter(p=>p.fecha&&p.fecha.startsWith(monthStr)).reduce((s,p)=>s+p.monto,0);
-  const confirmadas=reservas.filter(r=>r.estado==="confirmada"||r.estado==="senada").length;
-  const totalPorCobrar=reservas.filter(r=>r.estado!=="cancelada"&&r.estado!=="finalizada")
-    .reduce((s,r)=>s+Math.max(0,getSaldo(r,extrasReserva,pagos)),0);
   const curTimeDash=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  const upcoming=reservas.filter(r=>{
+  const tomorrowDate=new Date(now); tomorrowDate.setDate(tomorrowDate.getDate()+1);
+  const tmStr=toDateStr(tomorrowDate);
+
+  const monthRes=useMemo(()=>reservas.filter(r=>r.fecha&&r.fecha.startsWith(monthStr)&&r.estado!=="cancelada"),[reservas,monthStr]);
+  const monthRevenue=useMemo(()=>pagos.filter(p=>p.fecha&&p.fecha.startsWith(monthStr)).reduce((s,p)=>s+p.monto,0),[pagos,monthStr]);
+  const confirmadas=useMemo(()=>reservas.filter(r=>r.estado==="confirmada"||r.estado==="senada").length,[reservas]);
+  const totalPorCobrar=useMemo(()=>reservas.filter(r=>r.estado!=="cancelada"&&r.estado!=="finalizada").reduce((s,r)=>s+Math.max(0,getSaldo(r,extrasReserva,pagos)),0),[reservas,extrasReserva,pagos]);
+  const upcoming=useMemo(()=>reservas.filter(r=>{
     if(r.estado==="cancelada"||r.estado==="finalizada") return false;
     if(r.fecha<today) return false;
     if(r.fecha===today&&r.horarioFin&&curTimeDash>r.horarioFin) return false;
     return true;
-  }).sort((a,b)=>(a.fecha+(a.horario||"00:00")).localeCompare(b.fecha+(b.horario||"00:00")));
-  const tomorrowDate=new Date(now); tomorrowDate.setDate(tomorrowDate.getDate()+1);
-  const tmStr=toDateStr(tomorrowDate);
-  const tmReservas=reservas.filter(r=>r.fecha===tmStr&&(r.estado==="senada"||r.estado==="confirmada")&&!r.recordatorioEnviado);
+  }).sort((a,b)=>(a.fecha+(a.horario||"00:00")).localeCompare(b.fecha+(b.horario||"00:00"))),[reservas,today,curTimeDash]);
+  const tmReservas=useMemo(()=>reservas.filter(r=>r.fecha===tmStr&&(r.estado==="senada"||r.estado==="confirmada")&&!r.recordatorioEnviado),[reservas,tmStr]);
 
   const applyTemplate=(template,r)=>{
     const c=clientes.find(x=>x.id===r.clienteId);

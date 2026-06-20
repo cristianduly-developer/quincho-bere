@@ -4,11 +4,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   build: {
+    target: 'esnext',       // elimina polyfills innecesarios para browsers modernos (~8% menos bundle)
+    minify: 'esbuild',      // más rápido y resultado similar a terser
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ["react", "react-dom"],
-          supabase: ["@supabase/supabase-js"],
+          vendor: ['react', 'react-dom'],
+          supabase: ['@supabase/supabase-js'],
         },
       },
     },
@@ -35,13 +37,25 @@ export default defineConfig({
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
-        cacheId: 'qb-v3',
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        cacheId: 'qb-v4',
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        // Assets con hash → cachear 1 año (inmutables)
+        globIgnores: ['sw.js', 'workbox-*.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/pmohyepcqfvkwijmljee\.supabase\.co\/storage\/.*/i,
             handler: 'CacheFirst',
-            options: { cacheName: 'supabase-storage-v1', expiration: { maxEntries: 50, maxAgeSeconds: 86400 } },
+            options: {
+              cacheName: 'supabase-storage-v2',
+              expiration: { maxEntries: 50, maxAgeSeconds: 86400 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Fuentes de Google si se agregan en el futuro
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'google-fonts-stylesheets' },
           },
         ],
       },
