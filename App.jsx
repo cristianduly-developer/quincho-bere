@@ -2902,9 +2902,11 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
             {recursos.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:12}}>No hay espacios creados. Agregá uno para empezar.</div>}
             {recursos.map(r=>(
               <EspacioCard key={r.id} espacio={r} onDelete={async()=>{
-                if(!window.confirm(`¿Eliminás "${r.nombre}"? Esta acción no se puede deshacer.`)) return;
-                const {error:delErr} = await supabase.from("recursos").delete().eq("id",r.id);
-                if(delErr){ alert("No se pudo eliminar el espacio: "+delErr.message); return; }
+                if(!window.confirm(`¿Eliminás "${r.nombre}"? El espacio quedará inactivo y se preservará el historial.`)) return;
+                // Soft delete: preserva historial de reservas
+                const {error:delErr} = await supabase.from("recursos").update({deleted_at: new Date().toISOString()}).eq("id",r.id);
+                if(delErr){ showToast("No se pudo eliminar el espacio: "+delErr.message,"error"); return; }
+                showToast(`Espacio "${r.nombre}" eliminado`,"ok");
                 setRecursos(prev=>prev.filter(x=>x.id!==r.id));
                 if(setTurnosRecurso) setTurnosRecurso(prev=>prev.filter(t=>t.recursoId!==r.id));
               }} onTurnosChange={(recursoId,nuevos)=>setTurnosRecurso&&setTurnosRecurso(prev=>[...prev.filter(t=>t.recursoId!==recursoId),...nuevos])} onTemporadasChange={(recursoId,nuevasT,nuevosPt)=>{
@@ -3878,6 +3880,33 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   useEffect(()=>{ reservasRef.current = reservas; }, [reservas]);
   useEffect(()=>{ recordatoriosRef.current = recordatorios; }, [recordatorios]);
 
+  // Verificación periódica de plan (cada 30 min) — detecta downgrades/suspensiones en sesión activa
+  useEffect(()=>{
+    if(!currentUser?.email) return;
+    const check = async () => {
+      try {
+        const {data:accesoArr} = await supabaseCentral.rpc("verificar_acceso_email",{email_param:currentUser.email,app_id_param:"quincho"});
+        const acceso = Array.isArray(accesoArr)?accesoArr[0]:accesoArr;
+        if(!acceso?.tiene_acceso || acceso.estado==="impago" || acceso.estado==="suspendido"){
+          lsRemove("qb_user");
+          await supabase.auth.signOut();
+          setBloqueadoMotivo(acceso?.estado||"sin_suscripcion");
+          setCurrentUser(null);
+          return;
+        }
+        // Actualizar plan/estado si cambió
+        if(acceso.plan!==currentUser.plan || acceso.estado!==currentUser.suscripcionEstado){
+          const updated={...currentUser,plan:acceso.plan,suscripcionEstado:acceso.estado,diasRestantes:acceso.dias_restantes??null};
+          setCurrentUser(updated);
+          lsSet("qb_user",JSON.stringify(updated));
+          showToast(`Plan actualizado a ${acceso.plan}`,"info");
+        }
+      } catch(e){ /* silencioso — central puede estar temporalmente caída */ }
+    };
+    const id = setInterval(check, 30*60*1000); // cada 30 minutos
+    return () => clearInterval(id);
+  },[currentUser?.email]);
+
   // Auto-close events + detect unrated (runs on load + every minute)
   // Usa refs en lugar de estado directo para evitar loop: saveR → reservas cambia → effect re-corre → saveR → ...
   useEffect(()=>{
@@ -3965,19 +3994,22 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   },[loaded]);
 
   const cargarDatos=async(orgId)=>{
+    // Ventana de datos: últimos 18 meses para historia + todos los futuros
+    const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth()-18);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
     const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:tr},{data:er},{data:se},{data:t},{data:bl},{data:rec},{data:tmp}]=await Promise.all([
-      supabase.from("clientes").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("reservas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("pagos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("gastos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("recursos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("turnos_recurso").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("extras_reserva").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("servicios_extras").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("tareas").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("bloqueos").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("recordatorios").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}),
-      supabase.from("temporadas_precio").select("*").eq("org_id",orgId).order("mes_desde",{ascending:true}),
+      supabase.from("clientes").select("*").eq("org_id",orgId).is("deleted_at",null).order("creado_en",{ascending:true}).limit(2000),
+      supabase.from("reservas").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:true}).limit(2000),
+      supabase.from("pagos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("creado_en",{ascending:true}).limit(3000),
+      supabase.from("gastos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:false}).limit(1000),
+      supabase.from("recursos").select("*").eq("org_id",orgId).is("deleted_at",null).order("creado_en",{ascending:true}).limit(50),
+      supabase.from("turnos_recurso").select("*").eq("org_id",orgId).eq("activo",true).order("hora_inicio",{ascending:true}).limit(500),
+      supabase.from("extras_reserva").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}).limit(3000),
+      supabase.from("servicios_extras").select("*").eq("org_id",orgId).eq("activo",true).order("creado_en",{ascending:true}).limit(200),
+      supabase.from("tareas").select("*").eq("org_id",orgId).order("creado_en",{ascending:false}).limit(200),
+      supabase.from("bloqueos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:true}).limit(500),
+      supabase.from("recordatorios").select("*").eq("org_id",orgId).neq("estado","Procesado").order("fecha_alerta",{ascending:true}).limit(200),
+      supabase.from("temporadas_precio").select("*").eq("org_id",orgId).order("mes_desde",{ascending:true}).limit(100),
     ]);
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
     if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
@@ -4021,9 +4053,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     await supabase.from("config").upsert({id:"main",precios:cfg.precios,actualizado_en:new Date().toISOString()});
   };
   const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
-  const saveC =async d=>{const prev=clientes;setClientes(d);const r=await sb.upsert("clientes",d.map(mapCliente));if(!r){setClientes(prev);alert("Error al guardar cliente. Intentá de nuevo.");}};
-  const saveR =async d=>{const prev=reservas;setReservas(d);const r=await sb.upsert("reservas",d.map(mapReserva));if(!r){setReservas(prev);alert("Error al guardar reserva. Intentá de nuevo.");}};
-  const saveP =async d=>{const prev=pagos;setPagos(d);const r=await sb.upsert("pagos",d.map(mapPago));if(!r){setPagos(prev);alert("Error al guardar pago. Intentá de nuevo.");}};
+  const saveC =async d=>{const prev=clientes;setClientes(d);const r=await sb.upsert("clientes",d.map(mapCliente));if(!r){setClientes(prev);showToast("Error al guardar cliente. Intentá de nuevo.","error");}};
+  const saveR =async d=>{const prev=reservas;setReservas(d);const r=await sb.upsert("reservas",d.map(mapReserva));if(!r){setReservas(prev);showToast("Error al guardar reserva. Intentá de nuevo.","error");}};
+  const saveP =async d=>{const prev=pagos;setPagos(d);const r=await sb.upsert("pagos",d.map(mapPago));if(!r){setPagos(prev);showToast("Error al guardar pago. Intentá de nuevo.","error");}};
   const saveG =async d=>{const prev=gastos;setGastos(d);const r=await sb.upsert("gastos",d.map(mapGasto));if(!r){setGastos(prev);alert("Error al guardar gasto. Intentá de nuevo.");}};
   const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);alert("Error al guardar extra. Intentá de nuevo.");}};
   const saveTareas=async d=>{const prev=tareas;setTareas(d);const r=await sb.upsert("tareas",d.map(mapTarea));if(!r){setTareas(prev);alert("Error al guardar tarea. Intentá de nuevo.");}};
@@ -4174,18 +4206,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       await supabase.from("pagos").delete().in("reserva_id",resIds);
       await supabase.from("extras_reserva").delete().in("reserva_id",resIds);
     }
-    // 3. Borrar reservas
-    if(resIds.length) await supabase.from("reservas").delete().in("id",resIds);
-    // 4. Borrar cliente
-    const {error}=await supabase.from("clientes").delete().eq("id",id);
-    if(error){ alert("Error al eliminar el cliente: "+error.message); return; }
-    // 5. Actualizar estado local
-    setReservas(prev=>prev.filter(r=>r.clienteId!==id));
-    setPagos(prev=>prev.filter(p=>!resIds.includes(p.reservaId)));
-    setExtrasReserva(prev=>prev.filter(e=>!resIds.includes(e.reservaId)));
-    setRecordatorios(prev=>prev.filter(r=>r.clienteId!==id&&!resIds.includes(r.reservaId)));
+    // 3. Soft delete cliente (preserva historial de reservas, pagos y extras)
+    const {error}=await supabase.from("clientes").update({deleted_at: new Date().toISOString()}).eq("id",id);
+    if(error){ showToast("Error al eliminar el cliente: "+error.message,"error"); return; }
+    // 4. Actualizar estado local (filtrar de vista, datos siguen en DB)
     setClientes(prev=>prev.filter(c=>c.id!==id));
     setDetailCliente(null);
+    showToast("Cliente eliminado. El historial se preserva.","ok");
   };
 
   const PAGE_TITLES={inicio:"Inicio",reservas:"Reservas",clientes:"Clientes",gastos:"Gastos",recursos:"Espacios y Extras",reportes:"Reportes",config:"⚙️ Configuración",usuarios:"Usuarios"};
