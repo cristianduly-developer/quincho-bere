@@ -56,7 +56,31 @@ export default async function handler(req, res) {
   })
   if (subErr) { console.error('[registrar-demo] sub:', subErr); return res.status(500).json({ ok: false, error: 'error_central' }) }
 
-  try { await central.from('notificaciones_admin').insert({ org_id: orgId, tipo: 'nueva_org', app_id: APP_ID }) } catch {}
+  try {
+    await central.from('notificaciones_admin').insert({ org_id: orgId, tipo: 'nueva_org', app_id: APP_ID })
+    const nombreGoogle = user.user_metadata?.full_name || email.split('@')[0]
+    const fechaAlta = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
+      body: JSON.stringify({
+        from: 'onboarding@resend.dev',
+        to: 'cristianduly@gmail.com',
+        subject: `🆕 Nueva cuenta demo — ${nombreGoogle}`,
+        html: `<h2>🆕 Nueva cuenta demo en App Quincho</h2>
+          <table style="border-collapse:collapse;font-family:sans-serif;">
+            <tr><td style="padding:8px;font-weight:bold;">Nombre</td><td style="padding:8px;">${nombreGoogle}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;">Email</td><td style="padding:8px;">${email}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;">App</td><td style="padding:8px;">Quincho / Eventos</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;">Plan</td><td style="padding:8px;">Profesional (demo)</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;">Días de prueba</td><td style="padding:8px;">${DEMO_DIAS} días</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;">Fecha de alta</td><td style="padding:8px;">${fechaAlta}</td></tr>
+          </table>`,
+      }),
+    })
+  } catch (mailErr) {
+    console.error('[registrar-demo] Error Resend:', mailErr?.message || mailErr)
+  }
 
   console.log(`[registrar-demo] Demo creado para ${email}`)
   return res.status(200).json({ ok: true })
