@@ -2284,25 +2284,31 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
 
   const handleAddTemporada = async () => {
     if(!tmpForm.nombre||!tmpForm.mesDesde||!tmpForm.mesHasta) return alert("Completá nombre y meses.");
-    const nuevo={org_id:currentOrgId,recurso_id:espacio.id,nombre:tmpForm.nombre.trim(),mes_desde:Number(tmpForm.mesDesde),dia_desde:Number(tmpForm.diaDesde)||1,mes_hasta:Number(tmpForm.mesHasta),dia_hasta:Number(tmpForm.diaHasta)||28};
-    const {data,error}=await supabase.from("temporadas_precio").insert(nuevo).select().single();
-    if(error){alert("Error: "+error.message);return;}
-    const mapped={id:data.id,nombre:data.nombre,mesDesde:data.mes_desde,diaDesde:data.dia_desde,mesHasta:data.mes_hasta,diaHasta:data.dia_hasta};
-    // Auto-crear filas en precios_temporada para cada turno existente
-    if(turnos.length){
-      const filas=turnos.map(t=>({org_id:currentOrgId,temporada_id:data.id,turno_id:t.id,precio_semana:t.precio_semana||0,precio_finde:t.precio_finde||0,activo:true}));
-      const {data:ptData}=await supabase.from("precios_temporada").insert(filas).select();
-      const mappedPt=(ptData||[]).map(x=>({id:x.id,temporadaId:x.temporada_id,turnoId:x.turno_id,precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:true}));
-      const nextPt=[...preciosTemp,...mappedPt];
-      setPreciosTemp(nextPt);
-      if(onTemporadasChange) onTemporadasChange(espacio.id,[...temporadas,mapped].map(t=>({...t,recursoId:espacio.id})),nextPt);
-    }
+    // RPC atómica: inserta temporada + precios en una sola transacción DB
+    // Si falla cualquiera de los dos, ninguno queda guardado
+    const precios = turnos.map(t=>({turno_id:t.id,precio_semana:t.precio_semana||0,precio_finde:t.precio_finde||0}));
+    const {data,error}=await supabase.rpc("crear_temporada_con_precios",{
+      p_org_id:currentOrgId,
+      p_recurso_id:espacio.id,
+      p_nombre:tmpForm.nombre.trim(),
+      p_mes_desde:Number(tmpForm.mesDesde),
+      p_dia_desde:Number(tmpForm.diaDesde)||1,
+      p_mes_hasta:Number(tmpForm.mesHasta),
+      p_dia_hasta:Number(tmpForm.diaHasta)||28,
+      p_precios:precios,
+    });
+    if(error){showToast("Error al guardar temporada: "+error.message,"error");return;}
+    const tmp=data.temporada;
+    const mapped={id:tmp.id,nombre:tmp.nombre,mesDesde:tmp.mes_desde,diaDesde:tmp.dia_desde,mesHasta:tmp.mes_hasta,diaHasta:tmp.dia_hasta};
+    const mappedPt=(data.precios||[]).map(x=>({id:x.id,temporadaId:x.temporada_id,turnoId:x.turno_id,precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:true}));
+    const nextPt=[...preciosTemp,...mappedPt];
     const next=[...temporadas,mapped];
+    setPreciosTemp(nextPt);
     setTemporadas(next);
-    setExpandedTmpId(data.id);
+    setExpandedTmpId(tmp.id);
     setShowTmpForm(false);
     setTmpForm({nombre:"",mesDesde:"12",diaDesde:"1",mesHasta:"3",diaHasta:"31"});
-    if(!turnos.length && onTemporadasChange) onTemporadasChange(espacio.id,next.map(t=>({...t,recursoId:espacio.id})),preciosTemp);
+    if(onTemporadasChange) onTemporadasChange(espacio.id,next.map(t=>({...t,recursoId:espacio.id})),nextPt);
   };
 
   const handleRemoveTemporada = async (id) => {
@@ -3492,7 +3498,7 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
 
 const ICONOS_OB = ["📌","☀️","🌤️","🌆","🌙","⚽","🎾","🏊","🎉","🎪","🍖","🎸","💅","🏋️","🎭","🏠"];
 
-function OnboardingWizard({ onFinish }) {
+function OnboardingWizard({ onFinish, userName }) {
   // Persiste estado en sessionStorage para sobrevivir un refresh accidental
   const _loadWiz = () => { try { const s=sessionStorage.getItem("qb_wizard"); return s?JSON.parse(s):null; } catch(e){return null;} };
   const _saveWiz = (data) => { try { sessionStorage.setItem("qb_wizard", JSON.stringify(data)); } catch(e){} };
@@ -3531,11 +3537,23 @@ function OnboardingWizard({ onFinish }) {
     <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#FDF5EE,#FFF8F3)",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{width:"100%",maxWidth:440}}>
 
+        {/* Banner de bienvenida */}
+        <div style={{background:"linear-gradient(135deg,#C4602B,#E8855A)",borderRadius:14,padding:"20px 24px",marginBottom:20,textAlign:"center",boxShadow:"0 4px 16px rgba(196,96,43,0.25)"}}>
+          <div style={{fontSize:32,marginBottom:6}}>🎉</div>
+          <div style={{fontSize:19,fontWeight:800,color:"#FFF",marginBottom:4}}>
+            {userName ? `¡Bienvenido/a, ${userName.split(' ')[0]}!` : '¡Bienvenido/a!'}
+          </div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.9)",lineHeight:1.6}}>
+            Tu prueba gratuita de <strong>28 días</strong> del plan Profesional ya está activa.<br/>
+            Configurá tu negocio en 3 pasos y empezá a gestionar tus eventos.
+          </div>
+        </div>
+
         {/* Logo / título */}
         <div style={{textAlign:"center",marginBottom:28}}>
           <div style={{fontSize:40,marginBottom:8}}>🏡</div>
-          <div style={{fontSize:22,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif"}}>¡Bienvenido!</div>
-          <div style={{fontSize:13,color:"#8B7355",marginTop:4}}>Configurá tu espacio en 3 pasos</div>
+          <div style={{fontSize:22,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif"}}>App-Eventos</div>
+          <div style={{fontSize:13,color:"#8B7355",marginTop:4}}>Configurá tu negocio en 3 pasos</div>
         </div>
 
         {/* Steps indicator */}
@@ -3816,7 +3834,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         setCurrentUser(prev => {
           if(prev) {
             lsRemove("qb_user");
-            alert("Tu sesión expiró. Por favor, iniciá sesión nuevamente.");
+            showToast("Tu sesión expiró. Por favor, iniciá sesión nuevamente.","error");
           }
           return null;
         });
@@ -3856,7 +3874,12 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       currentOrgId = orgId; setCurrentOrgId(orgId);
 
       // Sincronizar user_orgs y refrescar JWT para que RLS funcione con el org_id correcto
-      await supabase.from("user_orgs").upsert({ user_id: session.user.id, org_id: orgId });
+      const planActual = acceso.plan || cu.plan || "basico";
+      await Promise.all([
+        supabase.from("user_orgs").upsert({ user_id: session.user.id, org_id: orgId }),
+        // Sincronizar plan en app DB para que get_my_plan() funcione en RLS policies
+        supabase.from("config").upsert({ org_id: orgId, plan: planActual }, { onConflict: "org_id" }),
+      ]);
       await supabase.auth.refreshSession();
 
       const user = { ...cu, orgId, plan: acceso.plan || cu.plan || "basico", suscripcionEstado: acceso.estado, diasRestantes: acceso.dias_restantes ?? null };
@@ -3899,6 +3922,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           const updated={...currentUser,plan:acceso.plan,suscripcionEstado:acceso.estado,diasRestantes:acceso.dias_restantes??null};
           setCurrentUser(updated);
           lsSet("qb_user",JSON.stringify(updated));
+          // Sincronizar plan en app DB para que RLS de extras_reserva refleje el cambio
+          await supabase.from("config").upsert({org_id:currentUser.orgId,plan:acceso.plan},{onConflict:"org_id"});
           showToast(`Plan actualizado a ${acceso.plan}`,"info");
         }
       } catch(e){ /* silencioso — central puede estar temporalmente caída */ }
@@ -3997,7 +4022,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     // Ventana de datos: últimos 18 meses para historia + todos los futuros
     const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth()-18);
     const cutoffStr = cutoff.toISOString().slice(0,10);
-    const [{data:c},{data:r},{data:p},{data:g},{data:rc},{data:tr},{data:er},{data:se},{data:t},{data:bl},{data:rec},{data:tmp}]=await Promise.all([
+    // Promise.allSettled: si una query falla (timeout transitorio), el resto sigue cargando
+    const _results=await Promise.allSettled([
       supabase.from("clientes").select("*").eq("org_id",orgId).is("deleted_at",null).order("creado_en",{ascending:true}).limit(2000),
       supabase.from("reservas").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:true}).limit(2000),
       supabase.from("pagos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("creado_en",{ascending:true}).limit(3000),
@@ -4011,6 +4037,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       supabase.from("recordatorios").select("*").eq("org_id",orgId).neq("estado","Procesado").order("fecha_alerta",{ascending:true}).limit(200),
       supabase.from("temporadas_precio").select("*").eq("org_id",orgId).order("mes_desde",{ascending:true}).limit(100),
     ]);
+    const _d=(i)=>_results[i].status==="fulfilled"?_results[i].value?.data:null;
+    const [c,r,p,g,rc,tr,er,se,t,bl,rec,tmp]=[0,1,2,3,4,5,6,7,8,9,10,11].map(_d);
+    const _failed=_results.filter(x=>x.status==="rejected").length;
+    if(_failed>0) showToast(`${_failed} sección(es) no cargaron. Recargá si falta información.`,"error");
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
     if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
     if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
@@ -4056,11 +4086,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const saveC =async d=>{const prev=clientes;setClientes(d);const r=await sb.upsert("clientes",d.map(mapCliente));if(!r){setClientes(prev);showToast("Error al guardar cliente. Intentá de nuevo.","error");}};
   const saveR =async d=>{const prev=reservas;setReservas(d);const r=await sb.upsert("reservas",d.map(mapReserva));if(!r){setReservas(prev);showToast("Error al guardar reserva. Intentá de nuevo.","error");}};
   const saveP =async d=>{const prev=pagos;setPagos(d);const r=await sb.upsert("pagos",d.map(mapPago));if(!r){setPagos(prev);showToast("Error al guardar pago. Intentá de nuevo.","error");}};
-  const saveG =async d=>{const prev=gastos;setGastos(d);const r=await sb.upsert("gastos",d.map(mapGasto));if(!r){setGastos(prev);alert("Error al guardar gasto. Intentá de nuevo.");}};
-  const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);alert("Error al guardar extra. Intentá de nuevo.");}};
-  const saveTareas=async d=>{const prev=tareas;setTareas(d);const r=await sb.upsert("tareas",d.map(mapTarea));if(!r){setTareas(prev);alert("Error al guardar tarea. Intentá de nuevo.");}};
-  const saveBloqueos=async d=>{const prev=bloqueos;setBloqueos(d);const r=await sb.upsert("bloqueos",d.map(mapBloqueo));if(!r){setBloqueos(prev);alert("Error al guardar bloqueo. Intentá de nuevo.");}};
-  const saveRecordatorios=async d=>{const prev=recordatorios;setRecordatorios(d);const r=await sb.upsert("recordatorios",d.map(mapRecordatorio));if(!r){setRecordatorios(prev);alert("Error al guardar recordatorio. Intentá de nuevo.");}};
+  const saveG =async d=>{const prev=gastos;setGastos(d);const r=await sb.upsert("gastos",d.map(mapGasto));if(!r){setGastos(prev);showToast("Error al guardar gasto. Intentá de nuevo.","error");}};
+  const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);showToast("Error al guardar extra. Intentá de nuevo.","error");}};
+  const saveTareas=async d=>{const prev=tareas;setTareas(d);const r=await sb.upsert("tareas",d.map(mapTarea));if(!r){setTareas(prev);showToast("Error al guardar tarea. Intentá de nuevo.","error");}};
+  const saveBloqueos=async d=>{const prev=bloqueos;setBloqueos(d);const r=await sb.upsert("bloqueos",d.map(mapBloqueo));if(!r){setBloqueos(prev);showToast("Error al guardar bloqueo. Intentá de nuevo.","error");}};
+  const saveRecordatorios=async d=>{const prev=recordatorios;setRecordatorios(d);const r=await sb.upsert("recordatorios",d.map(mapRecordatorio));if(!r){setRecordatorios(prev);showToast("Error al guardar recordatorio. Intentá de nuevo.","error");}};
 
   const [savingReserva,setSavingReserva]=useState(false);
   const [savingPago,setSavingPago]=useState(false);
@@ -4444,6 +4474,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
       {onboarding && <OnboardingWizard
+        userName={currentUser?.nombre || currentUser?.email?.split('@')[0] || ''}
         onFinish={async(data)=>{
           try {
             // 1. Guardar config del negocio
