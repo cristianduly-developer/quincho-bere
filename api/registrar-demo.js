@@ -60,6 +60,7 @@ export default async function handler(req, res) {
     await central.from('notificaciones_admin').insert({ org_id: orgId, tipo: 'nueva_org', app_id: APP_ID })
     const nombreGoogle = user.user_metadata?.full_name || email.split('@')[0]
     const fechaAlta = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    // Email al admin
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
@@ -67,15 +68,52 @@ export default async function handler(req, res) {
         from: 'onboarding@resend.dev',
         to: 'cristianduly@gmail.com',
         subject: `🆕 Nueva cuenta demo — ${nombreGoogle}`,
-        html: `<h2>🆕 Nueva cuenta demo en App Quincho</h2>
+        html: `<h2>🆕 Nueva cuenta demo en App-Eventos</h2>
           <table style="border-collapse:collapse;font-family:sans-serif;">
             <tr><td style="padding:8px;font-weight:bold;">Nombre</td><td style="padding:8px;">${nombreGoogle}</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">Email</td><td style="padding:8px;">${email}</td></tr>
-            <tr><td style="padding:8px;font-weight:bold;">App</td><td style="padding:8px;">Quincho / Eventos</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;">App</td><td style="padding:8px;">App-Eventos</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">Plan</td><td style="padding:8px;">Profesional (demo)</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">Días de prueba</td><td style="padding:8px;">${DEMO_DIAS} días</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">Fecha de alta</td><td style="padding:8px;">${fechaAlta}</td></tr>
           </table>`,
+      }),
+    })
+    // Email de bienvenida al usuario
+    const primerNombre = nombreGoogle.split(' ')[0]
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
+      body: JSON.stringify({
+        from: 'onboarding@resend.dev',
+        to: email,
+        subject: `¡Bienvenido/a a App-Eventos! Tu período de prueba ya está activo 🎉`,
+        html: `
+          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+            <div style="background:#4f46e5;padding:32px 40px;border-radius:12px 12px 0 0;text-align:center;">
+              <h1 style="color:#fff;margin:0;font-size:24px;letter-spacing:-0.5px;">App-Eventos</h1>
+              <p style="color:#c7d2fe;margin:8px 0 0;font-size:14px;">Gestión de reservas y eventos</p>
+            </div>
+            <div style="background:#fff;padding:40px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+              <h2 style="margin:0 0 16px;font-size:20px;">¡Hola, ${primerNombre}! 👋</h2>
+              <p style="color:#4b5563;line-height:1.6;margin:0 0 16px;">
+                Tu cuenta de prueba en <strong>App-Eventos</strong> ya está activa. Tenés <strong>${DEMO_DIAS} días</strong> para explorar todas las funcionalidades del plan Profesional sin ningún compromiso.
+              </p>
+              <p style="color:#4b5563;line-height:1.6;margin:0 0 24px;">
+                Con App-Eventos podés gestionar reservas, turnos y eventos de forma simple y profesional, todo desde un solo lugar.
+              </p>
+              <div style="text-align:center;margin:32px 0;">
+                <a href="https://quincho-bere.vercel.app/" style="background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;display:inline-block;">
+                  Ir a la app →
+                </a>
+              </div>
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0;" />
+              <p style="color:#9ca3af;font-size:13px;margin:0;text-align:center;">
+                ¿Tenés dudas o necesitás ayuda? Respondé este mail y te ayudamos.<br/>
+                <strong style="color:#6b7280;">El equipo de App-Eventos</strong>
+              </p>
+            </div>
+          </div>`,
       }),
     })
   } catch (mailErr) {
