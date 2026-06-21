@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     email_param: user.email.toLowerCase(),
     app_id_param: APP_ID,
   })
-  if (error) { console.error('[verificar-acceso] RPC error:', error); return res.status(200).json(null) }
+  if (error) { console.error('[verificar-acceso] RPC error:', error); return res.status(503).json({ ok: false, error: 'servicio_no_disponible' }) }
 
   const acceso = Array.isArray(data) ? (data[0] ?? null) : null
 
