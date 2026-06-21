@@ -44,5 +44,6 @@ export default async function handler(req, res) {
     }
   }
 
+  res.setHeader('Cache-Control', 'private, max-age=120')
   return res.status(200).json(acceso)
 }

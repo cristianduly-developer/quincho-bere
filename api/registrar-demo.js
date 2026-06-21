@@ -4,6 +4,19 @@ const DEMO_DIAS = 28
 const APP_ID    = 'quincho'
 const OWNER_ID  = 'd8eef2e2-7e07-4ec9-9c6e-766addf89cc5'
 
+async function isRateLimited(central, ip) {
+  try {
+    const { data } = await central.rpc('check_rate_limit', {
+      p_key: `registrar-demo:${ip}`,
+      p_max: 3,
+      p_window_seconds: 3600,
+    })
+    return data === true
+  } catch {
+    return false
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
@@ -14,6 +27,11 @@ export default async function handler(req, res) {
   const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim()
   if (!token) return res.status(401).json({ ok: false, error: 'no_auth' })
 
+  const central = createClient(process.env.CENTRAL_URL, process.env.CENTRAL_SERVICE_KEY)
+
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown'
+  if (await isRateLimited(central, ip)) return res.status(429).json({ ok: false, error: 'rate_limited' })
+
   const supabaseApp = createClient(
     process.env.VITE_SUPA_URL,
     process.env.VITE_SUPA_KEY,
@@ -23,8 +41,6 @@ export default async function handler(req, res) {
   if (userErr || !user?.email) return res.status(401).json({ ok: false, error: 'no_auth' })
 
   const email = user.email.toLowerCase().trim()
-  const central = createClient(process.env.CENTRAL_URL, process.env.CENTRAL_SERVICE_KEY)
-
   const nombreGoogle = user.user_metadata?.full_name || email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
   const { data: rpcResult, error: rpcErr } = await central.rpc('registrar_demo', {
     p_email:     email,
