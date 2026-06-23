@@ -12,6 +12,117 @@ const RecordatoriosViewLazy = lazy(() => import("./src/views/RecordatoriosView.j
 const ClientesViewLazy      = lazy(() => import("./src/views/ClientesView.jsx"));
 const ReservasViewLazy      = lazy(() => import("./src/views/ReservasView.jsx"));
 
+// ─── VIEW LOADER (Suspense fallback) ──────────────────────
+function ViewLoader() {
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"60px 0",color:"#C4602B"}}>
+      <div style={{width:28,height:28,border:"3px solid #EDE0D0",borderTopColor:"#C4602B",borderRadius:"50%",animation:"spin 0.7s linear infinite"}} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+}
+
+// ─── DESKTOP HOOK ────────────────────────────────────────
+function useIsDesktop() {
+  const [is, setIs] = useState(() => window.innerWidth >= 900);
+  useEffect(() => {
+    const fn = () => setIs(window.innerWidth >= 900);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return is;
+}
+
+// ─── DESKTOP SIDEBAR ─────────────────────────────────────
+function DesktopSidebar({ reservas, clientes, pagos, negocio, onNavigate, tab, onNewCobro, onNewGasto }) {
+  const hoy = toDateStr(new Date());
+  const proximasReservas = reservas
+    .filter(r => r.fecha >= hoy && !["cancelada","finalizada"].includes(r.estado))
+    .sort((a,b) => a.fecha.localeCompare(b.fecha))
+    .slice(0, 4);
+  const mesActual = hoy.slice(0,7);
+  const ingresosMes = pagos.filter(p => (p.fecha||"").slice(0,7) === mesActual).reduce((s,p) => s + (p.monto||0), 0);
+  const porCobrar = reservas
+    .filter(r => !["cancelada","finalizada"].includes(r.estado))
+    .reduce((s,r) => {
+      const cobrado = pagos.filter(p => p.reservaId === r.id).reduce((a,p) => a + (p.monto||0), 0);
+      return s + Math.max(0, (r.montoPactado||0) - cobrado);
+    }, 0);
+
+  const ESTADO_COLOR = { confirmada:"#16A34A", senada:"#D97706", pendiente:"#6B7280" };
+  const ESTADO_LABEL = { confirmada:"Confirmada", senada:"Señada", pendiente:"Pendiente" };
+
+  return (
+    <div style={{width:280,flexShrink:0,padding:"20px 16px",display:"flex",flexDirection:"column",gap:16,overflowY:"auto",height:"100vh",position:"sticky",top:0,borderLeft:"1px solid #EDE0D0",background:"#FDFAF6"}}>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:800,color:"#1C1C1E",paddingBottom:12,borderBottom:"1px solid #EDE0D0"}}>
+        {negocio.nombreNegocio || "Mi negocio"}
+      </div>
+
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <div style={{background:"#FFF",border:"0.5px solid #EDE0D0",borderRadius:10,padding:"10px 12px"}}>
+          <div style={{fontSize:10,color:"#8B7355",marginBottom:4}}>Cobrado este mes</div>
+          <div style={{fontSize:14,fontWeight:700,color:"#16A34A"}}>{fmtCurrency(ingresosMes)}</div>
+        </div>
+        <div style={{background:"#FFF",border:"0.5px solid #EDE0D0",borderRadius:10,padding:"10px 12px"}}>
+          <div style={{fontSize:10,color:"#8B7355",marginBottom:4}}>Por cobrar</div>
+          <div style={{fontSize:14,fontWeight:700,color:"#C4602B"}}>{fmtCurrency(porCobrar)}</div>
+        </div>
+      </div>
+
+      {/* Próximas reservas */}
+      <div>
+        <div style={{fontSize:10,fontWeight:700,color:"#8B7355",letterSpacing:0.5,marginBottom:8,textTransform:"uppercase"}}>Próximas reservas</div>
+        {proximasReservas.length === 0
+          ? <div style={{fontSize:12,color:"#aaa",textAlign:"center",padding:"12px 0"}}>Sin reservas próximas</div>
+          : proximasReservas.map(r => {
+              const cliente = clientes.find(c => c.id === r.clienteId);
+              const nombre = cliente ? clientName(cliente) : "Sin cliente";
+              const inicial = nombre.charAt(0).toUpperCase();
+              return (
+                <div key={r.id} onClick={() => onNavigate("reservas")}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"0.5px solid #EDE0D0",cursor:"pointer"}}>
+                  <div style={{width:30,height:30,borderRadius:15,background:"#FCE8DE",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#C4602B",flexShrink:0}}>{inicial}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:600,color:"#1C1C1E",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{nombre}</div>
+                    <div style={{fontSize:10,color:"#8B7355"}}>{fmtDate(r.fecha)}{r.turno ? ` · ${r.turno}` : ""}</div>
+                  </div>
+                  <div style={{fontSize:10,fontWeight:600,color:ESTADO_COLOR[r.estado]||"#888"}}>{ESTADO_LABEL[r.estado]||r.estado}</div>
+                </div>
+              );
+            })
+        }
+      </div>
+
+      {/* Acciones rápidas */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+        <button onClick={onNewCobro} style={{padding:"8px 6px",background:"#F0FDF4",border:"0.5px solid #BBF7D0",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700,color:"#16A34A",fontFamily:"inherit"}}>+ Cobro</button>
+        <button onClick={onNewGasto} style={{padding:"8px 6px",background:"#FEF2F2",border:"0.5px solid #FECACA",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700,color:"#DC2626",fontFamily:"inherit"}}>+ Gasto</button>
+      </div>
+
+      {/* Accesos rápidos */}
+      <div>
+        <div style={{fontSize:10,fontWeight:700,color:"#8B7355",letterSpacing:0.5,marginBottom:8,textTransform:"uppercase"}}>Ir a</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+          {[
+            {id:"inicio",   label:"Inicio",     icon:"🏠"},
+            {id:"reservas", label:"Reservas",   icon:"📋"},
+            {id:"clientes", label:"Clientes",   icon:"👥"},
+            {id:"reportes", label:"Reportes",   icon:"📊"},
+            {id:"gastos",   label:"Gastos",     icon:"💸"},
+            {id:"config",   label:"Config",     icon:"⚙️"},
+          ].map(item => (
+            <button key={item.id} onClick={() => onNavigate(item.id)}
+              style={{display:"flex",alignItems:"center",gap:6,padding:"8px 10px",background: tab===item.id?"#FCE8DE":"#FFF",border:"0.5px solid #EDE0D0",borderRadius:8,cursor:"pointer",fontSize:12,color: tab===item.id?"#C4602B":"#1C1C1E",fontFamily:"inherit",fontWeight: tab===item.id?700:400}}>
+              <span style={{fontSize:14}}>{item.icon}</span>{item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── ERROR BOUNDARY ───────────────────────────────────────
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -34,8 +145,7 @@ class ErrorBoundary extends Component {
 
 const DEFAULT_USUARIOS = [];
 const DEFAULT_SERVICIOS = [];
-// currentOrgId local — se sincroniza con src/lib/supabase.js via setCurrentOrgId()
-let currentOrgId = null;
+
 
 // ─── TOAST GLOBAL ─────────────────────────────────────────────
 // Función accesible desde cualquier componente sin prop drilling.
@@ -2288,7 +2398,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
     // Si falla cualquiera de los dos, ninguno queda guardado
     const precios = turnos.map(t=>({turno_id:t.id,precio_semana:t.precio_semana||0,precio_finde:t.precio_finde||0}));
     const {data,error}=await supabase.rpc("crear_temporada_con_precios",{
-      p_org_id:currentOrgId,
+      p_org_id:getCurrentOrgId(),
       p_recurso_id:espacio.id,
       p_nombre:tmpForm.nombre.trim(),
       p_mes_desde:Number(tmpForm.mesDesde),
@@ -2334,7 +2444,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
     } else {
       // No había fila para este turno+temporada (ej: turno creado después de la temporada) → la creamos
       const base={precioSemana:0,precioFinde:0,activo:true,[field]:field==="activo"?value:Number(value)||0};
-      const {data,error}=await supabase.from("precios_temporada").insert({org_id:currentOrgId,temporada_id:temporadaId,turno_id:turnoId,precio_semana:base.precioSemana,precio_finde:base.precioFinde,activo:base.activo}).select().single();
+      const {data,error}=await supabase.from("precios_temporada").insert({org_id:getCurrentOrgId(),temporada_id:temporadaId,turno_id:turnoId,precio_semana:base.precioSemana,precio_finde:base.precioFinde,activo:base.activo}).select().single();
       if(error){showToast("Error al guardar precio: "+error.message,"error");return;}
       const mapped={id:data.id,temporadaId:data.temporada_id,turnoId:data.turno_id,precioSemana:Number(data.precio_semana)||0,precioFinde:Number(data.precio_finde)||0,activo:data.activo!==false};
       const next=[...preciosTemp,mapped];
@@ -2352,14 +2462,14 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
   const handleAddTurno = async () => {
     if(!form.nombre||!form.horaInicio||!form.horaFin) return alert("Completá nombre, hora inicio y hora fin.");
     setSaving(true);
-    const nuevo = {recurso_id:espacio.id,org_id:currentOrgId,nombre:form.nombre.trim(),icono:form.icono||"📌",hora_inicio:form.horaInicio,hora_fin:form.horaFin,precio_semana:Number(form.precioSemana)||0,precio_finde:Number(form.precioFinde)||0,activo:true};
+    const nuevo = {recurso_id:espacio.id,org_id:getCurrentOrgId(),nombre:form.nombre.trim(),icono:form.icono||"📌",hora_inicio:form.horaInicio,hora_fin:form.horaFin,precio_semana:Number(form.precioSemana)||0,precio_finde:Number(form.precioFinde)||0,activo:true};
     const {data,error} = await supabase.from("turnos_recurso").insert(nuevo).select().single();
     if(error){alert("Error: "+error.message);setSaving(false);return;}
     const mapX=x=>({id:x.id,recursoId:x.recurso_id||x.recursoId,orgId:x.org_id||x.orgId,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||x.horaInicio||"",horaFin:x.hora_fin||x.horaFin||"",precioSemana:Number(x.precio_semana||x.precioSemana)||0,precioFinde:Number(x.precio_finde||x.precioFinde)||0,activo:true});
     setTurnos(prev=>{const n=[...prev,data];if(onTurnosChange)onTurnosChange(espacio.id,n.map(mapX));return n;});
     // Si ya hay temporadas configuradas, crear también el precio de este turno para cada una (default: precio base)
     if(temporadas.length){
-      const filas=temporadas.map(tmp=>({org_id:currentOrgId,temporada_id:tmp.id,turno_id:data.id,precio_semana:data.precio_semana||0,precio_finde:data.precio_finde||0,activo:true}));
+      const filas=temporadas.map(tmp=>({org_id:getCurrentOrgId(),temporada_id:tmp.id,turno_id:data.id,precio_semana:data.precio_semana||0,precio_finde:data.precio_finde||0,activo:true}));
       const {data:ptData}=await supabase.from("precios_temporada").insert(filas).select();
       if(ptData?.length){
         const mappedPt=ptData.map(x=>({id:x.id,temporadaId:x.temporada_id,turnoId:x.turno_id,precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:true}));
@@ -2393,7 +2503,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
     const slots=[];
     const hh=h=>String(Math.floor(h/60)).padStart(2,"0")+":"+String(h%60).padStart(2,"0");
     for(let t=inicioMin;t+dur<=finMin;t+=dur+intervalo){
-      slots.push({recurso_id:espacio.id,org_id:currentOrgId,nombre:hh(t)+" – "+hh(t+dur),hora_inicio:hh(t),hora_fin:hh(t+dur),precio_semana:Number(slotForm.precioSemana)||0,precio_finde:Number(slotForm.precioFinde)||0,activo:true});
+      slots.push({recurso_id:espacio.id,org_id:getCurrentOrgId(),nombre:hh(t)+" – "+hh(t+dur),hora_inicio:hh(t),hora_fin:hh(t+dur),precio_semana:Number(slotForm.precioSemana)||0,precio_finde:Number(slotForm.precioFinde)||0,activo:true});
     }
     if(slots.length===0) return alert("No se generaron turnos. Revisá los horarios.");
     if(turnos.length>0 && !window.confirm(`Esto va a reemplazar los ${turnos.length} turnos actuales de este espacio. ¿Continuar?`)) return;
@@ -2712,7 +2822,7 @@ function TurnosEspacioSection({ recursos }) {
 
   const handleAdd = async () => {
     if(!form.nombre||!form.horaInicio||!form.horaFin) return alert("Completá nombre, hora inicio y hora fin.");
-    const nuevo = { recurso_id: espacioSel, org_id: currentOrgId, nombre: form.nombre.trim(), hora_inicio: form.horaInicio, hora_fin: form.horaFin, precio_semana: Number(form.precioSemana)||0, precio_finde: Number(form.precioFinde)||0, activo: true };
+    const nuevo = { recurso_id: espacioSel, org_id: getCurrentOrgId(), nombre: form.nombre.trim(), hora_inicio: form.horaInicio, hora_fin: form.horaFin, precio_semana: Number(form.precioSemana)||0, precio_finde: Number(form.precioFinde)||0, activo: true };
     const { data, error } = await supabase.from("turnos_recurso").insert(nuevo).select().single();
     if(error){ alert("Error: "+error.message); return; }
     setTurnos(prev=>[...prev, data]);
@@ -2792,7 +2902,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const toggle = s => setOpen(o => o===s ? null : s);
 
   const handleSaveNegocio = async () => {
-    const row = { org_id: currentOrgId, nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo };
+    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo };
     const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
     if (error) { alert("Error al guardar: " + error.message); return; }
     setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo });
@@ -2840,7 +2950,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                   {negForm.logoUrl ? <img src={negForm.logoUrl} alt="logo" style={{width:"100%",height:"100%",objectFit:"cover"}} onError={e=>e.target.style.display="none"} /> : <span style={{fontSize:28}}>🏠</span>}
                 </div>
                 <div style={{flex:1}}>
-                  <LogoUploadButton orgId={currentOrgId} onUploaded={url=>setNegForm(p=>({...p,logoUrl:url}))} />
+                  <LogoUploadButton orgId={getCurrentOrgId()} onUploaded={url=>setNegForm(p=>({...p,logoUrl:url}))} />
                   {negForm.logoUrl && <div style={{fontSize:10,color:"#8B7355",marginTop:4,wordBreak:"break-all"}}>{negForm.logoUrl.split("/").pop()?.split("?")[0]}</div>}
                 </div>
               </div>
@@ -2931,7 +3041,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
       {/* ── COLABORADORES ── */}
       <div style={{...card, padding:16}}>
         <SectionHeader id="colab" icon="👥" title="Colaboradores" subtitle={planLimits.colaboradores===0?"No disponible en tu plan":`Hasta ${planLimits.colaboradores} en tu plan`} />
-        {open==="colab" && <div style={{marginTop:16}}><ColaboradoresSection orgId={currentOrgId} plan={currentUser?.plan} embedded /></div>}
+        {open==="colab" && <div style={{marginTop:16}}><ColaboradoresSection orgId={getCurrentOrgId()} plan={currentUser?.plan} embedded /></div>}
       </div>
 
       {/* ── SERVICIOS EXTRAS ── */}
@@ -2985,8 +3095,8 @@ function AddEspacioForm({ recursos, setRecursos, plan }) {
         <button onClick={()=>setShow(false)} style={{flex:1,padding:"9px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
         <button onClick={async()=>{
           if(!form.nombre) return;
-          const nuevo={id:genId(),nombre:form.nombre,capacidadMax:Number(form.capacidadMax)||0,modo:"fijo",orgId:currentOrgId,org_id:currentOrgId};
-          const {error}=await supabase.from("recursos").insert({id:nuevo.id,nombre:nuevo.nombre,capacidad_max:nuevo.capacidadMax,modo:"fijo",org_id:currentOrgId,creado_en:new Date().toISOString()});
+          const nuevo={id:genId(),nombre:form.nombre,capacidadMax:Number(form.capacidadMax)||0,modo:"fijo",orgId:getCurrentOrgId(),org_id:getCurrentOrgId()};
+          const {error}=await supabase.from("recursos").insert({id:nuevo.id,nombre:nuevo.nombre,capacidad_max:nuevo.capacidadMax,modo:"fijo",org_id:getCurrentOrgId(),creado_en:new Date().toISOString()});
           if(error){alert("Error al guardar espacio: "+error.message);return;}
           setRecursos(prev=>[...prev,nuevo]);
           setForm({nombre:"",capacidadMax:""});setShow(false);
@@ -3778,10 +3888,15 @@ export default function App() {
   const lastActivityRef = useRef(Date.now());
   const reservasRef = useRef([]);
   const recordatoriosRef = useRef([]);
+  // Escalabilidad: guard contra cargas duplicadas y cache de 3 min
+  const _loadingRef = useRef(false);
+  const _lastFetchRef = useRef(0);
+  const FETCH_TTL = 3 * 60 * 1000;
   const [checkTick,setCheckTick]=useState(0);
   const [alertaActiva,setAlertaActiva]=useState(null);
   const [shownAlerts,setShownAlerts]=useState(new Set());
   const [showRootMenu,setShowRootMenu]=useState(false);
+  const isDesktop = useIsDesktop();
 
   const [clientes,setClientes]=useState([]);
   const [reservas,setReservas]=useState([]);
@@ -3823,6 +3938,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const [recordatorios,setRecordatorios]=useState([]);
   const [bloqueoModal,setBloqueoModal]=useState(null);
   const [loaded,setLoaded]=useState(false);
+  const [tier2Loading,setTier2Loading]=useState(false);
+  const [nuevaVersion,setNuevaVersion]=useState(false);
 
   // Mostrar onboarding cuando no hay espacios (primer uso o los borró todos)
   useEffect(()=>{ if(loaded && currentUser && !onboarding && recursos.length===0) setOnboarding(true); },[loaded,currentUser,recursos.length]);
@@ -3841,6 +3958,14 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       }
     });
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Detectar nueva versión del PWA (SW actualizado)
+  useEffect(()=>{
+    if(!('serviceWorker' in navigator)) return;
+    const onControllerChange = () => setNuevaVersion(true);
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
   }, []);
 
   useEffect(()=>{
@@ -3871,7 +3996,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
       // ── PASO 3: configurar org y cargar datos ──
       const orgId = acceso.ret_org_id || cu.orgId;
-      currentOrgId = orgId; setCurrentOrgId(orgId);
+      setCurrentOrgId(orgId);
 
       // Sincronizar user_orgs y refrescar JWT para que RLS funcione con el org_id correcto
       const planActual = acceso.plan || cu.plan || "basico";
@@ -3886,7 +4011,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       setCurrentUser(user);
       lsSet("qb_user", JSON.stringify(user));
 
-      await cargarDatos(orgId);
+      await cargarDatos(orgId, true);
 
       if(window.location.hash?.includes("access_token")){
         window.history.replaceState(null,"",window.location.pathname);
@@ -4018,61 +4143,91 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     };
   },[loaded]);
 
-  const cargarDatos=async(orgId)=>{
-    // Ventana de datos: últimos 18 meses para historia + todos los futuros
+  const cargarDatos=async(orgId, force=false)=>{
+    // Guard: previene dos cargas simultáneas (doble login rápido, doble mount)
+    if(_loadingRef.current) return;
+    // Cache: si se cargó hace menos de 3 min, saltar (a menos que sea force)
+    if(!force && _lastFetchRef.current && Date.now()-_lastFetchRef.current < FETCH_TTL) return;
+    _loadingRef.current = true;
+    try {
     const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth()-18);
     const cutoffStr = cutoff.toISOString().slice(0,10);
-    // Promise.allSettled: si una query falla (timeout transitorio), el resto sigue cargando
-    const _results=await Promise.allSettled([
-      supabase.from("clientes").select("*").eq("org_id",orgId).is("deleted_at",null).order("creado_en",{ascending:true}).limit(2000),
-      supabase.from("reservas").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:true}).limit(2000),
-      supabase.from("pagos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("creado_en",{ascending:true}).limit(3000),
-      supabase.from("gastos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:false}).limit(1000),
+
+    // ── TIER 1: crítico — lo que el usuario ve en InicioView ─────
+    // Se awaita antes de mostrar la app (setLoaded lo llama el caller)
+    const _t1=await Promise.allSettled([
       supabase.from("recursos").select("*").eq("org_id",orgId).is("deleted_at",null).order("creado_en",{ascending:true}).limit(50),
       supabase.from("turnos_recurso").select("*").eq("org_id",orgId).eq("activo",true).order("hora_inicio",{ascending:true}).limit(500),
+      supabase.from("reservas").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:true}).limit(2000),
+      supabase.from("clientes").select("*").eq("org_id",orgId).is("deleted_at",null).order("creado_en",{ascending:true}).limit(2000),
+      supabase.from("config").select("*").eq("org_id",orgId).maybeSingle(),
+    ]);
+    const _t1d=(i)=>_t1[i].status==="fulfilled"?_t1[i].value?.data:null;
+    const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
+    if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
+    if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
+    if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
+    const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
+    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false});
+    if(!rc?.length && orgId) setOnboarding(true);
+
+    // ── TIER 2: diferido — carga en background sin bloquear el render ─
+    setTier2Loading(true);
+    Promise.allSettled([
+      supabase.from("pagos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("creado_en",{ascending:true}).limit(3000),
+      supabase.from("gastos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:false}).limit(1000),
       supabase.from("extras_reserva").select("*").eq("org_id",orgId).order("creado_en",{ascending:true}).limit(3000),
       supabase.from("servicios_extras").select("*").eq("org_id",orgId).eq("activo",true).order("creado_en",{ascending:true}).limit(200),
       supabase.from("tareas").select("*").eq("org_id",orgId).order("creado_en",{ascending:false}).limit(200),
       supabase.from("bloqueos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:true}).limit(500),
       supabase.from("recordatorios").select("*").eq("org_id",orgId).neq("estado","Procesado").order("fecha_alerta",{ascending:true}).limit(200),
       supabase.from("temporadas_precio").select("*").eq("org_id",orgId).order("mes_desde",{ascending:true}).limit(100),
-    ]);
-    const _d=(i)=>_results[i].status==="fulfilled"?_results[i].value?.data:null;
-    const [c,r,p,g,rc,tr,er,se,t,bl,rec,tmp]=[0,1,2,3,4,5,6,7,8,9,10,11].map(_d);
-    const _failed=_results.filter(x=>x.status==="rejected").length;
-    if(_failed>0) showToast(`${_failed} sección(es) no cargaron. Recargá si falta información.`,"error");
-    if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
-    if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
-    if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
-    if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
-    if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
-    setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
-    if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
-    if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
-    if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
-    if(tmp?.length){
-      setTemporadasPrecio(tmp.map(x=>({id:x.id,orgId:x.org_id,recursoId:x.recurso_id,nombre:x.nombre||"Temporada",mesDesde:x.mes_desde,diaDesde:x.dia_desde,mesHasta:x.mes_hasta,diaHasta:x.dia_hasta})));
-      const {data:ptData}=await supabase.from("precios_temporada").select("*").in("temporada_id",tmp.map(t=>t.id));
-      if(ptData?.length) setPreciosTemporada(ptData.map(x=>({id:x.id,temporadaId:x.temporada_id,turnoId:x.turno_id,precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
+    ]).then(async _t2=>{
+      const _t2d=(i)=>_t2[i].status==="fulfilled"?_t2[i].value?.data:null;
+      const [p,g,er,se,t,bl,rec,tmp]=[0,1,2,3,4,5,6,7].map(_t2d);
+      if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
+      if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
+      if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
+      setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
+      if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
+      if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
+      if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
+      if(tmp?.length){
+        setTemporadasPrecio(tmp.map(x=>({id:x.id,orgId:x.org_id,recursoId:x.recurso_id,nombre:x.nombre||"Temporada",mesDesde:x.mes_desde,diaDesde:x.dia_desde,mesHasta:x.mes_hasta,diaHasta:x.dia_hasta})));
+        const {data:ptData}=await supabase.from("precios_temporada").select("*").in("temporada_id",tmp.map(t=>t.id));
+        if(ptData?.length) setPreciosTemporada(ptData.map(x=>({id:x.id,temporadaId:x.temporada_id,turnoId:x.turno_id,precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
+      }
+      const _t2failed=_t2.filter(x=>x.status==="rejected").length;
+      if(_t2failed>0) showToast(`${_t2failed} sección(es) secundaria(s) no cargaron. Recargá si falta información.`,"error");
+      setTier2Loading(false);
+    }).catch(()=>{ setTier2Loading(false); });
+    } finally {
+      _loadingRef.current = false;
+      _lastFetchRef.current = Date.now();
     }
-    const {data:cfgData}=await supabase.from("config").select("*").eq("org_id",orgId).maybeSingle();
-    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false});
-    if(!rc?.length && orgId) setOnboarding(true);
   };
 
   const handleLogin=async(user)=>{
-    currentOrgId=user.orgId; setCurrentOrgId(user.orgId);
+    setCurrentOrgId(user.orgId);
     lsSet("qb_user",JSON.stringify(user));
     // Cargar datos ANTES de setCurrentUser para que el efecto de onboarding
     // no vea recursos vacíos y dispare el wizard prematuramente
-    if(user.orgId) await cargarDatos(user.orgId);
+    if(user.orgId) await cargarDatos(user.orgId, true);
     setCurrentUser(user);
   };
   const handleLogout=async()=>{
     try{ await supabase.auth.signOut(); }catch(e){}
+    // Limpiar cache y estado para que el próximo login arranque limpio
+    _lastFetchRef.current = 0;
+    _loadingRef.current = false;
     setCurrentUser(null);
+    // Resetear todos los datos para evitar flash de datos ajenos en dispositivos compartidos
+    setClientes([]); setReservas([]); setPagos([]); setGastos([]);
+    setRecursos([]); setTurnosRecurso([]); setExtrasReserva([]);
+    setServiciosExtras(DEFAULT_SERVICIOS); setTareas([]); setBloqueos([]);
+    setRecordatorios([]); setTemporadasPrecio([]); setPreciosTemporada([]);
+    setNegocio({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true });
     lsRemove("qb_user");
     lsRemove("qb_access_token");
     lsRemove(`sb-${SUPA_URL.split("//")[1].split(".")[0]}-auth-token`);
@@ -4115,7 +4270,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
             return alert(`Tu plan ${currentUser?.plan||"actual"} permite hasta ${limits.reservasMes} reservas por mes. Ya alcanzaste el límite de este mes.\n\nContactá al administrador para actualizar tu plan.`);
           }
         }
-        const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id,turno,turno_id,recurso_id").eq("fecha",data.fecha).eq("org_id",currentOrgId).neq("estado","cancelada");
+        const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id,turno,turno_id,recurso_id").eq("fecha",data.fecha).eq("org_id",getCurrentOrgId()).neq("estado","cancelada");
         const conflict=dbConflicts?.find(r=>r.recurso_id===data.recursoId&&(
           data.turnoId
             ? (r.turno_id===data.turnoId)
@@ -4262,7 +4417,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   );
 
   return (
-    <div style={{fontFamily:"'DM Sans', sans-serif",background:"#FDF8F3",minHeight:"100vh",maxWidth:480,margin:"0 auto",position:"relative"}}>
+    <div style={{fontFamily:"'DM Sans', sans-serif",background:"#FDF8F3",minHeight:"100vh", ...(isDesktop ? {display:"flex",flexDirection:"row-reverse",justifyContent:"center",maxWidth:800,margin:"0 auto"} : {maxWidth:480,margin:"0 auto",position:"relative"})}}>
+    {isDesktop && <DesktopSidebar reservas={reservas} clientes={clientes} pagos={pagos} negocio={negocio} onNavigate={setTab} tab={tab} onNewCobro={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />}
+    <div style={isDesktop ? {flex:1,minWidth:0,maxWidth:480,position:"relative",borderRight:"1px solid #EDE0D0"} : {}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;}
@@ -4353,17 +4510,17 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     setDayModal({date:ds,reservas:dr,espacioFiltro:filtro});
   }
 }} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} />}
-      {tab==="reservas" && <Suspense fallback={null}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} /></Suspense>}
-      {tab==="clientes" && <Suspense fallback={null}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} /></Suspense>}
-      {tab==="gastos" && <ErrorBoundary><Suspense fallback={null}><GastosViewLazy gastos={gastos} onNewGasto={()=>setModal("gasto")} /></Suspense></ErrorBoundary>}
+      {tab==="reservas" && <Suspense fallback={<ViewLoader/>}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} /></Suspense>}
+      {tab==="clientes" && <Suspense fallback={<ViewLoader/>}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} /></Suspense>}
+      {tab==="gastos" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><GastosViewLazy gastos={gastos} onNewGasto={()=>setModal("gasto")} /></Suspense></ErrorBoundary>}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
       {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} setTemporadasPrecio={setTemporadasPrecio} setPreciosTemporada={setPreciosTemporada} />}
-      {tab==="recordatorios" && <Suspense fallback={null}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
+      {tab==="recordatorios" && <Suspense fallback={<ViewLoader/>}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
-      {tab==="reportes" && <ErrorBoundary><Suspense fallback={null}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} /></Suspense></ErrorBoundary>}
+      {tab==="reportes" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} /></Suspense></ErrorBoundary>}
 
-      {/* Bottom Tab Bar */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
+      {/* Bottom Tab Bar — oculto en desktop, la nav está en el sidebar */}
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:isDesktop?"none":"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
         {[{id:"reservas",icon:"📋",label:"Reservas"},{id:"inicio",icon:"🏠",label:"Inicio"},{id:"clientes",icon:"👥",label:"Clientes"}].map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"10px 0 12px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,fontFamily:"inherit"}}>
             <span style={{fontSize:22}}>{t.icon}</span>
@@ -4373,8 +4530,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         ))}
       </div>
 
-      {/* FAB */}
-      <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />
+      {/* FAB — solo en mobile */}
+      {!isDesktop && <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />}
 
       {/* Side Menu */}
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} negocio={negocio} />
@@ -4478,17 +4635,17 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         onFinish={async(data)=>{
           try {
             // 1. Guardar config del negocio
-            const row={org_id:currentOrgId,nombre_negocio:data.negocio.nombreNegocio,ciudad:data.negocio.ciudad,direccion:data.negocio.direccion,telefono:data.negocio.telefono,logo_url:"",msg_recordatorio:MSG_REC_DEFAULT,msg_post_evento:MSG_POST_DEFAULT,recordatorio_activo:true,post_evento_activo:true};
+            const row={org_id:getCurrentOrgId(),nombre_negocio:data.negocio.nombreNegocio,ciudad:data.negocio.ciudad,direccion:data.negocio.direccion,telefono:data.negocio.telefono,logo_url:"",msg_recordatorio:MSG_REC_DEFAULT,msg_post_evento:MSG_POST_DEFAULT,recordatorio_activo:true,post_evento_activo:true};
             await supabase.from("config").upsert(row,{onConflict:"org_id"});
             setNegocio({...negocio,...data.negocio,logoUrl:""});
             // 2. Guardar espacio
             const recId=genId();
             const modoEsp=data.espacio.modo||"fijo";
             const sc=data.slotCfg||{};
-            const {error:recErr}=await supabase.from("recursos").insert({id:recId,nombre:data.espacio.nombre,capacidad_max:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slot_hora_inicio:sc.horaInicio||"08:00",slot_hora_fin:sc.horaFin||"22:00",slot_duracion_min:Number(sc.duracion)||60,slot_intervalo_min:Number(sc.intervalo)||0,org_id:currentOrgId,creado_en:new Date().toISOString()});
+            const {error:recErr}=await supabase.from("recursos").insert({id:recId,nombre:data.espacio.nombre,capacidad_max:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slot_hora_inicio:sc.horaInicio||"08:00",slot_hora_fin:sc.horaFin||"22:00",slot_duracion_min:Number(sc.duracion)||60,slot_intervalo_min:Number(sc.intervalo)||0,org_id:getCurrentOrgId(),creado_en:new Date().toISOString()});
             if(recErr) throw new Error("Error al guardar espacio: "+recErr.message);
             // 3. Generar turnos (manuales o slots automáticos)
-            const nuevoRec={id:recId,nombre:data.espacio.nombre,capacidadMax:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slotHoraInicio:sc.horaInicio||"08:00",slotHoraFin:sc.horaFin||"22:00",slotDuracionMin:Number(sc.duracion)||60,slotIntervaloMin:Number(sc.intervalo)||0,orgId:currentOrgId};
+            const nuevoRec={id:recId,nombre:data.espacio.nombre,capacidadMax:Number(data.espacio.capacidadMax)||0,modo:modoEsp,slotHoraInicio:sc.horaInicio||"08:00",slotHoraFin:sc.horaFin||"22:00",slotDuracionMin:Number(sc.duracion)||60,slotIntervaloMin:Number(sc.intervalo)||0,orgId:getCurrentOrgId()};
             let turnosInsert=[];
             if(modoEsp==="slot"){
               const [h1,m1]=(sc.horaInicio||"08:00").split(":").map(Number);
@@ -4498,11 +4655,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
               let cur=h1*60+m1, fin=h2*60+m2;
               const hh=v=>String(Math.floor(v/60)).padStart(2,"0")+":"+String(v%60).padStart(2,"0");
               while(cur+dur<=fin){
-                turnosInsert.push({recurso_id:recId,org_id:currentOrgId,nombre:`${hh(cur)} – ${hh(cur+dur)}`,icono:"📌",hora_inicio:hh(cur),hora_fin:hh(cur+dur),precio_semana:Number(sc.precioSemana)||0,precio_finde:Number(sc.precioFinde)||0,activo:true});
+                turnosInsert.push({recurso_id:recId,org_id:getCurrentOrgId(),nombre:`${hh(cur)} – ${hh(cur+dur)}`,icono:"📌",hora_inicio:hh(cur),hora_fin:hh(cur+dur),precio_semana:Number(sc.precioSemana)||0,precio_finde:Number(sc.precioFinde)||0,activo:true});
                 cur+=dur+intv;
               }
             } else {
-              turnosInsert=data.turnos.map(t=>({recurso_id:recId,org_id:currentOrgId,nombre:t.nombre,icono:t.icono||"📌",hora_inicio:t.horaInicio,hora_fin:t.horaFin,precio_semana:Number(t.precioSemana)||0,precio_finde:Number(t.precioFinde)||0,activo:true}));
+              turnosInsert=data.turnos.map(t=>({recurso_id:recId,org_id:getCurrentOrgId(),nombre:t.nombre,icono:t.icono||"📌",hora_inicio:t.horaInicio,hora_fin:t.horaFin,precio_semana:Number(t.precioSemana)||0,precio_finde:Number(t.precioFinde)||0,activo:true}));
             }
             let mappedTurnos=[];
             if(turnosInsert.length>0){
@@ -4566,6 +4723,23 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         }}
       />}
       <ToastContainer />
+
+      {/* Banner: nueva versión disponible */}
+      {nuevaVersion && (
+        <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#1D4ED8",color:"#FFF",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:9999,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+          <span style={{fontSize:13,fontWeight:600}}>Nueva versión disponible</span>
+          <button onClick={()=>window.location.reload()} style={{background:"#FFF",color:"#1D4ED8",border:"none",borderRadius:6,padding:"5px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Actualizar</button>
+        </div>
+      )}
+
+      {/* Indicador sutil de carga tier 2 (pagos, gastos, extras) */}
+      {tier2Loading && loaded && (
+        <div style={{position:"fixed",bottom:72,left:"50%",transform:"translateX(-50%)",background:"rgba(196,96,43,0.9)",color:"#FFF",padding:"5px 14px",borderRadius:20,fontSize:11,fontWeight:600,zIndex:800,pointerEvents:"none",display:"flex",alignItems:"center",gap:6}}>
+          <div style={{width:10,height:10,border:"2px solid rgba(255,255,255,0.4)",borderTopColor:"#FFF",borderRadius:"50%",animation:"spin 0.7s linear infinite"}} />
+          Cargando datos...
+        </div>
+      )}
+    </div>
     </div>
   );
 }
