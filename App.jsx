@@ -33,92 +33,77 @@ function useIsDesktop() {
   return is;
 }
 
-// ─── DESKTOP SIDEBAR ─────────────────────────────────────
-function DesktopSidebar({ reservas, clientes, pagos, negocio, onNavigate, tab, onNewCobro, onNewGasto }) {
-  const hoy = toDateStr(new Date());
-  const proximasReservas = reservas
-    .filter(r => r.fecha >= hoy && !["cancelada","finalizada"].includes(r.estado))
-    .sort((a,b) => a.fecha.localeCompare(b.fecha))
-    .slice(0, 4);
-  const mesActual = hoy.slice(0,7);
-  const ingresosMes = pagos.filter(p => (p.fecha||"").slice(0,7) === mesActual).reduce((s,p) => s + (p.monto||0), 0);
-  const porCobrar = reservas
-    .filter(r => !["cancelada","finalizada"].includes(r.estado))
-    .reduce((s,r) => {
-      const cobrado = pagos.filter(p => p.reservaId === r.id).reduce((a,p) => a + (p.monto||0), 0);
-      return s + Math.max(0, (r.montoPactado||0) - cobrado);
-    }, 0);
-
-  const ESTADO_COLOR = { confirmada:"#16A34A", senada:"#D97706", pendiente:"#6B7280" };
-  const ESTADO_LABEL = { confirmada:"Confirmada", senada:"Señada", pendiente:"Pendiente" };
+// ─── DESKTOP LEFT NAV ────────────────────────────────────
+function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGasto, onLogout }) {
+  const isAdmin = currentUser?.rol === "Administrador";
+  const limits = getPlanLimits(currentUser?.plan);
+  const NAV_ITEMS = [
+    { id:"inicio",        label:"Inicio",        icon:"🏠" },
+    { id:"reservas",      label:"Reservas",      icon:"📋" },
+    { id:"clientes",      label:"Clientes",      icon:"👥" },
+    { id:"reportes",      label:"Reportes",      icon:"📊", adminOnly: true },
+    { id:"gastos",        label:"Gastos",        icon:"💸" },
+    { id:"recursos",      label:"Espacios",      icon:"🏡" },
+    ...(limits.recordatorios !== false ? [{ id:"recordatorios", label:"Recordatorios", icon:"🔔" }] : []),
+    { id:"config",        label:"Config",        icon:"⚙️" },
+  ].filter(i => !i.adminOnly || isAdmin);
 
   return (
-    <div style={{width:280,flexShrink:0,padding:"20px 16px",display:"flex",flexDirection:"column",gap:16,overflowY:"auto",height:"100vh",position:"sticky",top:0,borderLeft:"1px solid #EDE0D0",background:"#FDFAF6"}}>
-      <div style={{fontFamily:"'Playfair Display',serif",fontSize:15,fontWeight:800,color:"#1C1C1E",paddingBottom:12,borderBottom:"1px solid #EDE0D0"}}>
-        {negocio.nombreNegocio || "Mi negocio"}
-      </div>
-
-      {/* Stats */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        <div style={{background:"#FFF",border:"0.5px solid #EDE0D0",borderRadius:10,padding:"10px 12px"}}>
-          <div style={{fontSize:10,color:"#8B7355",marginBottom:4}}>Cobrado este mes</div>
-          <div style={{fontSize:14,fontWeight:700,color:"#16A34A"}}>{fmtCurrency(ingresosMes)}</div>
+    <div style={{width:220,flexShrink:0,display:"flex",flexDirection:"column",height:"100vh",position:"sticky",top:0,borderRight:"1px solid #EDE0D0",background:"#FDF8F3",overflowY:"auto"}}>
+      {/* Logo / nombre */}
+      <div style={{padding:"20px 18px 16px",borderBottom:"1px solid #EDE0D0"}}>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:16,fontWeight:800,color:"#1C1C1E",lineHeight:1.2}}>
+          {negocio.nombreNegocio || "App Eventos"}
         </div>
-        <div style={{background:"#FFF",border:"0.5px solid #EDE0D0",borderRadius:10,padding:"10px 12px"}}>
-          <div style={{fontSize:10,color:"#8B7355",marginBottom:4}}>Por cobrar</div>
-          <div style={{fontSize:14,fontWeight:700,color:"#C4602B"}}>{fmtCurrency(porCobrar)}</div>
-        </div>
-      </div>
-
-      {/* Próximas reservas */}
-      <div>
-        <div style={{fontSize:10,fontWeight:700,color:"#8B7355",letterSpacing:0.5,marginBottom:8,textTransform:"uppercase"}}>Próximas reservas</div>
-        {proximasReservas.length === 0
-          ? <div style={{fontSize:12,color:"#aaa",textAlign:"center",padding:"12px 0"}}>Sin reservas próximas</div>
-          : proximasReservas.map(r => {
-              const cliente = clientes.find(c => c.id === r.clienteId);
-              const nombre = cliente ? clientName(cliente) : "Sin cliente";
-              const inicial = nombre.charAt(0).toUpperCase();
-              return (
-                <div key={r.id} onClick={() => onNavigate("reservas")}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"0.5px solid #EDE0D0",cursor:"pointer"}}>
-                  <div style={{width:30,height:30,borderRadius:15,background:"#FCE8DE",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#C4602B",flexShrink:0}}>{inicial}</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:12,fontWeight:600,color:"#1C1C1E",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{nombre}</div>
-                    <div style={{fontSize:10,color:"#8B7355"}}>{fmtDate(r.fecha)}{r.turno ? ` · ${r.turno}` : ""}</div>
-                  </div>
-                  <div style={{fontSize:10,fontWeight:600,color:ESTADO_COLOR[r.estado]||"#888"}}>{ESTADO_LABEL[r.estado]||r.estado}</div>
-                </div>
-              );
-            })
-        }
+        {negocio.ciudad && <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{negocio.ciudad}</div>}
       </div>
 
       {/* Acciones rápidas */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-        <button onClick={onNewCobro} style={{padding:"8px 6px",background:"#F0FDF4",border:"0.5px solid #BBF7D0",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700,color:"#16A34A",fontFamily:"inherit"}}>+ Cobro</button>
-        <button onClick={onNewGasto} style={{padding:"8px 6px",background:"#FEF2F2",border:"0.5px solid #FECACA",borderRadius:8,cursor:"pointer",fontSize:11,fontWeight:700,color:"#DC2626",fontFamily:"inherit"}}>+ Gasto</button>
+      <div style={{padding:"12px 14px",borderBottom:"1px solid #EDE0D0",display:"flex",gap:8}}>
+        <button onClick={onNewCobro} style={{flex:1,padding:"7px 0",background:"#F0FDF4",border:"0.5px solid #BBF7D0",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#16A34A",fontFamily:"inherit"}}>+ Cobro</button>
+        <button onClick={onNewGasto} style={{flex:1,padding:"7px 0",background:"#FEF2F2",border:"0.5px solid #FECACA",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#DC2626",fontFamily:"inherit"}}>+ Gasto</button>
       </div>
 
-      {/* Accesos rápidos */}
-      <div>
-        <div style={{fontSize:10,fontWeight:700,color:"#8B7355",letterSpacing:0.5,marginBottom:8,textTransform:"uppercase"}}>Ir a</div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-          {[
-            {id:"inicio",   label:"Inicio",     icon:"🏠"},
-            {id:"reservas", label:"Reservas",   icon:"📋"},
-            {id:"clientes", label:"Clientes",   icon:"👥"},
-            {id:"reportes", label:"Reportes",   icon:"📊"},
-            {id:"gastos",   label:"Gastos",     icon:"💸"},
-            {id:"config",   label:"Config",     icon:"⚙️"},
-          ].map(item => (
+      {/* Nav items */}
+      <nav style={{flex:1,padding:"10px 10px"}}>
+        {NAV_ITEMS.map(item => {
+          const active = tab === item.id;
+          return (
             <button key={item.id} onClick={() => onNavigate(item.id)}
-              style={{display:"flex",alignItems:"center",gap:6,padding:"8px 10px",background: tab===item.id?"#FCE8DE":"#FFF",border:"0.5px solid #EDE0D0",borderRadius:8,cursor:"pointer",fontSize:12,color: tab===item.id?"#C4602B":"#1C1C1E",fontFamily:"inherit",fontWeight: tab===item.id?700:400}}>
-              <span style={{fontSize:14}}>{item.icon}</span>{item.label}
+              style={{
+                display:"flex",alignItems:"center",gap:10,width:"100%",
+                padding:"9px 12px",marginBottom:2,
+                background: active ? "#FCE8DE" : "transparent",
+                border:"none",borderRadius:8,cursor:"pointer",
+                fontSize:13,fontWeight: active ? 700 : 400,
+                color: active ? "#C4602B" : "#1C1C1E",
+                fontFamily:"inherit",textAlign:"left",
+              }}>
+              <span style={{fontSize:16,lineHeight:1}}>{item.icon}</span>
+              {item.label}
             </button>
-          ))}
+          );
+        })}
+      </nav>
+
+      {/* Usuario + logout */}
+      {currentUser && (
+        <div style={{padding:"12px 14px",borderTop:"1px solid #EDE0D0"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+            {currentUser.avatarUrl
+              ? <img src={currentUser.avatarUrl} alt="" style={{width:28,height:28,borderRadius:14,objectFit:"cover"}} />
+              : <div style={{width:28,height:28,borderRadius:14,background:"#C4602B",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontSize:11,fontWeight:800}}>{(currentUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
+            }
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#1C1C1E",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{currentUser.nombre}</div>
+              <div style={{fontSize:10,color:"#8B7355",textTransform:"capitalize"}}>{currentUser.plan || "Básico"}</div>
+            </div>
+          </div>
+          <button onClick={onLogout} style={{width:"100%",padding:"7px 0",background:"none",border:"0.5px solid #EDE0D0",borderRadius:8,cursor:"pointer",fontSize:12,color:"#DC2626",fontFamily:"inherit",fontWeight:600}}>
+            Cerrar sesión
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -4417,9 +4402,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   );
 
   return (
-    <div style={{fontFamily:"'DM Sans', sans-serif",background:"#FDF8F3",minHeight:"100vh", ...(isDesktop ? {display:"flex",flexDirection:"row-reverse",justifyContent:"center",maxWidth:800,margin:"0 auto"} : {maxWidth:480,margin:"0 auto",position:"relative"})}}>
-    {isDesktop && <DesktopSidebar reservas={reservas} clientes={clientes} pagos={pagos} negocio={negocio} onNavigate={setTab} tab={tab} onNewCobro={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />}
-    <div style={isDesktop ? {flex:1,minWidth:0,maxWidth:480,position:"relative",borderRight:"1px solid #EDE0D0"} : {}}>
+    <div style={{fontFamily:"'DM Sans', sans-serif",background:"#FDF8F3",minHeight:"100vh", ...(isDesktop ? {display:"flex",flexDirection:"row"} : {maxWidth:480,margin:"0 auto",position:"relative"})}}>
+    {isDesktop && <DesktopNav negocio={negocio} onNavigate={setTab} tab={tab} currentUser={currentUser} onNewCobro={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onLogout={handleLogout} />}
+    <div style={isDesktop ? {flex:1,minWidth:0,position:"relative",maxWidth:"calc(100% - 220px)"} : {}}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;}
@@ -4432,7 +4417,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {currentUser?.suscripcionEstado === "demo" && <BannerDemo diasRestantes={currentUser.diasRestantes ?? 0} />}
 
       {/* Top Bar */}
-      <div style={{position:"sticky",top:0,background:"rgba(253,248,243,0.95)",backdropFilter:"blur(10px)",zIndex:100,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,borderBottom:"1px solid #EDE0D0"}}>
+      <div style={{position:"sticky",top:0,background:"rgba(253,248,243,0.95)",backdropFilter:"blur(10px)",zIndex:100,padding:"12px 16px",display:isDesktop?"none":"flex",alignItems:"center",gap:12,borderBottom:"1px solid #EDE0D0"}}>
         <button onClick={()=>setSideOpen(true)} style={{background:"none",border:"none",cursor:"pointer",padding:4,fontSize:22,color:"#1C1C1E",lineHeight:1,flexShrink:0}}>☰</button>
         {tab==="inicio" ? (
           <div style={{flex:1,display:"flex",alignItems:"center",gap:8}}>
@@ -4500,6 +4485,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           </div>
         )}
       </div>
+
+      {/* Header desktop — título de sección */}
+      {isDesktop && (
+        <div style={{padding:"18px 24px 10px",borderBottom:"1px solid #EDE0D0"}}>
+          <h1 style={{margin:0,fontSize:20,fontWeight:800,color:"#1C1C1E",fontFamily:"'Playfair Display', serif"}}>{PAGE_TITLES[tab]}</h1>
+        </div>
+      )}
 
       {/* Views */}
       {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>{
