@@ -4291,7 +4291,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         // Chequeo límite de reservas — verificación server-side (RPC) + fallback cliente
         const limiteServer = await verificarLimiteServidor("reserva");
         if(!limiteServer.permitido){
-          return alert(`🔒 ${limiteServer.motivo||"Límite del plan alcanzado."}\n\nContactá al administrador para actualizar tu plan.`);
+          showToast(`🔒 ${limiteServer.motivo||"Límite del plan alcanzado. Contactá al administrador."}`, "err");
+          return;
         }
         // Fallback cliente (por si la RPC no existe aún)
         const limits = getPlanLimits(currentUser?.plan);
@@ -4299,7 +4300,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           const mesActual = toDateStr(new Date()).slice(0,7);
           const reservasMes = reservas.filter(r=>r.creadoEn?.slice(0,7)===mesActual && r.estado!=="cancelada").length;
           if(reservasMes >= limits.reservasMes){
-            return alert(`Tu plan ${currentUser?.plan||"actual"} permite hasta ${limits.reservasMes} reservas por mes. Ya alcanzaste el límite de este mes.\n\nContactá al administrador para actualizar tu plan.`);
+            showToast(`Tu plan permite hasta ${limits.reservasMes} reservas por mes. Límite alcanzado.`, "err");
+            return;
           }
         }
         const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id,turno,turno_id,recurso_id").eq("fecha",data.fecha).eq("org_id",getCurrentOrgId()).neq("estado","cancelada");
@@ -4308,9 +4310,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
             ? (r.turno_id===data.turnoId)
             : (r.turno===data.turno||r.turno==="completo"||data.turno==="completo")
         ));
-        if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);return alert("Conflicto: ya existe una reserva de "+clientName(c)+" en ese espacio, día y turno.");}
+        if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);showToast("Conflicto: ya existe una reserva de "+clientName(c)+" en ese espacio, día y turno.","err");return;}
         const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turno||b.turno===data.turnoId||b.turno==="completo"||data.turno==="completo"));
-        if(bloqueoConflict)return alert("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.");
+        if(bloqueoConflict){showToast("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.","err");return;}
       }
       if(editReserva){
         await saveR(reservas.map(r=>r.id===editReserva.id?{...r,...data}:r));

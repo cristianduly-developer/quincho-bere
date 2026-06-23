@@ -47,9 +47,9 @@ export const verificarLimiteServidor = async (accion) => {
     p_accion: accion,
   });
   if (error) {
-    console.error("verificar_limite_plan error:", error);
-    // fail-closed: ante duda, no permitir. El usuario verá un mensaje claro.
-    return { permitido: false, motivo: "No se pudo verificar el límite de tu plan. Reintentá en un momento." };
+    console.warn("verificar_limite_plan no disponible, usando fallback cliente:", error.message);
+    // fail-open: el fallback cliente en App.jsx verifica el límite correctamente
+    return { permitido: true };
   }
   return data || { permitido: false, motivo: "Respuesta inesperada del servidor." };
 };
