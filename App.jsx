@@ -2099,6 +2099,10 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
         </div>
       ))}
 
+      {/* ── Layout dos columnas desktop ── */}
+      <div style={isDesktop ? {display:"flex",gap:20,alignItems:"flex-start"} : {}}>
+      <div style={isDesktop ? {flex:"0 0 57%",minWidth:0} : {}}>
+
       {/* ── Calendario / Agenda ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
         <div style={{fontWeight:700,fontSize:12,color:"#8B7355",letterSpacing:0.5,textTransform:"uppercase"}}>{vistaModo==="mes"?"Calendario":"Agenda del día"}</div>
@@ -2116,6 +2120,9 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
       ):(
         <AgendaDiaView diaVista={diaVista} setDiaVista={setDiaVista} reservas={reservas} clientes={clientes} bloqueos={bloqueos} recursos={recursos} turnosRecurso={turnosRecurso} onDayClick={onDayClick} onReservaClick={onReservaClick} />
       )}
+
+      </div>{/* cierra col izquierda */}
+      <div style={isDesktop ? {flex:"0 0 40%",minWidth:0,display:"flex",flexDirection:"column",gap:12} : {}}>
 
       {/* ── Próximas reservas ── */}
       {/* Post-event fidelization */}
@@ -2229,6 +2236,8 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           </div>
         )}
       </div>
+      </div>{/* cierra col derecha */}
+      </div>{/* cierra wrapper dos columnas */}
 
     </div>
   );
