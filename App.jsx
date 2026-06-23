@@ -43,9 +43,8 @@ function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGa
     { id:"clientes",      label:"Clientes",      icon:"👥" },
     { id:"reportes",      label:"Reportes",      icon:"📊", adminOnly: true },
     { id:"gastos",        label:"Gastos",        icon:"💸" },
-    { id:"recursos",      label:"Espacios",      icon:"🏡" },
     ...(limits.recordatorios !== false ? [{ id:"recordatorios", label:"Recordatorios", icon:"🔔" }] : []),
-    { id:"config",        label:"Config",        icon:"⚙️" },
+    { id:"config",        label:"Configuración", icon:"⚙️" },
   ].filter(i => !i.adminOnly || isAdmin);
 
   return (
