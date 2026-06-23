@@ -3995,11 +3995,29 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(!cu?.email) return;
 
       // ── PASO 2: verificar suscripción en central ──
-      const { data:accesoArr } = await supabaseCentral.rpc("verificar_acceso_email", {
-        email_param: cu.email,
-        app_id_param: "quincho",
-      });
+      let accesoArr, accesoError;
+      try {
+        const res = await Promise.race([
+          supabaseCentral.rpc("verificar_acceso_email", { email_param: cu.email, app_id_param: "quincho" }),
+          new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),8000))
+        ]);
+        accesoArr = res.data; accesoError = res.error;
+      } catch(e) { accesoError = e; }
+
       const acceso = Array.isArray(accesoArr) ? accesoArr[0] : accesoArr;
+
+      // Si hubo error de red/timeout y hay sesión cacheada, continuar sin bloquear
+      if(accesoError || !acceso) {
+        if(cu?.suscripcionEstado === "activo" || cu?.suscripcionEstado === "sincargo" || cu?.suscripcionEstado === "demo") {
+          // Usar datos cacheados y seguir
+          const orgId = cu.orgId;
+          setCurrentOrgId(orgId);
+          setCurrentUser(cu);
+          await cargarDatos(orgId, true);
+          setLoaded(true);
+          return;
+        }
+      }
 
       if(!acceso?.tiene_acceso || acceso.estado==="impago" || acceso.estado==="suspendido"){
         lsRemove("qb_user");
@@ -4748,9 +4766,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
       {/* Banner: nueva versión disponible */}
       {nuevaVersion && (
-        <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#1D4ED8",color:"#FFF",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:9999,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
-          <span style={{fontSize:13,fontWeight:600}}>Nueva versión disponible</span>
-          <button onClick={()=>window.location.reload()} style={{background:"#FFF",color:"#1D4ED8",border:"none",borderRadius:6,padding:"5px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Actualizar</button>
+        <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:isDesktop?800:480,background:"#1D4ED8",color:"#FFF",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:9999,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+          <span style={{fontSize:13,fontWeight:600}}>🔄 Hay una actualización lista</span>
+          <button onClick={(e)=>{
+            e.currentTarget.textContent="Aplicando...";
+            e.currentTarget.disabled=true;
+            setTimeout(()=>window.location.reload(), 400);
+          }} style={{background:"#FFF",color:"#1D4ED8",border:"none",borderRadius:6,padding:"5px 12px",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Aplicar</button>
         </div>
       )}
 
