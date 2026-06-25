@@ -44,6 +44,14 @@ export default async function handler(req, res) {
     }
   }
 
+  if (acceso?.tiene_acceso) {
+    central.from('suscripciones_apps')
+      .update({ ultimo_acceso: new Date().toISOString() })
+      .eq('app_id', APP_ID)
+      .eq('org_id', acceso.ret_org_id)
+      .then(() => {})
+  }
+
   res.setHeader('Cache-Control', 'private, max-age=120')
   return res.status(200).json(acceso)
 }

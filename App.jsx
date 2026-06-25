@@ -3967,6 +3967,18 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   // Mostrar onboarding cuando no hay espacios (primer uso o los borró todos)
   useEffect(()=>{ if(loaded && currentUser && !onboarding && recursos.length===0) setOnboarding(true); },[loaded,currentUser,recursos.length]);
 
+  // Ping de presencia cada 5 minutos para mantener ultimo_acceso actualizado en el SaaS
+  useEffect(()=>{
+    if(!currentUser) return;
+    const ping = async () => {
+      const { data:{ session } } = await supabase.auth.getSession();
+      if(!session?.access_token) return;
+      fetch(`/api/verificar-acceso`,{ headers:{ Authorization:`Bearer ${session.access_token}` } }).catch(()=>{});
+    };
+    const t = setInterval(ping, 5*60*1000);
+    return () => clearInterval(t);
+  },[currentUser?.email]);
+
   // Detectar sesión expirada mientras la app está abierta
   useEffect(()=>{
     const { data:{ subscription } } = supabase.auth.onAuthStateChange((event) => {
