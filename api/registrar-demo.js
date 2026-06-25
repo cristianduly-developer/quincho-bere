@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
       body: JSON.stringify({
-        from: 'onboarding@resend.dev',
+        from: process.env.MAIL_FROM ?? 'onboarding@resend.dev',
         to: 'cristianduly@gmail.com',
         subject: `🆕 Nueva cuenta demo — ${nombreGoogle}`,
         html: `<h2>🆕 Nueva cuenta demo en App-Eventos</h2>
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
       body: JSON.stringify({
-        from: 'onboarding@resend.dev',
+        from: process.env.MAIL_FROM ?? 'onboarding@resend.dev',
         to: email,
         subject: `¡Bienvenido/a a App-Eventos! Tu período de prueba ya está activo 🎉`,
         html: `
