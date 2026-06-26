@@ -2321,6 +2321,12 @@ function ColaboradoresSection({ orgId, plan, embedded }) {
     const nuevo = { id: genId(), org_id: orgId, email: email.trim(), nombre: nombre.trim()||email.trim(), activo: true };
     const { error } = await supabaseCentral.from("empleados_organizacion").insert(nuevo);
     if(error){ alert("Error al agregar colaborador: "+error.message); setSaving(false); return; }
+    supabaseCentral.from("notificaciones_admin").insert({
+      tipo: "nuevo_colaborador",
+      mensaje: `Nuevo colaborador en App Eventos — ${nuevo.nombre} (${nuevo.email})`,
+      org_id: orgId,
+      app_id: "quincho",
+    }).then(() => {});
     setColaboradores(prev=>[...prev, nuevo]);
     setEmail(""); setNombre(""); setSaving(false);
   };
