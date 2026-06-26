@@ -55,6 +55,13 @@ export default async function handler(req, res) {
 
   const orgId = rpcResult?.org_id
 
+  central.from('notificaciones_admin').insert({
+    tipo: 'nueva_org',
+    mensaje: `Nueva cuenta demo en App Eventos — ${nombreGoogle} (${email})`,
+    org_id: orgId,
+    app_id: APP_ID,
+  }).then(() => {})
+
   try {
     const nombreGoogle = user.user_metadata?.full_name || email.split('@')[0]
     const fechaAlta = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
@@ -101,14 +108,14 @@ export default async function handler(req, res) {
                 Con App-Eventos podés gestionar reservas, turnos y eventos de forma simple y profesional, todo desde un solo lugar.
               </p>
               <div style="text-align:center;margin:32px 0;">
-                <a href="https://quincho-bere.vercel.app/" style="background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;display:inline-block;">
+                <a href="https://eventos.solucionesmdp.com.ar/" style="background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;display:inline-block;">
                   Ir a la app →
                 </a>
               </div>
               <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0;" />
               <p style="color:#9ca3af;font-size:13px;margin:0;text-align:center;">
-                ¿Tenés dudas o necesitás ayuda? Respondé este mail y te ayudamos.<br/>
-                <strong style="color:#6b7280;">El equipo de App-Eventos</strong>
+                ¿Tenés dudas? <a href="https://wa.me/5492235767784" style="color:#6b7280;">Escribinos por WhatsApp</a><br/>
+                <strong style="color:#6b7280;">El equipo de Soluciones MDP</strong>
               </p>
             </div>
           </div>`,
