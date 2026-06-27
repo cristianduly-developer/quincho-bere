@@ -92,30 +92,42 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: process.env.MAIL_FROM ?? 'onboarding@resend.dev',
         to: email,
-        subject: `¡Bienvenido/a a App-Eventos! Tu período de prueba ya está activo 🎉`,
+        subject: `¡Bienvenido/a a App Eventos! Tu período de prueba ya está activo 🎉`,
         html: `
-          <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
-            <div style="background:#4f46e5;padding:32px 40px;border-radius:12px 12px 0 0;text-align:center;">
-              <h1 style="color:#fff;margin:0;font-size:24px;letter-spacing:-0.5px;">App-Eventos</h1>
-              <p style="color:#c7d2fe;margin:8px 0 0;font-size:14px;">Gestión de reservas y eventos</p>
+          <div style="font-family:'DM Sans',Arial,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">
+            <div style="background:linear-gradient(135deg,#3D2B1F,#5C3317);padding:32px 40px;border-radius:12px 12px 0 0;text-align:center;">
+              <div style="font-size:36px;margin-bottom:8px;">🏟️</div>
+              <h1 style="color:#fff;margin:0;font-size:24px;letter-spacing:-0.5px;font-weight:800;">App Eventos</h1>
+              <p style="color:#EDE0D0;margin:8px 0 0;font-size:14px;">Reservas de espacios sin caos</p>
             </div>
-            <div style="background:#fff;padding:40px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
-              <h2 style="margin:0 0 16px;font-size:20px;">¡Hola, ${primerNombre}! 👋</h2>
+            <div style="background:#fff;padding:40px;border:1px solid #EDE0D0;border-top:none;border-radius:0 0 12px 12px;">
+              <h2 style="margin:0 0 16px;font-size:20px;color:#3D2B1F;">¡Hola, ${primerNombre}! 👋</h2>
               <p style="color:#4b5563;line-height:1.6;margin:0 0 16px;">
-                Tu cuenta de prueba en <strong>App-Eventos</strong> ya está activa. Tenés <strong>${DEMO_DIAS} días</strong> para explorar todas las funcionalidades del plan Profesional sin ningún compromiso.
+                Tu cuenta de prueba en <strong>App Eventos</strong> ya está activa. Tenés <strong>${DEMO_DIAS} días</strong> para explorar todas las funcionalidades del plan Profesional sin ningún compromiso.
               </p>
               <p style="color:#4b5563;line-height:1.6;margin:0 0 24px;">
-                Con App-Eventos podés gestionar reservas, turnos y eventos de forma simple y profesional, todo desde un solo lugar.
+                Podés gestionar reservas, cobros parciales, clientes y WhatsApp desde un solo lugar. Todo lo que necesitás para administrar tu quincho, salón o cancha.
               </p>
-              <div style="text-align:center;margin:32px 0;">
-                <a href="https://eventos.solucionesmdp.com.ar/" style="background:#4f46e5;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;display:inline-block;">
+              <div style="text-align:center;margin:28px 0;">
+                <a href="https://eventos.solucionesmdp.com.ar/" style="background:#C4602B;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block;">
                   Ir a la app →
                 </a>
               </div>
-              <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0;" />
+              <div style="background:#FDF8F3;border:1px solid #EDE0D0;border-radius:10px;padding:20px 24px;margin:0 0 24px;">
+                <p style="margin:0 0 12px;font-weight:700;color:#3D2B1F;font-size:15px;">¿No sabés por dónde empezar?</p>
+                <p style="margin:0 0 14px;color:#4b5563;font-size:14px;line-height:1.6;">
+                  Preparamos una guía completa con todo lo que podés hacer en la app: reservas, clientes, cobros, WhatsApp y más.
+                </p>
+                <div style="text-align:center;">
+                  <a href="https://eventos.solucionesmdp.com.ar/ayuda" style="background:#fff;color:#C4602B;border:2px solid #C4602B;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;display:inline-block;">
+                    📖 Ver guía de ayuda
+                  </a>
+                </div>
+              </div>
+              <hr style="border:none;border-top:1px solid #EDE0D0;margin:24px 0;" />
               <p style="color:#9ca3af;font-size:13px;margin:0;text-align:center;">
-                ¿Tenés dudas? <a href="https://wa.me/5492235767784" style="color:#6b7280;">Escribinos por WhatsApp</a><br/>
-                <strong style="color:#6b7280;">El equipo de Soluciones MDP</strong>
+                ¿Tenés dudas? <a href="https://wa.me/5492235767784" style="color:#C4602B;">Escribinos por WhatsApp</a><br/>
+                <strong style="color:#8B7355;">El equipo de Soluciones MDP</strong>
               </p>
             </div>
           </div>`,
