@@ -11,6 +11,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom'],
           supabase: ['@supabase/supabase-js'],
+          sentry: ['@sentry/react'],
         },
       },
     },
@@ -37,7 +38,8 @@ export default defineConfig({
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
-        cacheId: 'qb-v4',
+        cacheId: 'qb-v5',
+        navigateFallbackDenylist: [/^\/ayuda/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
         // Assets con hash → cachear 1 año (inmutables)
         globIgnores: ['sw.js', 'workbox-*.js'],
