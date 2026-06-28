@@ -400,7 +400,7 @@
   <h1>¿En qué podemos ayudarte?</h1>
   <p>Guía completa de App Eventos — reservas, clientes, cobros, WhatsApp y más.</p>
   <div class="hero-search">
-    <input type="text" id="searchInput" placeholder="Buscá una sección o palabra clave…" oninput="doSearch(this.value)" />
+    <input type="text" id="searchInput" placeholder="Buscá una sección o palabra clave…" />
     <button aria-label="Buscar">🔍</button>
   </div>
 </section>
@@ -1011,6 +1011,10 @@
       sec.style.display = text.includes(q) ? '' : 'none';
     });
   }
+
+  document.getElementById('searchInput').addEventListener('input', function() {
+    doSearch(this.value);
+  });
 
   // Smooth scroll for sidebar links
   document.querySelectorAll('.sidebar a[href^="#"]').forEach(a => {
