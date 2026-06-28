@@ -3677,8 +3677,8 @@ function OnboardingWizard({ onFinish, userName }) {
   const steps = ["Tu negocio","Tu espacio","Turnos"];
 
   return (
-    <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#FDF5EE,#FFF8F3)",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{width:"100%",maxWidth:440}}>
+    <div style={{position:"fixed",inset:0,background:"linear-gradient(135deg,#FDF5EE,#FFF8F3)",zIndex:9999,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>
+      <div style={{width:"100%",maxWidth:440,margin:"0 auto",padding:20,paddingBottom:40}}>
 
         {/* Banner de bienvenida */}
         <div style={{background:"linear-gradient(135deg,#C4602B,#E8855A)",borderRadius:14,padding:"20px 24px",marginBottom:20,textAlign:"center",boxShadow:"0 4px 16px rgba(196,96,43,0.25)"}}>
