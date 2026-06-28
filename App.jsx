@@ -4547,11 +4547,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                   </div>
                 </div>
                 {/* Ayuda */}
-                <a href="/ayuda" target="_blank" rel="noreferrer"
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"11px 16px",color:"#C4602B",textDecoration:"none",fontSize:13,fontWeight:600,borderBottom:"1px solid #EDE0D0"}}
-                  onClick={()=>setShowRootMenu(false)}>
+                <button
+                  style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 16px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,color:"#C4602B",fontFamily:"inherit",textAlign:"left",borderBottom:"1px solid #EDE0D0"}}
+                  onClick={()=>{setShowRootMenu(false);window.open("https://eventos.solucionesmdp.com.ar/ayuda","_blank","noopener");}}>
                   📖 Ayuda
-                </a>
+                </button>
                 {/* Soporte WhatsApp */}
                 <a href="https://wa.me/542235767784?text=Hola%2C+necesito+soporte+con+la+app+de+quincho" target="_blank" rel="noreferrer"
                   style={{display:"flex",alignItems:"center",gap:10,padding:"11px 16px",color:"#16A34A",textDecoration:"none",fontSize:13,fontWeight:600,borderBottom:"1px solid #EDE0D0"}}
