@@ -414,12 +414,8 @@
 
 <!-- Hero -->
 <section class="hero">
-  <h1>¿En qué podemos ayudarte?</h1>
+  <h1>Centro de ayuda</h1>
   <p>Guía completa de App Eventos — reservas, clientes, cobros, WhatsApp y más.</p>
-  <div class="hero-search">
-    <input type="text" id="searchInput" placeholder="Buscá una sección o palabra clave…" />
-    <button aria-label="Buscar">🔍</button>
-  </div>
 </section>
 
 <!-- Mobile pills nav -->
@@ -1036,16 +1032,6 @@ if ('IntersectionObserver' in window) {
     });
   }, { rootMargin: '-20% 0px -70% 0px' });
   sections.forEach(function(s) { obs.observe(s); });
-}
-
-var inp = document.getElementById('searchInput');
-if (inp) {
-  inp.addEventListener('input', function() {
-    var q = this.value.trim().toLowerCase();
-    sections.forEach(function(s) {
-      s.style.display = (!q || s.textContent.toLowerCase().indexOf(q) >= 0) ? '' : 'none';
-    });
-  });
 }
 
 document.querySelectorAll('a[href^="#"]').forEach(function(a) {
