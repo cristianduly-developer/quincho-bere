@@ -98,6 +98,10 @@ function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGa
               <div style={{fontSize:10,color:"#8B7355",textTransform:"capitalize"}}>{currentUser.plan || "Básico"}</div>
             </div>
           </div>
+          <button onClick={()=>{ window.location.href="https://eventos.solucionesmdp.com.ar/ayuda"; }}
+            style={{width:"100%",padding:"7px 0",background:"none",border:"0.5px solid #EDE0D0",borderRadius:8,cursor:"pointer",fontSize:12,color:"#C4602B",fontFamily:"inherit",fontWeight:600,marginBottom:6}}>
+            📖 Ayuda
+          </button>
           <button onClick={onLogout} style={{width:"100%",padding:"7px 0",background:"none",border:"0.5px solid #EDE0D0",borderRadius:8,cursor:"pointer",fontSize:12,color:"#DC2626",fontFamily:"inherit",fontWeight:600}}>
             Cerrar sesión
           </button>
@@ -4549,7 +4553,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 {/* Ayuda */}
                 <button
                   style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 16px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,color:"#C4602B",fontFamily:"inherit",textAlign:"left",borderBottom:"1px solid #EDE0D0"}}
-                  onClick={()=>{setShowRootMenu(false);window.open("https://eventos.solucionesmdp.com.ar/ayuda","_blank","noopener");}}>
+                  onClick={()=>{setShowRootMenu(false);window.location.href="https://eventos.solucionesmdp.com.ar/ayuda";}}>
                   📖 Ayuda
                 </button>
                 {/* Soporte WhatsApp */}
