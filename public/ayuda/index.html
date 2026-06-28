@@ -7,7 +7,6 @@
   <meta name="description" content="Guía completa de uso de App Eventos: reservas, clientes, cobros, WhatsApp y más." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
-  <script src="/ayuda/ayuda.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -383,7 +382,7 @@
     @media (max-width: 680px) {
       .sidebar { display: none; }
       .mobile-pills { display: flex !important; }
-      .layout { padding: 16px 12px 48px; }
+      .layout { padding: 16px 12px 90px; }
       .section { padding: 20px 16px 18px; }
       .section-title { font-size: 18px; }
       .hero { padding: 36px 16px 32px; }
@@ -424,7 +423,7 @@
 </section>
 
 <!-- Mobile pills nav -->
-<div class="mobile-pills" style="display:none;overflow-x:auto;white-space:nowrap;padding:12px 16px;gap:8px;border-bottom:1px solid #EDE0D0;background:#fff;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+<div class="mobile-pills" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;overflow-x:auto;white-space:nowrap;padding:10px 14px 14px;background:#fff;border-top:1px solid #EDE0D0;box-shadow:0 -2px 12px rgba(0,0,0,.10);-webkit-overflow-scrolling:touch;scrollbar-width:none;">
   <a href="#inicio">🏠 Inicio</a>
   <a href="#reservas">📋 Reservas</a>
   <a href="#clientes">👥 Clientes</a>
@@ -1023,5 +1022,40 @@
   </main>
 </div>
 
+<script>
+var sections = document.querySelectorAll('.section[id]');
+var navLinks = document.querySelectorAll('.sidebar a');
+
+if ('IntersectionObserver' in window) {
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (!e.isIntersecting) return;
+      navLinks.forEach(function(a) { a.classList.remove('active'); });
+      var a = document.querySelector('.sidebar a[href="#' + e.target.id + '"]');
+      if (a) a.classList.add('active');
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(function(s) { obs.observe(s); });
+}
+
+var inp = document.getElementById('searchInput');
+if (inp) {
+  inp.addEventListener('input', function() {
+    var q = this.value.trim().toLowerCase();
+    sections.forEach(function(s) {
+      s.style.display = (!q || s.textContent.toLowerCase().indexOf(q) >= 0) ? '' : 'none';
+    });
+  });
+}
+
+document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    var t = document.querySelector(a.getAttribute('href'));
+    if (!t) return;
+    e.preventDefault();
+    t.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
 </body>
 </html>
