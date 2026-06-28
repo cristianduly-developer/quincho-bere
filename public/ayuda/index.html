@@ -362,9 +362,26 @@
     .contact-card:hover { border-color: var(--orange); }
     .contact-card .ico { font-size: 26px; }
 
+    /* ── Mobile pills ── */
+    .mobile-pills a {
+      display: inline-block;
+      padding: 6px 14px;
+      margin-right: 6px;
+      background: var(--orange-pale);
+      border: 1px solid var(--orange-border);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--brown);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .mobile-pills a:active { background: var(--orange-border); }
+
     /* ── Mobile ── */
     @media (max-width: 680px) {
       .sidebar { display: none; }
+      .mobile-pills { display: flex !important; }
       .layout { padding: 16px 12px 48px; }
       .section { padding: 20px 16px 18px; }
       .section-title { font-size: 18px; }
@@ -404,6 +421,26 @@
     <button aria-label="Buscar">🔍</button>
   </div>
 </section>
+
+<!-- Mobile pills nav -->
+<div class="mobile-pills" style="display:none;overflow-x:auto;white-space:nowrap;padding:12px 16px;gap:8px;border-bottom:1px solid #EDE0D0;background:#fff;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+  <a href="#inicio">🏠 Inicio</a>
+  <a href="#reservas">📋 Reservas</a>
+  <a href="#clientes">👥 Clientes</a>
+  <a href="#cobros">💳 Cobros</a>
+  <a href="#espacios">🏟️ Espacios</a>
+  <a href="#whatsapp">💬 WhatsApp</a>
+  <a href="#extras">🎁 Extras</a>
+  <a href="#temporadas">💰 Temporadas</a>
+  <a href="#recordatorios">🔔 Recordatorios</a>
+  <a href="#reportes">📊 Reportes</a>
+  <a href="#gastos">💸 Gastos</a>
+  <a href="#pdfs">📄 PDFs</a>
+  <a href="#config">⚙️ Config</a>
+  <a href="#planes">⭐ Planes</a>
+  <a href="#faq">❓ FAQ</a>
+  <a href="#contacto">📞 Contacto</a>
+</div>
 
 <!-- Layout -->
 <div class="layout">
@@ -985,45 +1022,6 @@
   </main>
 </div>
 
-<script>
-  // Sidebar active link on scroll
-  const sections = document.querySelectorAll('.section[id]');
-  const navLinks = document.querySelectorAll('.sidebar a');
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        navLinks.forEach(a => a.classList.remove('active'));
-        const active = document.querySelector(`.sidebar a[href="#${e.target.id}"]`);
-        if (active) active.classList.add('active');
-      }
-    });
-  }, { rootMargin: '-20% 0px -70% 0px' });
-
-  sections.forEach(s => observer.observe(s));
-
-  // Search
-  function doSearch(q) {
-    q = q.trim().toLowerCase();
-    sections.forEach(sec => {
-      if (!q) { sec.style.display = ''; return; }
-      const text = sec.textContent.toLowerCase();
-      sec.style.display = text.includes(q) ? '' : 'none';
-    });
-  }
-
-  document.getElementById('searchInput').addEventListener('input', function() {
-    doSearch(this.value);
-  });
-
-  // Smooth scroll for sidebar links
-  document.querySelectorAll('.sidebar a[href^="#"]').forEach(a => {
-    a.addEventListener('click', e => {
-      e.preventDefault();
-      const target = document.querySelector(a.getAttribute('href'));
-      if (target) target.scrollIntoView({ behavior: 'smooth' });
-    });
-  });
-</script>
+<script src="/ayuda/ayuda.js"></script>
 </body>
 </html>
