@@ -129,6 +129,10 @@ export default async function handler(req, res) {
                 ¿Tenés dudas? <a href="https://wa.me/5492235767784" style="color:#C4602B;">Escribinos por WhatsApp</a><br/>
                 <strong style="color:#8B7355;">El equipo de Soluciones MDP</strong>
               </p>
+              <p style="color:#9ca3af;font-size:12px;margin:12px 0 0;text-align:center;">
+                <a href="https://www.instagram.com/soluciones_mdp" style="color:#9ca3af;">Instagram</a> · <a href="https://www.facebook.com/share/1D7keoQJe1/" style="color:#9ca3af;">Facebook</a>
+              </p>
+              <p style="color:#9ca3af;font-size:11px;margin:4px 0 0;text-align:center;">Seguinos en nuestras redes para enterarte de novedades y tips</p>
             </div>
           </div>`,
       }),
