@@ -3463,7 +3463,7 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch("/api/verificar-acceso", {
+      const res = await fetch("/api/verificar-acceso?login=true", {
         headers: { "Authorization": `Bearer ${token}` },
       });
       const acceso = res.ok ? await res.json() : null;

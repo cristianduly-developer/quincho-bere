@@ -45,11 +45,18 @@ export default async function handler(req, res) {
   }
 
   if (acceso?.tiene_acceso) {
-    central.from('suscripciones_apps')
-      .update({ ultimo_acceso: new Date().toISOString() })
-      .eq('app_id', APP_ID)
-      .eq('org_id', acceso.ret_org_id)
-      .then(() => {})
+    const esLogin = req.query.login === 'true'
+    if (esLogin) {
+      const { data: subRow } = await central.from('suscripciones_apps')
+        .select('cant_sesiones').eq('app_id', APP_ID).eq('org_id', acceso.ret_org_id).maybeSingle()
+      central.from('suscripciones_apps')
+        .update({ ultimo_acceso: new Date().toISOString(), cant_sesiones: (subRow?.cant_sesiones ?? 0) + 1 })
+        .eq('app_id', APP_ID).eq('org_id', acceso.ret_org_id).then(() => {})
+    } else {
+      central.from('suscripciones_apps')
+        .update({ ultimo_acceso: new Date().toISOString() })
+        .eq('app_id', APP_ID).eq('org_id', acceso.ret_org_id).then(() => {})
+    }
   }
 
   res.setHeader('Cache-Control', 'private, max-age=120')
