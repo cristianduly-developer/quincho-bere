@@ -47,15 +47,14 @@ export default async function handler(req, res) {
   if (acceso?.tiene_acceso) {
     const esLogin = req.query.login === 'true'
     if (esLogin) {
-      const { data: subRow } = await central.from('suscripciones_apps')
-        .select('cant_sesiones').eq('app_id', APP_ID).eq('org_id', acceso.ret_org_id).maybeSingle()
-      central.from('suscripciones_apps')
-        .update({ ultimo_acceso: new Date().toISOString(), cant_sesiones: (subRow?.cant_sesiones ?? 0) + 1 })
-        .eq('app_id', APP_ID).eq('org_id', acceso.ret_org_id).then(() => {})
+      central.rpc('incrementar_sesion', { p_org_id: acceso.ret_org_id, p_app_id: APP_ID }).then(({ error }) => {
+        if (error) console.error('[verificar-acceso] incrementar_sesion error:', error)
+      })
     } else {
       central.from('suscripciones_apps')
         .update({ ultimo_acceso: new Date().toISOString() })
-        .eq('app_id', APP_ID).eq('org_id', acceso.ret_org_id).then(() => {})
+        .eq('app_id', APP_ID).eq('org_id', acceso.ret_org_id)
+        .then(({ error }) => { if (error) console.error('[verificar-acceso] ultimo_acceso error:', error) })
     }
   }
 
