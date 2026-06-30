@@ -3,7 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 const APP_ID = 'quincho'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  const origin = req.headers['origin'] || ''
+  const allowed = process.env.APP_ORIGIN || 'https://quincho.solucionesmdp.com.ar'
+  if (origin === allowed || origin.endsWith('.vercel.app')) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type')
   if (req.method === 'OPTIONS') return res.status(200).end()

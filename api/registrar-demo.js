@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+﻿import { createClient } from '@supabase/supabase-js'
 
 const DEMO_DIAS = 28
 const APP_ID    = 'quincho'
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
       body: JSON.stringify({
         from: process.env.MAIL_FROM ?? 'onboarding@resend.dev',
-        to: 'cristianduly@gmail.com',
+        to: process.env.ADMIN_NOTIFICATION_EMAIL || 'cristianduly@gmail.com',
         subject: `🆕 Nueva cuenta demo — ${nombreGoogle}`,
         html: `<h2>🆕 Nueva cuenta demo en App-Eventos</h2>
           <table style="border-collapse:collapse;font-family:sans-serif;">
