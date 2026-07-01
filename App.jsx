@@ -4413,7 +4413,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         const newEstado=tot===0?"pendiente":tot>=totalEvento?"confirmada":"senada";
         if(newEstado!==res.estado){
           saveR(reservas.map(r=>r.id===data.reservaId?{...r,estado:newEstado}:r));
-          if(newEstado==="confirmada"){
+          if(newEstado==="senada"||newEstado==="confirmada"){
             const cli=clientes.find(c=>c.id===res.clienteId);
             if(cli?.email){
               const recurso=recursos.find(r=>r.id===res.recursoId);
@@ -4426,9 +4426,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 cantInvitados:res.cantInvitados||"",montoPactado:res.montoPactado,
                 sena:tot,saldo:res.montoPactado-tot,
                 metodoPago:data.metodo||"",notas:res.notas||"",
-              })}).then(()=>showToast("📧 Mail de confirmación enviado a "+cli.email,"ok")).catch(()=>showToast("📧 Mail de confirmación no se pudo enviar","error"));
+                estado:newEstado,
+              })}).then(()=>showToast("📧 Mail enviado a "+cli.email,"ok")).catch(()=>showToast("📧 Mail no se pudo enviar","error"));
             } else {
-              showToast("⚠️ Reserva confirmada, pero el cliente no tiene mail registrado","warn");
+              showToast("⚠️ Reserva "+newEstado+", pero el cliente no tiene mail registrado","warn");
             }
           }
         }
