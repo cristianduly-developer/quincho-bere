@@ -78,11 +78,54 @@ export default async function handler(req, res) {
           💡 Recordá abonar el saldo de <strong>${fmtMonto(saldo)}</strong> el día del evento.
         </div>` : ''}
 
-        <!-- CTA -->
-        <div style="text-align:center;margin-bottom:28px;">
-          <a href="https://eventos.solucionesmdp.com.ar" style="background:#C4602B;color:#fff;padding:13px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">
-            Ver mis reservas →
-          </a>
+        <!-- Condiciones -->
+        <div style="border:1px solid #EDE0D0;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+          <div style="background:#3D2B1F;padding:12px 20px;">
+            <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.5px;">📋 NORMAS Y CONDICIONES DEL ALQUILER</span>
+          </div>
+          <div style="padding:16px 20px;background:#fff;">
+
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12px;font-weight:700;color:#C4602B;margin-bottom:5px;">💰 DEPÓSITOS Y PAGOS</div>
+              <ul style="margin:0;padding-left:18px;font-size:13px;color:#3D2B1F;line-height:1.8;">
+                <li>Depósito de garantía: <strong>$50.000</strong> (reintegrable al finalizar el evento)</li>
+                <li>Seña: no reembolsable. Reprogramación por clima adverso sujeto a fechas disponibles</li>
+              </ul>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12px;font-weight:700;color:#C4602B;margin-bottom:5px;">🧹 ORDEN Y LIMPIEZA</div>
+              <ul style="margin:0;padding-left:18px;font-size:13px;color:#3D2B1F;line-height:1.8;">
+                <li>Limpieza opcional: <strong>$30.000</strong></li>
+                <li>Entregar el espacio ordenado: recolección de residuos, lavar vajilla y reacomodar mobiliario</li>
+              </ul>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <div style="font-size:12px;font-weight:700;color:#C4602B;margin-bottom:5px;">🚫 CONDICIONES DE USO DEL ESPACIO</div>
+              <ul style="margin:0;padding-left:18px;font-size:13px;color:#3D2B1F;line-height:1.8;">
+                <li>Música: volumen moderado. Sin DJs ni bandas</li>
+                <li>Puerta cerrada en todo momento</li>
+                <li>No ingresar vehículos al predio</li>
+                <li>Sin pirotecnia ni mascotas</li>
+                <li>Prohibido globos con confeti, papel picado, bombuchas o inflables con agua</li>
+                <li>Piscina: responsabilidad del contratante</li>
+              </ul>
+            </div>
+
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#C4602B;margin-bottom:5px;">🕐 HORARIOS</div>
+              <ul style="margin:0;padding-left:18px;font-size:13px;color:#3D2B1F;line-height:1.8;">
+                <li>Cumplir horarios de ingreso y egreso</li>
+                <li>Decorar y limpiar dentro del turno</li>
+                <li>Máxima tolerancia 15 minutos al finalizar</li>
+              </ul>
+            </div>
+
+          </div>
+          <div style="background:#FDF8F3;border-top:1px solid #EDE0D0;padding:10px 20px;text-align:center;font-size:12px;color:#8B7355;font-style:italic;">
+            El respeto por estas pautas nos permite cuidar el espacio y brindar un mejor servicio para todos.
+          </div>
         </div>
 
         <hr style="border:none;border-top:1px solid #EDE0D0;margin:0 0 20px;" />
