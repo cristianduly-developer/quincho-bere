@@ -4411,8 +4411,27 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       const totalEvento=res.montoPactado+getTotalExtras(res.id,extrasReserva);
       if(["pendiente","senada","confirmada"].includes(res.estado)){
         const newEstado=tot===0?"pendiente":tot>=totalEvento?"confirmada":"senada";
-        if(newEstado!==res.estado)
+        if(newEstado!==res.estado){
           saveR(reservas.map(r=>r.id===data.reservaId?{...r,estado:newEstado}:r));
+          if(newEstado==="confirmada"){
+            const cli=clientes.find(c=>c.id===res.clienteId);
+            if(cli?.email){
+              const recurso=recursos.find(r=>r.id===res.recursoId);
+              const turno=turnosRecurso.find(t=>t.id===res.turnoId);
+              fetch("/api/mail-reserva",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+                clienteEmail:cli.email,clienteNombre:clientName(cli),
+                negocioNombre:negocio?.nombreNegocio||"",negocioLogo:negocio?.logoUrl||"",negocioTelefono:negocio?.telefono||"",
+                espacioNombre:recurso?.nombre||res.turno||"",fecha:res.fecha,
+                turnoNombre:turno?.nombre||res.turno||"",horaInicio:turno?.horaInicio||"",horaFin:turno?.horaFin||"",
+                cantInvitados:res.cantInvitados||"",montoPactado:res.montoPactado,
+                sena:tot,saldo:res.montoPactado-tot,
+                metodoPago:data.metodo||"",notas:res.notas||"",
+              })}).then(()=>showToast("📧 Mail de confirmación enviado a "+cli.email,"ok")).catch(()=>showToast("📧 Mail de confirmación no se pudo enviar","error"));
+            } else {
+              showToast("⚠️ Reserva confirmada, pero el cliente no tiene mail registrado","warn");
+            }
+          }
+        }
       }
     }
     if(shouldPrint){
