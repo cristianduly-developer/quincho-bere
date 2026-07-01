@@ -4355,6 +4355,38 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           return alert("Error al guardar la reserva: "+insErr.message);
         }
         setReservas(prev=>[...prev,nuevaReserva]);
+
+        // Mail de confirmación si el cliente tiene email y la reserva es Confirmada
+        if(data.estado==="Confirmada" || data.estado==="confirmada"){
+          const cli = clientes.find(c=>c.id===data.clienteId);
+          if(cli?.email){
+            const recurso = recursos.find(r=>r.id===data.recursoId);
+            const turno = turnosRecurso.find(t=>t.id===data.turnoId);
+            const totalPagos = data.sena ? Number(data.sena) : 0;
+            fetch("/api/mail-reserva", {
+              method:"POST",
+              headers:{"Content-Type":"application/json"},
+              body: JSON.stringify({
+                clienteEmail:   cli.email,
+                clienteNombre:  clientName(cli),
+                negocioNombre:  negocio?.nombreNegocio || "",
+                negocioLogo:    negocio?.logoUrl || "",
+                negocioTelefono:negocio?.telefono || "",
+                espacioNombre:  recurso?.nombre || data.turno || "",
+                fecha:          data.fecha,
+                turnoNombre:    turno?.nombre || data.turno || "",
+                horaInicio:     turno?.horaInicio || "",
+                horaFin:        turno?.horaFin || "",
+                cantInvitados:  data.cantInvitados || "",
+                montoPactado:   data.montoPactado,
+                sena:           totalPagos,
+                saldo:          data.montoPactado - totalPagos,
+                metodoPago:     data.metodoPago || "",
+                notas:          data.notas || "",
+              }),
+            }).catch(()=>{}); // silencioso — no bloquea el flujo
+          }
+        }
       }
       setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);
     } finally { setSavingReserva(false); }
