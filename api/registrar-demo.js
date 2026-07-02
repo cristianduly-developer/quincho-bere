@@ -62,6 +62,14 @@ export default async function handler(req, res) {
     app_id: APP_ID,
   }).then(() => {})
 
+  central.from('eventos_suscripcion').insert({
+    org_id: orgId,
+    app_id: APP_ID,
+    tipo: 'nueva_suscripcion',
+    descripcion: `Nueva demo — ${nombreGoogle} (${email})`,
+    plan: 'profesional',
+  }).then(() => {})
+
   try {
     const nombreGoogle = user.user_metadata?.full_name || email.split('@')[0]
     const fechaAlta = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
