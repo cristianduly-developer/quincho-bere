@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     await supa.from('turnos_recurso').delete().eq('org_id', org_id)
     await supa.from('recursos').delete().eq('org_id', org_id)
     // Tablas con user_id
-    await supa.from('config').delete().eq('user_id', uid)
+    await supa.from('config').delete().eq('org_id', org_id)
     await supa.from('user_orgs').delete().eq('user_id', uid)
 
     await supa.auth.admin.deleteUser(uid)
