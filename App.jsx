@@ -3815,7 +3815,15 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
         headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
       });
       if (!res.ok) throw new Error("error_servidor");
-      await new Promise(r => setTimeout(r, 1500));
+      // Reintentar hasta 5 veces con 1.5s entre intentos hasta que verificar-acceso confirme la suscripción
+      const { data: { session: s2 } } = await supabase.auth.getSession();
+      let acceso = null;
+      for(let i=0;i<5;i++){
+        await new Promise(r=>setTimeout(r,1500));
+        const vRes = await fetch("/api/verificar-acceso?login=true",{headers:{"Authorization":`Bearer ${s2?.access_token}`}});
+        acceso = vRes.ok ? await vRes.json() : null;
+        if(acceso?.tiene_acceso) break;
+      }
       await handleUser(authUser);
     } catch {
       setError("Ocurrió un error. Intentá de nuevo.");
