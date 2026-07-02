@@ -28,7 +28,21 @@ export default async function handler(req, res) {
 
     const uid = user.id
 
-    await supa.from('turnos_recurso').delete().eq('user_id', uid)
+    // Tablas con org_id
+    await supa.from('pagos').delete().eq('org_id', org_id)
+    await supa.from('recordatorios').delete().eq('org_id', org_id)
+    await supa.from('extras_reserva').delete().eq('org_id', org_id)
+    await supa.from('reservas').delete().eq('org_id', org_id)
+    await supa.from('bloqueos').delete().eq('org_id', org_id)
+    await supa.from('clientes').delete().eq('org_id', org_id)
+    await supa.from('gastos').delete().eq('org_id', org_id)
+    await supa.from('tareas').delete().eq('org_id', org_id)
+    await supa.from('precios_temporada').delete().eq('org_id', org_id)
+    await supa.from('temporadas_precio').delete().eq('org_id', org_id)
+    await supa.from('servicios_extras').delete().eq('org_id', org_id)
+    await supa.from('turnos_recurso').delete().eq('org_id', org_id)
+    await supa.from('recursos').delete().eq('org_id', org_id)
+    // Tablas con user_id
     await supa.from('config').delete().eq('user_id', uid)
     await supa.from('user_orgs').delete().eq('user_id', uid)
 
