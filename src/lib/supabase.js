@@ -5,11 +5,6 @@ export const supabase = createClient(
   import.meta.env.VITE_SUPA_KEY
 );
 
-export const supabaseCentral = createClient(
-  import.meta.env.VITE_CENTRAL_URL,
-  import.meta.env.VITE_CENTRAL_KEY
-);
-
 // org_id activo — se setea al login
 let _currentOrgId = null;
 export const getCurrentOrgId = () => _currentOrgId;

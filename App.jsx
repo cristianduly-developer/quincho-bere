@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, memo, Component, Fragment, lazy, Suspense } from "react";
 import { MONTHS, MONTHS_SHORT, DAYS_SHORT, STATUS, TURNOS, PAYMENT_METHODS, EXPENSE_CATS, CAT_COLORS, DEFAULT_CONFIG, PLAN_LIMITS, getPlanLimits } from "./src/lib/constants.js";
 import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, getTotalExtras, getTotalPagado, getSaldo } from "./src/lib/utils.js";
-import { supabase, supabaseCentral, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor } from "./src/lib/supabase.js";
+import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor } from "./src/lib/supabase.js";
 import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario } from "./src/lib/mappers.js";
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
 import { Field, Input, Select, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
@@ -2311,8 +2311,10 @@ function ColaboradoresSection({ orgId, plan, embedded }) {
 
   useEffect(()=>{
     if(!orgId) return;
-    supabaseCentral.from("empleados_organizacion").select("*").eq("org_id",orgId).eq("activo",true)
-      .then(({data})=>{ setColaboradores(data||[]); setLoading(false); });
+    supabase.auth.getSession().then(({data:{session}})=>{
+      fetch(`/api/colaboradores?orgId=${orgId}`,{headers:{Authorization:`Bearer ${session?.access_token}`}})
+        .then(r=>r.json()).then(d=>{ setColaboradores(d.colaboradores||[]); setLoading(false); });
+    });
   },[orgId]);
 
   const handleAdd = async () => {
@@ -2322,21 +2324,17 @@ function ColaboradoresSection({ orgId, plan, embedded }) {
       return;
     }
     setSaving(true);
-    const nuevo = { id: genId(), org_id: orgId, email: email.trim(), nombre: nombre.trim()||email.trim(), activo: true };
-    const { error } = await supabaseCentral.from("empleados_organizacion").insert(nuevo);
-    if(error){ alert("Error al agregar colaborador: "+error.message); setSaving(false); return; }
-    supabaseCentral.from("notificaciones_admin").insert({
-      tipo: "nuevo_colaborador",
-      mensaje: `Nuevo colaborador en App Eventos — ${nuevo.nombre} (${nuevo.email})`,
-      org_id: orgId,
-      app_id: "quincho",
-    }).then(() => {});
+    const { data:{ session } } = await supabase.auth.getSession();
+    const r = await fetch('/api/colaboradores',{ method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`}, body: JSON.stringify({ org_id: orgId, email: email.trim(), nombre: nombre.trim()||email.trim() }) });
+    if(!r.ok){ const d=await r.json(); alert("Error al agregar colaborador: "+(d.error||r.status)); setSaving(false); return; }
+    const nuevo = { org_id: orgId, email: email.trim(), nombre: nombre.trim()||email.trim(), activo: true };
     setColaboradores(prev=>[...prev, nuevo]);
     setEmail(""); setNombre(""); setSaving(false);
   };
 
   const handleRemove = async (id) => {
-    await supabaseCentral.from("empleados_organizacion").update({activo:false}).eq("id",id);
+    const { data:{ session } } = await supabase.auth.getSession();
+    await fetch('/api/colaboradores',{ method:'PATCH', headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`}, body: JSON.stringify({ id }) });
     setColaboradores(prev=>prev.filter(x=>x.id!==id));
   };
 
@@ -4313,10 +4311,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       let accesoArr, accesoError;
       try {
         const res = await Promise.race([
-          supabaseCentral.rpc("verificar_acceso_email", { email_param: cu.email, app_id_param: "quincho" }),
+          fetch(`/api/verificar-acceso?email=${encodeURIComponent(cu.email)}`,{ headers:{ Authorization:`Bearer ${session?.access_token}` } }).then(r=>r.json()),
           new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),8000))
         ]);
-        accesoArr = res.data; accesoError = res.error;
+        accesoArr = res.tiene_acceso !== undefined ? [res] : res; accesoError = res.error ?? null;
       } catch(e) { accesoError = e; }
 
       const acceso = Array.isArray(accesoArr) ? accesoArr[0] : accesoArr;
@@ -4381,8 +4379,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     if(!currentUser?.email) return;
     const check = async () => {
       try {
-        const {data:accesoArr} = await supabaseCentral.rpc("verificar_acceso_email",{email_param:currentUser.email,app_id_param:"quincho"});
-        const acceso = Array.isArray(accesoArr)?accesoArr[0]:accesoArr;
+        const { data:{ session } } = await supabase.auth.getSession();
+        const r = await fetch(`/api/verificar-acceso?email=${encodeURIComponent(currentUser.email)}`,{ headers:{ Authorization:`Bearer ${session?.access_token}` } });
+        const accesoRaw = await r.json();
+        const acceso = Array.isArray(accesoRaw)?accesoRaw[0]:accesoRaw;
         if(!acceso?.tiene_acceso || acceso.estado==="impago" || acceso.estado==="suspendido"){
           lsRemove("qb_user");
           await supabase.auth.signOut();
@@ -4472,11 +4472,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         tickCount=0;
         const email=currentUser?.email;
         if(email){
-          supabaseCentral.rpc("verificar_acceso_email",{email_param:email,app_id_param:"quincho"}).then(({data})=>{
-            const acceso=Array.isArray(data)?data[0]:data;
-            if(!acceso?.tiene_acceso||acceso.estado==="impago"||acceso.estado==="suspendido"){
-              handleLogout();
-            }
+          supabase.auth.getSession().then(({data:{session}})=>{
+            fetch(`/api/verificar-acceso?email=${encodeURIComponent(email)}`,{ headers:{ Authorization:`Bearer ${session?.access_token}` } })
+              .then(r=>r.json()).then(acceso=>{
+                if(!acceso?.tiene_acceso||acceso.estado==="impago"||acceso.estado==="suspendido"){
+                  handleLogout();
+                }
+              });
           });
         }
       }
