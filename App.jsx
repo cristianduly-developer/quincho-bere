@@ -2925,7 +2925,180 @@ function TurnosEspacioSection({ recursos }) {
   );
 }
 
-function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio, setPreciosTemporada }) {
+const PLANES_META_QB = {
+  basico:      { label:'Básico',      color:'#6b7280', emoji:'⚡' },
+  profesional: { label:'Profesional', color:'#C4602B', emoji:'🚀' },
+  premium:     { label:'Premium',     color:'#7c3aed', emoji:'💎' },
+  sincargo:    { label:'Sin cargo',   color:'#16a34a', emoji:'🎁' },
+  demo:        { label:'Demo',        color:'#C4602B', emoji:'🎁' },
+};
+
+function MiPlanView({ currentUser, onBack }) {
+  const planActual = currentUser?.plan || 'basico';
+  const meta = PLANES_META_QB[planActual] || PLANES_META_QB.basico;
+
+  const [planesDB,        setPlanesDB]        = useState([]);
+  const [planSel,         setPlanSel]         = useState('profesional');
+  const [vistaUpgrade,    setVistaUpgrade]    = useState(false);
+  const [cargando,        setCargando]        = useState(false);
+  const [cancelando,      setCancelando]      = useState(false);
+  const [confirmarCancel, setConfirmarCancel] = useState(false);
+  const [mpPreapproval,   setMpPreapproval]   = useState(null);
+  const [fechaVenc,       setFechaVenc]       = useState(null);
+  const [error,           setError]           = useState('');
+
+  useEffect(() => {
+    fetch('/api/planes-precios').then(r => r.json()).then(d => {
+      if (d.planes?.length) {
+        const ordenados = ['basico','profesional','premium'].map(id => {
+          const row = d.planes.find(p => p.plan === id);
+          if (!row) return null;
+          return { id, ...PLANES_META_QB[id], precio:'$'+Number(row.precio_mensual).toLocaleString('es-AR'), beneficios: row.beneficios||[] };
+        }).filter(Boolean);
+        setPlanesDB(ordenados);
+      }
+    }).catch(()=>{});
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      const res = await fetch('/api/verificar-acceso', { headers: { Authorization:`Bearer ${session.access_token}` } });
+      const data = res.ok ? await res.json() : null;
+      if (data?.mp_preapproval_id) setMpPreapproval(data.mp_preapproval_id);
+      if (data?.fecha_vencimiento)  setFechaVenc(data.fecha_vencimiento);
+    });
+  }, []);
+
+  const iniciarUpgrade = async () => {
+    setCargando(true); setError('');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setError('Sesión expirada.'); setCargando(false); return; }
+    try {
+      const r = await fetch('/api/mp-crear-suscripcion', {
+        method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${session.access_token}`},
+        body: JSON.stringify({ plan: planSel }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.init_point) { setError(data.error||'Error al iniciar el pago.'); setCargando(false); return; }
+      window.location.href = data.init_point;
+    } catch { setError('Error de conexión. Intentá de nuevo.'); setCargando(false); }
+  };
+
+  const cancelarSuscripcion = async () => {
+    setCancelando(true); setError('');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setError('Sesión expirada.'); setCancelando(false); return; }
+    try {
+      const r = await fetch('/api/mp-cancelar-suscripcion', {
+        method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${session.access_token}`},
+      });
+      const data = await r.json();
+      if (!r.ok) { setError(data.error||'Error al cancelar.'); setCancelando(false); setConfirmarCancel(false); return; }
+      setMpPreapproval(null);
+      setConfirmarCancel(false);
+    } catch { setError('Error de conexión.'); }
+    setCancelando(false);
+  };
+
+  const planesUpgrade = planesDB.filter(p => p.id !== planActual);
+
+  return (
+    <div style={{minHeight:'100vh',background:'#FFF',paddingBottom:80}}>
+      <div style={{maxWidth:480,margin:'0 auto',padding:'16px 16px 0'}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+          <button onClick={onBack} style={{width:36,height:36,borderRadius:10,background:'#F3F4F6',border:'none',cursor:'pointer',fontSize:18}}>←</button>
+          <h1 style={{margin:0,fontSize:18,fontWeight:800,color:'#1C1C1E',fontFamily:"'Playfair Display',serif"}}>Mi plan</h1>
+        </div>
+
+        <div style={{borderRadius:16,padding:20,marginBottom:16,border:`2px solid ${meta.color}`,background:meta.color+'12'}}>
+          <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:meta.color,marginBottom:4}}>Plan actual</div>
+          <div style={{fontSize:24,fontWeight:900,color:meta.color,marginBottom:10}}>{meta.emoji} {meta.label}</div>
+          {currentUser?.suscripcionEstado === 'demo' && (
+            <div style={{fontSize:13,color:'#92400E',fontWeight:600,marginBottom:6}}>
+              🎁 Demo — {currentUser.diasRestantes != null ? `${currentUser.diasRestantes} días restantes` : 'activa'}
+            </div>
+          )}
+          {fechaVenc && currentUser?.suscripcionEstado === 'activo' && (
+            <div style={{fontSize:13,color:'#374151',marginBottom:6}}>
+              🔄 Próxima renovación: <strong>{new Date(fechaVenc).toLocaleDateString('es-AR')}</strong>
+            </div>
+          )}
+          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:13,color:mpPreapproval?'#16A34A':'#9CA3AF',marginTop:8}}>
+            <span style={{width:8,height:8,borderRadius:'50%',background:mpPreapproval?'#16A34A':'#D1D5DB',display:'inline-block'}} />
+            {mpPreapproval ? 'Débito automático activo' : 'Sin débito automático'}
+          </div>
+        </div>
+
+        {!vistaUpgrade && (
+          <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
+            <button onClick={()=>setVistaUpgrade(true)}
+              style={{width:'100%',padding:'14px',background:'linear-gradient(135deg,#C4602B,#9E4A1E)',border:'none',borderRadius:12,color:'#FFF',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>
+              ⬆️ Cambiar plan
+            </button>
+            {mpPreapproval && (
+              <button onClick={()=>setConfirmarCancel(true)}
+                style={{width:'100%',padding:'12px',background:'none',border:'1px solid #FECACA',borderRadius:12,color:'#DC2626',fontWeight:600,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
+                Cancelar débito automático
+              </button>
+            )}
+          </div>
+        )}
+
+        {vistaUpgrade && (
+          <div>
+            <button onClick={()=>setVistaUpgrade(false)} style={{background:'none',border:'none',color:'#C4602B',fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:12,fontFamily:'inherit'}}>← Volver</button>
+            <div style={{fontWeight:700,fontSize:15,color:'#1C1C1E',marginBottom:4}}>Cambiar plan</div>
+            <div style={{fontSize:13,color:'#6B7280',marginBottom:14}}>Se activa de inmediato con débito automático mensual.</div>
+            {planesUpgrade.map(p => (
+              <div key={p.id} onClick={()=>setPlanSel(p.id)}
+                style={{border:`2px solid ${planSel===p.id?p.color:'#E5E7EB'}`,borderRadius:14,padding:'14px 16px',marginBottom:10,cursor:'pointer',background:planSel===p.id?p.color+'12':'#FAFAFA',transition:'all 0.15s'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                  <span style={{fontWeight:700,fontSize:15,color:p.color}}>{p.label}</span>
+                  <span style={{fontWeight:800,color:'#1C1C1E',fontSize:15}}>{p.precio}<span style={{fontWeight:400,fontSize:11,color:'#9CA3AF'}}>/mes</span></span>
+                </div>
+                {p.beneficios?.length > 0 && (
+                  <ul style={{margin:0,padding:0,listStyle:'none',marginTop:6}}>
+                    {p.beneficios.map((b,i) => (
+                      <li key={i} style={{fontSize:12,color:'#6B7280',display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                        <span style={{color:p.color,fontWeight:700}}>✓</span>{b}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+            <div style={{background:'#FFF8F5',border:'1px solid #EDE0D0',borderRadius:12,padding:'10px 14px',marginBottom:14,fontSize:12,color:'#8B7355'}}>
+              💳 El pago se procesa por <strong>Mercado Pago</strong>. Se renueva automáticamente cada mes.
+            </div>
+            {error && <div style={{color:'#DC2626',fontSize:12,background:'#FEF2F2',border:'1px solid #FECACA',borderRadius:10,padding:'10px 14px',marginBottom:12}}>{error}</div>}
+            <button onClick={iniciarUpgrade} disabled={cargando}
+              style={{width:'100%',padding:'14px',background:cargando?'#EDE0D0':'linear-gradient(135deg,#C4602B,#9E4A1E)',border:'none',borderRadius:12,color:'#FFF',fontWeight:700,fontSize:14,cursor:cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:cargando?0.7:1}}>
+              {cargando ? 'Redirigiendo...' : `Suscribirme — Plan ${planesDB.find(p=>p.id===planSel)?.label??planSel}`}
+            </button>
+          </div>
+        )}
+
+        {confirmarCancel && (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:999,padding:16}}>
+            <div style={{background:'#FFF',borderRadius:20,padding:20,width:'100%',maxWidth:400}}>
+              <h3 style={{margin:'0 0 8px',fontSize:16,color:'#1C1C1E'}}>¿Cancelar débito automático?</h3>
+              <p style={{margin:'0 0 20px',fontSize:14,color:'#6B7280'}}>Tu acceso continúa hasta el vencimiento.</p>
+              {error && <div style={{color:'#DC2626',fontSize:12,marginBottom:10}}>{error}</div>}
+              <div style={{display:'flex',gap:10}}>
+                <button onClick={()=>setConfirmarCancel(false)} style={{flex:1,padding:'12px',background:'#F3F4F6',border:'none',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontSize:13,color:'#6B7280'}}>No, mantener</button>
+                <button onClick={cancelarSuscripcion} disabled={cancelando}
+                  style={{flex:1,padding:'12px',background:'#DC2626',border:'none',borderRadius:12,cursor:cancelando?'not-allowed':'pointer',fontFamily:'inherit',fontSize:13,color:'#FFF',fontWeight:700,opacity:cancelando?0.6:1}}>
+                  {cancelando?'Cancelando...':'Sí, cancelar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio, setPreciosTemporada, onGoMiPlan }) {
   const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
@@ -3070,6 +3243,17 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
           </div>
         )}
       </div>
+
+      {/* ── MI SUSCRIPCIÓN ── */}
+      {currentUser?.rol === "Administrador" && onGoMiPlan && (
+        <div style={{...card, padding:16, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontWeight:700, fontSize:14, color:"#1C1C1E"}}>Mi suscripción</div>
+            <div style={{fontSize:12, color:"#8B7355", marginTop:2}}>Plan activo, pagos y débito automático</div>
+          </div>
+          <button onClick={onGoMiPlan} style={{background:"none",border:"none",color:"#C4602B",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Gestionar →</button>
+        </div>
+      )}
 
       {/* ── COLABORADORES ── */}
       <div style={{...card, padding:16}}>
@@ -3442,11 +3626,103 @@ function BannerDemo({ diasRestantes }) {
 
 const WA_SOPORTE = '5492235767784';
 
+function SelectorPlanesMP({ orgId, titulo, subtitulo, onSignOut }) {
+  const [planes,   setPlanes]   = useState([]);
+  const [planSel,  setPlanSel]  = useState('profesional');
+  const [cargando, setCargando] = useState(false);
+  const [error,    setError]    = useState('');
+
+  useEffect(() => {
+    fetch('/api/planes-precios').then(r => r.json()).then(d => {
+      if (d.planes?.length) {
+        const orden = ['basico','profesional','premium'];
+        const metas = {
+          basico:      { label:'Básico',       color:'#6b7280', emoji:'⚡' },
+          profesional: { label:'Profesional',  color:'#C4602B', emoji:'🚀' },
+          premium:     { label:'Premium',      color:'#7c3aed', emoji:'💎' },
+        };
+        setPlanes(orden.map(id => {
+          const row = d.planes.find(p => p.plan === id);
+          if (!row) return null;
+          return { id, ...metas[id], precio: '$' + Number(row.precio_mensual).toLocaleString('es-AR'), beneficios: row.beneficios || [] };
+        }).filter(Boolean));
+      }
+    }).catch(() => {});
+  }, []);
+
+  const pagar = async () => {
+    if (!orgId) { setError('No se encontró tu organización. Intentá de nuevo.'); return; }
+    setCargando(true); setError('');
+    try {
+      const r = await fetch('/api/mp-pago-publico', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org_id: orgId, plan: planSel }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.init_point) { setError(data.error || 'Error al iniciar el pago.'); setCargando(false); return; }
+      window.location.href = data.init_point;
+    } catch { setError('Error de conexión. Intentá de nuevo.'); setCargando(false); }
+  };
+
+  const planInfo = planes.find(p => p.id === planSel);
+
+  return (
+    <div style={{minHeight:'100vh',background:'#FFF',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24}}>
+      <div style={{width:'100%',maxWidth:380}}>
+        <div style={{textAlign:'center',marginBottom:24}}>
+          <div style={{fontSize:48,marginBottom:12}}>🏡</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800,color:'#1C1C1E',marginBottom:8}}>{titulo}</div>
+          <div style={{fontSize:14,color:'#6B7280',lineHeight:1.6}}>{subtitulo}</div>
+        </div>
+
+        {planes.map(p => (
+          <div key={p.id} onClick={() => setPlanSel(p.id)}
+            style={{border:`2px solid ${planSel===p.id ? p.color : '#E5E7EB'}`,borderRadius:14,padding:'14px 16px',marginBottom:10,cursor:'pointer',background:planSel===p.id ? p.color+'12' : '#FAFAFA',transition:'all 0.15s'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+              <span style={{fontWeight:700,fontSize:15,color:p.color}}>{p.emoji} {p.label}</span>
+              <span style={{fontWeight:800,color:'#1C1C1E',fontSize:15}}>{p.precio}<span style={{fontWeight:400,fontSize:11,color:'#9CA3AF'}}>/mes</span></span>
+            </div>
+            {p.beneficios.length > 0 && (
+              <ul style={{margin:0,padding:0,listStyle:'none',marginTop:6}}>
+                {p.beneficios.map((b,i) => (
+                  <li key={i} style={{fontSize:12,color:'#6B7280',display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                    <span style={{color:p.color,fontWeight:700}}>✓</span>{b}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+
+        <div style={{background:'#FFF8F5',border:'1px solid #EDE0D0',borderRadius:12,padding:'10px 14px',marginBottom:16,fontSize:12,color:'#8B7355'}}>
+          💳 El pago se procesa por <strong>Mercado Pago</strong>. Se renueva automáticamente cada mes.
+        </div>
+
+        {error && <div style={{color:'#DC2626',fontSize:12,background:'#FEF2F2',border:'1px solid #FECACA',borderRadius:10,padding:'10px 14px',marginBottom:12}}>{error}</div>}
+
+        <button onClick={pagar} disabled={cargando || !planInfo}
+          style={{width:'100%',padding:'14px 20px',background:cargando?'#EDE0D0':'linear-gradient(135deg,#C4602B,#9E4A1E)',border:'none',borderRadius:12,cursor:cargando?'not-allowed':'pointer',fontSize:15,fontWeight:700,color:'#FFF',fontFamily:'inherit',marginBottom:12,opacity:cargando?0.7:1}}>
+          {cargando ? 'Redirigiendo...' : `Suscribirme — Plan ${planInfo?.label ?? planSel}`}
+        </button>
+
+        {onSignOut && (
+          <button onClick={onSignOut}
+            style={{width:'100%',background:'none',border:'none',color:'#9CA3AF',fontSize:12,cursor:'pointer',textDecoration:'underline'}}>
+            Volver al inicio de sesión
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function GoogleLoginScreen({ onLogin, onBlocked }) {
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState("");
-  const [pantalla, setPantalla] = useState("login"); // login | registro | demo_vencido | suspendido
-  const [authUser, setAuthUser] = useState(null);
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState("");
+  const [pantalla,     setPantalla]     = useState("login"); // login | registro | demo_vencido | suspendido | impago | cancelado
+  const [authUser,     setAuthUser]     = useState(null);
+  const [orgIdBloqueo, setOrgIdBloqueo] = useState(null);
 
   useEffect(()=>{
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -3469,13 +3745,24 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
       const acceso = res.ok ? await res.json() : null;
 
       if (!acceso?.tiene_acceso) {
-        if (acceso?.estado === "impago" || acceso?.estado === "suspendido") {
+        if (acceso?.estado === "impago" || acceso?.estado === "suspendido" || acceso?.estado === "cancelado") {
           setAuthUser(au);
-          setPantalla(acceso.estado);
+          if (acceso?.org_id) setOrgIdBloqueo(acceso.org_id);
+          else {
+            // fallback: buscar org_id
+            const { data: { session: s2 } } = await supabase.auth.getSession();
+            const empRes = await fetch("/api/verificar-acceso", { headers: { Authorization: `Bearer ${s2?.access_token}` } });
+            const empData = empRes.ok ? await empRes.json() : null;
+            if (empData?.ret_org_id) setOrgIdBloqueo(empData.ret_org_id);
+          }
+          await supabase.auth.signOut();
+          setPantalla(acceso.estado === "cancelado" ? "cancelado" : acceso.estado);
           setLoading(false);
           return;
         }
         if (acceso?.estado === "demo" && (acceso?.dias_restantes ?? 0) <= 0) {
+          if (acceso?.ret_org_id) setOrgIdBloqueo(acceso.ret_org_id);
+          await supabase.auth.signOut();
           setAuthUser(au);
           setPantalla("demo_vencido");
           setLoading(false);
@@ -3577,43 +3864,41 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
     </div>
   );
 
-  if (pantalla === "demo_vencido") {
-    const waMsg = encodeURIComponent(`Hola! Se me venció la prueba de la App Quincho. Mi email: ${email}`);
-    return (
-      <div style={{minHeight:"100vh",background:"#FFF",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,textAlign:"center"}}>
-        <div style={{fontSize:56,marginBottom:16}}>⏳</div>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800,color:"#1C1C1E",marginBottom:12}}>Tu prueba gratuita venció</div>
-        <div style={{fontSize:14,color:"#6B7280",maxWidth:280,lineHeight:1.6,marginBottom:28}}>Activá un plan para seguir gestionando tus reservas y espacios.</div>
-        <a href={`https://wa.me/${WA_SOPORTE}?text=${waMsg}`} target="_blank" rel="noreferrer"
-          style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",maxWidth:300,padding:"14px 20px",borderRadius:12,background:"#22C55E",color:"#FFF",fontSize:15,fontWeight:700,textDecoration:"none",marginBottom:12,boxShadow:"0 4px 16px rgba(34,197,94,0.3)"}}>
-          💬 Activar mi cuenta
-        </a>
-        <button onClick={()=>supabase.auth.signOut().then(()=>setPantalla("login"))}
-          style={{background:"none",border:"none",color:"#9CA3AF",fontSize:12,cursor:"pointer",textDecoration:"underline"}}>
-          Cerrar sesión ({email})
-        </button>
-      </div>
-    );
-  }
+  if (pantalla === "demo_vencido") return (
+    <SelectorPlanesMP
+      orgId={orgIdBloqueo}
+      titulo="Tu prueba gratuita venció"
+      subtitulo="Activá un plan para seguir gestionando tus reservas y espacios."
+      onSignOut={() => setPantalla("login")}
+    />
+  );
 
-  if (pantalla === "impago" || pantalla === "suspendido") {
-    const waMsg = encodeURIComponent(pantalla === "impago" ? `Hola! Quiero regularizar mi suscripción a la App Quincho. Mi email: ${email}` : `Hola! Mi acceso a la App Quincho está suspendido. Mi email: ${email}`);
-    return (
-      <div style={{minHeight:"100vh",background:"#FFF",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,textAlign:"center"}}>
-        <div style={{fontSize:56,marginBottom:16}}>🔒</div>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800,color:"#1C1C1E",marginBottom:12}}>{pantalla === "impago" ? "Suscripción vencida" : "Cuenta suspendida"}</div>
-        <div style={{fontSize:14,color:"#6B7280",maxWidth:280,lineHeight:1.6,marginBottom:28}}>{pantalla === "impago" ? "Regularizá tu pago para reactivar el acceso." : "Contactá al administrador para resolver el problema."}</div>
-        <a href={`https://wa.me/${WA_SOPORTE}?text=${waMsg}`} target="_blank" rel="noreferrer"
-          style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,width:"100%",maxWidth:300,padding:"14px 20px",borderRadius:12,background:"#22C55E",color:"#FFF",fontSize:15,fontWeight:700,textDecoration:"none",marginBottom:12,boxShadow:"0 4px 16px rgba(34,197,94,0.3)"}}>
-          💬 Contactar soporte
-        </a>
-        <button onClick={()=>supabase.auth.signOut().then(()=>setPantalla("login"))}
-          style={{background:"none",border:"none",color:"#9CA3AF",fontSize:12,cursor:"pointer",textDecoration:"underline"}}>
-          Cerrar sesión ({email})
-        </button>
-      </div>
-    );
-  }
+  if (pantalla === "impago") return (
+    <SelectorPlanesMP
+      orgId={orgIdBloqueo}
+      titulo="⏳ Suscripción vencida"
+      subtitulo="Regularizá tu pago para reactivar el acceso a tu cuenta."
+      onSignOut={() => setPantalla("login")}
+    />
+  );
+
+  if (pantalla === "suspendido") return (
+    <SelectorPlanesMP
+      orgId={orgIdBloqueo}
+      titulo="🔒 Cuenta suspendida"
+      subtitulo="Reactivá tu suscripción para recuperar el acceso."
+      onSignOut={() => setPantalla("login")}
+    />
+  );
+
+  if (pantalla === "cancelado") return (
+    <SelectorPlanesMP
+      orgId={orgIdBloqueo}
+      titulo="Suscripción cancelada"
+      subtitulo="Tu suscripción fue cancelada. Elegí un plan para volver a acceder."
+      onSignOut={() => setPantalla("login")}
+    />
+  );
 
   return (
     <div style={{minHeight:"100vh",background:"#FFF",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
@@ -4644,7 +4929,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {tab==="clientes" && <Suspense fallback={<ViewLoader/>}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} /></Suspense>}
       {tab==="gastos" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><GastosViewLazy gastos={gastos} onNewGasto={()=>setModal("gasto")} /></Suspense></ErrorBoundary>}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
-      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} setTemporadasPrecio={setTemporadasPrecio} setPreciosTemporada={setPreciosTemporada} />}
+      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} setTemporadasPrecio={setTemporadasPrecio} setPreciosTemporada={setPreciosTemporada} onGoMiPlan={()=>setTab("miplan")} />}
+      {tab==="miplan" && <MiPlanView currentUser={currentUser} onBack={()=>setTab("config")} />}
       {tab==="recordatorios" && <Suspense fallback={<ViewLoader/>}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
       {tab==="reportes" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} /></Suspense></ErrorBoundary>}

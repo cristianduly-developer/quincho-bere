@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       const { data: subData } = await central
         .from('suscripciones_apps').select('estado')
         .eq('org_id', empData[0].org_id).eq('app_id', APP_ID)
-        .in('estado', ['suspendido', 'impago']).limit(1).maybeSingle()
+        .in('estado', ['suspendido', 'impago', 'cancelado']).limit(1).maybeSingle()
       if (subData?.estado) return res.status(200).json({ tiene_acceso: false, estado: subData.estado })
     }
   }
