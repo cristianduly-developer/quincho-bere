@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ ok: false, error: 'org_id y valid_until requeridos' })
   }
 
-  const supa = createClient(process.env.VITE_SUPA_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  const supa = createClient(process.env.VITE_SUPABASE_URL || process.env.VITE_SUPA_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
   const row = { tenant_id: org_id, valid_until }
   if (plan) row.plan = plan

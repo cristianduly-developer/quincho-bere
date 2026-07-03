@@ -5,7 +5,7 @@ const GRACE_DAYS = 7
 
 async function syncTenantAccess(orgId, plan, diasRestantes) {
   try {
-    const supa = createClient(process.env.VITE_SUPA_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+    const supa = createClient(process.env.VITE_SUPABASE_URL || process.env.VITE_SUPA_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
     const dias = (diasRestantes ?? 3650) + GRACE_DAYS
     const validUntil = new Date(Date.now() + dias * 86400000).toISOString()
     await supa.from('tenant_access').upsert(
