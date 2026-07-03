@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, memo, Component, Fragment, lazy, Suspense } from "react";
 import { MONTHS, MONTHS_SHORT, DAYS_SHORT, STATUS, TURNOS, PAYMENT_METHODS, EXPENSE_CATS, CAT_COLORS, DEFAULT_CONFIG, PLAN_LIMITS, getPlanLimits } from "./src/lib/constants.js";
 import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, getTotalExtras, getTotalPagado, getSaldo } from "./src/lib/utils.js";
-import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor } from "./src/lib/supabase.js";
+import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor, mensajeErrorGuardado, getUltimoError } from "./src/lib/supabase.js";
 import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario } from "./src/lib/mappers.js";
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
 import { Field, Input, Select, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
@@ -4597,13 +4597,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   };
   const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
   const saveC =async d=>{const prev=clientes;setClientes(d);const r=await sb.upsert("clientes",d.map(mapCliente));if(!r){setClientes(prev);showToast("Error al guardar cliente. Intentá de nuevo.","error");}};
-  const saveR =async d=>{const prev=reservas;setReservas(d);const r=await sb.upsert("reservas",d.map(mapReserva));if(!r){setReservas(prev);showToast("Error al guardar reserva. Intentá de nuevo.","error");}};
-  const saveP =async d=>{const prev=pagos;setPagos(d);const r=await sb.upsert("pagos",d.map(mapPago));if(!r){setPagos(prev);showToast("Error al guardar pago. Intentá de nuevo.","error");}};
-  const saveG =async d=>{const prev=gastos;setGastos(d);const r=await sb.upsert("gastos",d.map(mapGasto));if(!r){setGastos(prev);showToast("Error al guardar gasto. Intentá de nuevo.","error");}};
-  const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);showToast("Error al guardar extra. Intentá de nuevo.","error");}};
-  const saveTareas=async d=>{const prev=tareas;setTareas(d);const r=await sb.upsert("tareas",d.map(mapTarea));if(!r){setTareas(prev);showToast("Error al guardar tarea. Intentá de nuevo.","error");}};
-  const saveBloqueos=async d=>{const prev=bloqueos;setBloqueos(d);const r=await sb.upsert("bloqueos",d.map(mapBloqueo));if(!r){setBloqueos(prev);showToast("Error al guardar bloqueo. Intentá de nuevo.","error");}};
-  const saveRecordatorios=async d=>{const prev=recordatorios;setRecordatorios(d);const r=await sb.upsert("recordatorios",d.map(mapRecordatorio));if(!r){setRecordatorios(prev);showToast("Error al guardar recordatorio. Intentá de nuevo.","error");}};
+  const saveR =async d=>{const prev=reservas;setReservas(d);const r=await sb.upsert("reservas",d.map(mapReserva));if(!r){setReservas(prev);showToast(getUltimoError()||"Error al guardar reserva. Intentá de nuevo.","error");}};
+  const saveP =async d=>{const prev=pagos;setPagos(d);const r=await sb.upsert("pagos",d.map(mapPago));if(!r){setPagos(prev);showToast(getUltimoError()||"Error al guardar pago. Intentá de nuevo.","error");}};
+  const saveG =async d=>{const prev=gastos;setGastos(d);const r=await sb.upsert("gastos",d.map(mapGasto));if(!r){setGastos(prev);showToast(getUltimoError()||"Error al guardar gasto. Intentá de nuevo.","error");}};
+  const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);showToast(getUltimoError()||"Error al guardar extra. Intentá de nuevo.","error");}};
+  const saveTareas=async d=>{const prev=tareas;setTareas(d);const r=await sb.upsert("tareas",d.map(mapTarea));if(!r){setTareas(prev);showToast(getUltimoError()||"Error al guardar tarea. Intentá de nuevo.","error");}};
+  const saveBloqueos=async d=>{const prev=bloqueos;setBloqueos(d);const r=await sb.upsert("bloqueos",d.map(mapBloqueo));if(!r){setBloqueos(prev);showToast(getUltimoError()||"Error al guardar bloqueo. Intentá de nuevo.","error");}};
+  const saveRecordatorios=async d=>{const prev=recordatorios;setRecordatorios(d);const r=await sb.upsert("recordatorios",d.map(mapRecordatorio));if(!r){setRecordatorios(prev);showToast(getUltimoError()||"Error al guardar recordatorio. Intentá de nuevo.","error");}};
 
   const [savingReserva,setSavingReserva]=useState(false);
   const [savingPago,setSavingPago]=useState(false);
@@ -4647,6 +4647,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         const {error:insErr}=await supabase.from("reservas").insert(mapReserva(nuevaReserva));
         if(insErr){
           if(insErr.code==="23505") return alert("⚠️ Ya existe una reserva en ese espacio, día y turno. Alguien más acaba de tomarlo.");
+          const amigable=mensajeErrorGuardado(insErr);
+          if(amigable) return showToast(amigable,"err");
           return alert("Error al guardar la reserva: "+insErr.message);
         }
         setReservas(prev=>[...prev,nuevaReserva]);

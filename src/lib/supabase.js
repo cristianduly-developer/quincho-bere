@@ -10,6 +10,24 @@ let _currentOrgId = null;
 export const getCurrentOrgId = () => _currentOrgId;
 export const setCurrentOrgId = (id) => { _currentOrgId = id; };
 
+// Traduce un error de Supabase a un mensaje claro para el usuario.
+// Devuelve null si no es un caso especial (el caller usa su mensaje genérico).
+// - 42501 / "row-level security": lo frenó una policy → suscripción vencida o feature no incluida en el plan.
+export const mensajeErrorGuardado = (error) => {
+  const msg = (error?.message || "").toLowerCase();
+  const esRLS = error?.code === "42501" || msg.includes("row-level security") || msg.includes("row level security");
+  if (esRLS) {
+    if (msg.includes("feat_"))
+      return "🔒 Esta función no está incluida en tu plan actual. Actualizá el plan para usarla.";
+    return "🔒 Tu suscripción venció o está suspendida. Renovala para seguir cargando datos. Tus datos siguen guardados y podés verlos.";
+  }
+  return null;
+};
+
+// Último mensaje amigable de error (lo consultan los guardados que usan sb.upsert/remove).
+let _ultimoError = null;
+export const getUltimoError = () => _ultimoError;
+
 export const sb = {
   async getAll(table, limit = 1000) {
     let q = supabase.from(table).select("*").order("creado_en", { ascending: true }).limit(limit);
@@ -21,14 +39,16 @@ export const sb = {
     const arr = Array.isArray(rows) ? rows : [rows];
     if (!arr.length) return true;
     const { error } = await supabase.from(table).upsert(arr);
-    if (error) { console.error("SB upsert error:", table, error); return null; }
+    if (error) { console.error("SB upsert error:", table, error); _ultimoError = mensajeErrorGuardado(error); return null; }
+    _ultimoError = null;
     return true;
   },
   async remove(table, id) {
     let q = supabase.from(table).delete().eq("id", id);
     if (_currentOrgId) q = q.eq("org_id", _currentOrgId);
     const { error } = await q;
-    if (error) { console.error("SB remove error:", table, error); return null; }
+    if (error) { console.error("SB remove error:", table, error); _ultimoError = mensajeErrorGuardado(error); return null; }
+    _ultimoError = null;
     return true;
   },
 };
