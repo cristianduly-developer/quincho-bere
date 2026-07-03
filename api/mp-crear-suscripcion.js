@@ -34,7 +34,7 @@ export default async function handler(req, res) {
   try {
     const r = await fetch(`${SAAS_URL}/api/mp-crear-suscripcion`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.ERROR_REPORT_KEY || '' },
+      headers: { 'Content-Type': 'application/json', 'x-internal-key': process.env.INTERNAL_API_KEY || '' },
       body: JSON.stringify({ org_id: emp.org_id, app_id: 'quincho', plan }),
     })
     return res.status(r.status).json(await r.json())
