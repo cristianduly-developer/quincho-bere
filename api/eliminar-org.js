@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { findUserByEmail } from '@solucionesmdp/core/auth'
+import { findUserByEmail } from '@solucionesmdp/core'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')

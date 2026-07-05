@@ -19,8 +19,8 @@ BEGIN
               WHERE table_name = t AND column_name = 'org_id') THEN
       EXECUTE format('DROP POLICY IF EXISTS acc_ins_%1$s ON %1$s', t);
       EXECUTE format('DROP POLICY IF EXISTS acc_upd_%1$s ON %1$s', t);
-      EXECUTE format('CREATE POLICY acc_ins_%1$s ON %1$s AS RESTRICTIVE FOR INSERT WITH CHECK (tiene_acceso(org_id))', t);
-      EXECUTE format('CREATE POLICY acc_upd_%1$s ON %1$s AS RESTRICTIVE FOR UPDATE WITH CHECK (tiene_acceso(org_id))', t);
+      EXECUTE format('CREATE POLICY acc_ins_%1$s ON %1$s AS RESTRICTIVE FOR INSERT WITH CHECK (tiene_acceso(org_id::uuid))', t);
+      EXECUTE format('CREATE POLICY acc_upd_%1$s ON %1$s AS RESTRICTIVE FOR UPDATE WITH CHECK (tiene_acceso(org_id::uuid))', t);
     END IF;
   END LOOP;
 END $$;
@@ -28,11 +28,11 @@ END $$;
 -- ── B. Gate de FEATURES por plan ──
 DROP POLICY IF EXISTS feat_ins_extras ON extras_reserva;
 CREATE POLICY feat_ins_extras ON extras_reserva AS RESTRICTIVE
-  FOR INSERT WITH CHECK (plan_permite(org_id, 'servicios_extras'));
+  FOR INSERT WITH CHECK (plan_permite(org_id::uuid, 'servicios_extras'));
 
 DROP POLICY IF EXISTS feat_ins_recordatorios ON recordatorios;
 CREATE POLICY feat_ins_recordatorios ON recordatorios AS RESTRICTIVE
-  FOR INSERT WITH CHECK (plan_permite(org_id, 'recordatorios'));
+  FOR INSERT WITH CHECK (plan_permite(org_id::uuid, 'recordatorios'));
 
 -- ══════════════════════════════════════════════════════════════
 -- ROLLBACK:

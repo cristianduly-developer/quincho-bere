@@ -10,8 +10,8 @@ let _currentOrgId = null;
 export const getCurrentOrgId = () => _currentOrgId;
 export const setCurrentOrgId = (id) => { _currentOrgId = id; };
 
-export { mensajeErrorGuardado } from '@solucionesmdp/core/errores'
-import { mensajeErrorGuardado } from '@solucionesmdp/core/errores'
+export { mensajeErrorGuardado } from '@solucionesmdp/core'
+import { mensajeErrorGuardado } from '@solucionesmdp/core'
 
 // Último mensaje amigable de error (lo consultan los guardados que usan sb.upsert/remove).
 let _ultimoError = null;
