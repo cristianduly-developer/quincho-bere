@@ -10,19 +10,8 @@ let _currentOrgId = null;
 export const getCurrentOrgId = () => _currentOrgId;
 export const setCurrentOrgId = (id) => { _currentOrgId = id; };
 
-// Traduce un error de Supabase a un mensaje claro para el usuario.
-// Devuelve null si no es un caso especial (el caller usa su mensaje genérico).
-// - 42501 / "row-level security": lo frenó una policy → suscripción vencida o feature no incluida en el plan.
-export const mensajeErrorGuardado = (error) => {
-  const msg = (error?.message || "").toLowerCase();
-  const esRLS = error?.code === "42501" || msg.includes("row-level security") || msg.includes("row level security");
-  if (esRLS) {
-    if (msg.includes("feat_"))
-      return "🔒 Esta función no está incluida en tu plan actual. Actualizá el plan para usarla.";
-    return "🔒 Tu suscripción venció o está suspendida. Renovala para seguir cargando datos. Tus datos siguen guardados y podés verlos.";
-  }
-  return null;
-};
+export { mensajeErrorGuardado } from '@solucionesmdp/core/errores'
+import { mensajeErrorGuardado } from '@solucionesmdp/core/errores'
 
 // Último mensaje amigable de error (lo consultan los guardados que usan sb.upsert/remove).
 let _ultimoError = null;

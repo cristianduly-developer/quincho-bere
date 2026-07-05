@@ -1,19 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
+import { syncTenantAccess } from '@solucionesmdp/core/tenant'
 
 const APP_ID = 'quincho'
-const GRACE_DAYS = 7
-
-async function syncTenantAccess(orgId, plan, diasRestantes) {
-  try {
-    const supa = createClient(process.env.VITE_SUPABASE_URL || process.env.VITE_SUPA_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-    const dias = (diasRestantes ?? 3650) + GRACE_DAYS
-    const validUntil = new Date(Date.now() + dias * 86400000).toISOString()
-    await supa.from('tenant_access').upsert(
-      { tenant_id: orgId, plan: plan ?? 'basico', valid_until: validUntil },
-      { onConflict: 'tenant_id' }
-    )
-  } catch { /* tabla aún no creada: ignorar */ }
-}
+const supaLocal = createClient(process.env.VITE_SUPABASE_URL || process.env.VITE_SUPA_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
 export default async function handler(req, res) {
   const origin = req.headers['origin'] || ''
@@ -73,7 +62,7 @@ export default async function handler(req, res) {
         .eq('app_id', APP_ID).eq('org_id', acceso.ret_org_id)
         .then(({ error }) => { if (error) console.error('[verificar-acceso] ultimo_acceso error:', error) })
     }
-    await syncTenantAccess(acceso.ret_org_id, acceso.plan, acceso.dias_restantes)
+    await syncTenantAccess(supaLocal, acceso.ret_org_id, acceso.plan, acceso.dias_restantes)
   }
 
   res.setHeader('Cache-Control', 'private, max-age=120')
