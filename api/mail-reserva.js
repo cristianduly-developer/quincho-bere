@@ -1,3 +1,5 @@
+import { reportarError } from './reportarError.js'
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -153,11 +155,13 @@ export default async function handler(req, res) {
     if (!r.ok) {
       const err = await r.text();
       console.error('[mail-reserva] Resend error:', err);
+      reportarError(new Error(err), { pantalla: 'mail-reserva', accion: 'resend_api', user_email: clienteEmail })
       return res.status(500).json({ error: err });
     }
     return res.status(200).json({ ok: true });
   } catch (e) {
     console.error('[mail-reserva] catch:', e.message);
+    reportarError(e, { pantalla: 'mail-reserva', accion: 'send_email', user_email: clienteEmail })
     return res.status(500).json({ error: e.message });
   }
 }
