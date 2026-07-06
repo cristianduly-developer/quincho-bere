@@ -67,6 +67,12 @@ export default async function handler(req, res) {
       central.rpc('incrementar_sesion', { p_org_id: acceso.ret_org_id, p_app_id: APP_ID }).then(({ error }) => {
         if (error) console.error('[verificar-acceso] incrementar_sesion error:', error)
       })
+      // Notificar al módulo de prospectos que este mail activó la app
+      fetch('https://saas.solucionesmdp.com.ar/api/prospecto-activado', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-app-id': APP_ID, 'x-app-key': process.env.ERROR_REPORT_KEY || '' },
+        body: JSON.stringify({ email: user.email }),
+      }).catch(() => {})
     } else {
       central.from('suscripciones_apps')
         .update({ ultimo_acceso: new Date().toISOString() })
