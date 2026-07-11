@@ -9,6 +9,7 @@ export default async function handler(req, res) {
 
   const { org_id, plan } = req.body || {}
   if (!org_id || !plan) return res.status(400).json({ error: 'org_id y plan requeridos' })
+  if (!['basico', 'profesional', 'premium'].includes(plan)) return res.status(400).json({ error: 'Plan inválido' })
 
   try {
     const r = await fetch(`${SAAS_URL}/api/mp-crear-suscripcion`, {
