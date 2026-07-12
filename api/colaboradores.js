@@ -21,26 +21,32 @@ export default async function handler(req, res) {
 
   const central = createClient(process.env.CENTRAL_URL, process.env.CENTRAL_SERVICE_KEY)
 
-  // GET — listar colaboradores del org
+  // Determinar el org_id real del usuario autenticado
+  const { data: acceso } = await central.rpc('verificar_acceso_email', {
+    email_param: user.email.toLowerCase(),
+    app_id_param: APP_ID,
+  })
+  const userOrgId = Array.isArray(acceso) ? acceso[0]?.ret_org_id : null
+  if (!userOrgId) return res.status(403).json({ error: 'sin_acceso' })
+
+  // GET — listar colaboradores del org del usuario
   if (req.method === 'GET') {
-    const { orgId } = req.query
-    if (!orgId) return res.status(400).json({ error: 'orgId requerido' })
     const { data, error } = await central
       .from('empleados_organizacion')
       .select('*')
-      .eq('org_id', orgId)
+      .eq('org_id', userOrgId)
       .eq('activo', true)
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json({ ok: true, colaboradores: data || [] })
   }
 
-  // POST — agregar colaborador
+  // POST — agregar colaborador al org del usuario
   if (req.method === 'POST') {
-    const { org_id, email, nombre } = req.body || {}
-    if (!org_id || !email) return res.status(400).json({ error: 'org_id y email requeridos' })
+    const { email, nombre } = req.body || {}
+    if (!email) return res.status(400).json({ error: 'email requerido' })
 
     const { error } = await central.from('empleados_organizacion').insert({
-      org_id,
+      org_id: userOrgId,
       email: email.trim().toLowerCase(),
       nombre: nombre?.trim() || email.trim(),
       activo: true,
@@ -50,14 +56,14 @@ export default async function handler(req, res) {
     central.from('notificaciones_admin').insert({
       tipo: 'nuevo_colaborador',
       mensaje: `Nuevo colaborador en App Eventos — ${nombre || email} (${email})`,
-      org_id,
+      org_id: userOrgId,
       app_id: APP_ID,
     }).then(() => {})
 
     return res.status(200).json({ ok: true })
   }
 
-  // PATCH — desactivar colaborador
+  // PATCH — desactivar colaborador (solo del org del usuario)
   if (req.method === 'PATCH') {
     const { id } = req.body || {}
     if (!id) return res.status(400).json({ error: 'id requerido' })
@@ -65,6 +71,7 @@ export default async function handler(req, res) {
       .from('empleados_organizacion')
       .update({ activo: false })
       .eq('id', id)
+      .eq('org_id', userOrgId)
     if (error) return res.status(500).json({ error: error.message })
     return res.status(200).json({ ok: true })
   }

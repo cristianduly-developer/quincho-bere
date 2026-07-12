@@ -2312,7 +2312,7 @@ function ColaboradoresSection({ orgId, plan, embedded }) {
   useEffect(()=>{
     if(!orgId) return;
     supabase.auth.getSession().then(({data:{session}})=>{
-      fetch(`/api/colaboradores?orgId=${orgId}`,{headers:{Authorization:`Bearer ${session?.access_token}`}})
+      fetch(`/api/colaboradores`,{headers:{Authorization:`Bearer ${session?.access_token}`}})
         .then(r=>r.json()).then(d=>{ setColaboradores(d.colaboradores||[]); setLoading(false); });
     });
   },[orgId]);
@@ -2325,7 +2325,7 @@ function ColaboradoresSection({ orgId, plan, embedded }) {
     }
     setSaving(true);
     const { data:{ session } } = await supabase.auth.getSession();
-    const r = await fetch('/api/colaboradores',{ method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`}, body: JSON.stringify({ org_id: orgId, email: email.trim(), nombre: nombre.trim()||email.trim() }) });
+    const r = await fetch('/api/colaboradores',{ method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`}, body: JSON.stringify({ email: email.trim(), nombre: nombre.trim()||email.trim() }) });
     if(!r.ok){ const d=await r.json(); alert("Error al agregar colaborador: "+(d.error||r.status)); setSaving(false); return; }
     const nuevo = { org_id: orgId, email: email.trim(), nombre: nombre.trim()||email.trim(), activo: true };
     setColaboradores(prev=>[...prev, nuevo]);
