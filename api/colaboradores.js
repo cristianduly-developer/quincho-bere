@@ -45,6 +45,16 @@ export default async function handler(req, res) {
     const { email, nombre } = req.body || {}
     if (!email) return res.status(400).json({ error: 'email requerido' })
 
+    const { count } = await central
+      .from('empleados_organizacion')
+      .select('*', { count: 'exact', head: true })
+      .eq('org_id', userOrgId)
+      .eq('activo', true)
+    const MAX_COLABORADORES = 5
+    if ((count ?? 0) >= MAX_COLABORADORES) {
+      return res.status(403).json({ error: 'LIMITE_PLAN: Máximo de colaboradores alcanzado' })
+    }
+
     const { error } = await central.from('empleados_organizacion').insert({
       org_id: userOrgId,
       email: email.trim().toLowerCase(),
