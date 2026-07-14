@@ -4906,7 +4906,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                   📖 Ayuda
                 </button>
                 {/* Soporte WhatsApp */}
-                <a href="https://wa.me/542235767784?text=Hola%2C+necesito+soporte+con+la+app+de+quincho" target="_blank" rel="noreferrer"
+                <a href="https://wa.me/5492236965481?text=Hola%2C+soy+usuario+de+App+Eventos+y+necesito+soporte" target="_blank" rel="noreferrer"
                   style={{display:"flex",alignItems:"center",gap:10,padding:"11px 16px",color:"#16A34A",textDecoration:"none",fontSize:13,fontWeight:600,borderBottom:"1px solid #EDE0D0"}}
                   onClick={()=>setShowRootMenu(false)}>
                   💬 Contactar soporte
