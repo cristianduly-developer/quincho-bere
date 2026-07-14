@@ -3622,7 +3622,7 @@ function BannerDemo({ diasRestantes }) {
   );
 }
 
-const WA_SOPORTE = '5492235767784';
+const WA_SOPORTE = '5492236965481';
 
 function SelectorPlanesMP({ orgId, titulo, subtitulo, onSignOut }) {
   const [planes,   setPlanes]   = useState([]);

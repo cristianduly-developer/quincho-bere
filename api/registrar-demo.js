@@ -134,7 +134,7 @@ export default async function handler(req, res) {
               </div>
               <hr style="border:none;border-top:1px solid #EDE0D0;margin:24px 0;" />
               <p style="color:#9ca3af;font-size:13px;margin:0;text-align:center;">
-                ¿Tenés dudas? <a href="https://wa.me/5492235767784" style="color:#C4602B;">Escribinos por WhatsApp</a><br/>
+                ¿Tenés dudas? <a href="https://wa.me/5492236965481" style="color:#C4602B;">Escribinos por WhatsApp</a><br/>
                 <strong style="color:#8B7355;">El equipo de Soluciones MDP</strong>
               </p>
               <p style="color:#9ca3af;font-size:12px;margin:12px 0 0;text-align:center;">
