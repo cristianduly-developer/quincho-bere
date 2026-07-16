@@ -54,6 +54,11 @@ export const verificarLimiteServidor = async (accion) => {
     p_accion: accion,
   });
   if (error) {
+    const noExiste = error.message?.includes("does not exist") || error.code === "42883";
+    if (noExiste) {
+      console.warn("verificar_limite_plan no disponible, usando fallback cliente");
+      return { permitido: true, fallback: true };
+    }
     console.warn("verificar_limite_plan error:", error.message);
     return { permitido: false, motivo: "No se pudo verificar el límite de plan. Intentá de nuevo." };
   }
