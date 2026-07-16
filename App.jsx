@@ -144,7 +144,7 @@ function showToast(msg, type = "ok") {
 
 function ToastContainer() {
   const [toast, setToast] = useState(null);
-  useEffect(() => { _setToastGlobal = setToast; return () => { _setToastGlobal = null; }; }, []);
+  useEffect(() => { _setToastGlobal = setToast; }, []);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3200);
@@ -3354,13 +3354,9 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
 }
 
 
-function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtras }) {
-  const [showSrvForm,setShowSrvForm]=useState(false);
-  const [srvForm,setSrvForm]=useState({descripcion:"",precioActual:""});
-  const saveSrv = async d=>{setServiciosExtras(d); await sb.upsert("servicios_extras", d.map(x=>({id:x.id,org_id:getCurrentOrgId(),descripcion:x.descripcion||"",precio_actual:x.precioActual||0,activo:x.activo!==false,creado_en:x.creadoEn||new Date().toISOString()})));};
+function RecursosView({ recursos, setRecursos, serviciosExtras }) {
   return (
     <div style={{padding:"16px 16px 100px"}}>
-      {/* Espacios — solo lectura, gestión en Config */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{fontSize:15,fontWeight:700,color:"#1C1C1E"}}>🏠 Espacios</div>
       </div>
@@ -3371,28 +3367,16 @@ function RecursosView({ recursos, setRecursos, serviciosExtras, setServiciosExtr
       ))}
       <div style={{fontSize:12,color:"#8B7355",marginBottom:20,marginTop:4}}>Para agregar o eliminar espacios, andá a Configuración → Espacios.</div>
 
-      {/* Servicios extras catalog */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"24px 0 12px"}}>
         <div style={{fontSize:15,fontWeight:700,color:"#1C1C1E"}}>🎉 Catálogo de Extras</div>
-        <Btn small onClick={()=>setShowSrvForm(true)}>+ Agregar</Btn>
       </div>
+      {serviciosExtras.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:10}}>No hay servicios extras creados.</div>}
       {serviciosExtras.map(s=>(
         <div key={s.id} style={{...card,padding:"12px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div><div style={{fontWeight:600,fontSize:14}}>{s.descripcion}</div><div style={{fontSize:12,color:"#16A34A",fontWeight:700,marginTop:2}}>{fmtCurrency(s.precioActual)}</div></div>
-          <Btn small variant="danger" onClick={async()=>{await sb.remove("servicios_extras",s.id);saveSrv(serviciosExtras.filter(x=>x.id!==s.id));}}>🗑️</Btn>
         </div>
       ))}
-
-      {showSrvForm && (
-        <BottomModal title="Nuevo Servicio Extra" onClose={()=>setShowSrvForm(false)}>
-          <Input label="Descripción del servicio" value={srvForm.descripcion} onChange={v=>setSrvForm(p=>({...p,descripcion:v}))} placeholder="DJ, Vajilla, Limpieza..." />
-          <Input label="Precio actual ($)" type="number" value={srvForm.precioActual} onChange={v=>setSrvForm(p=>({...p,precioActual:v}))} placeholder="0" />
-          <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-            <Btn variant="ghost" onClick={()=>setShowSrvForm(false)}>Cancelar</Btn>
-            <Btn onClick={()=>{if(!srvForm.descripcion||!srvForm.precioActual)return;saveSrv([...serviciosExtras,{id:genId(),descripcion:srvForm.descripcion,precioActual:Number(srvForm.precioActual)}]);setShowSrvForm(false);setSrvForm({descripcion:"",precioActual:""});}}>Guardar</Btn>
-          </div>
-        </BottomModal>
-      )}
+      <div style={{fontSize:12,color:"#8B7355",marginTop:4}}>Para agregar o eliminar extras, andá a Configuración → Servicios Extras.</div>
     </div>
   );
 }
@@ -4224,6 +4208,7 @@ export default function App() {
   const _lastFetchRef = useRef(0);
   const FETCH_TTL = 3 * 60 * 1000;
   const [checkTick,setCheckTick]=useState(0);
+  const [inactivityWarning,setInactivityWarning]=useState(false);
   const [alertaActiva,setAlertaActiva]=useState(null);
   const [shownAlerts,setShownAlerts]=useState(new Set());
   const [showRootMenu,setShowRootMenu]=useState(false);
@@ -4263,7 +4248,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
   const [currentUser,setCurrentUser]=useState(null);
   const [bloqueadoMotivo,setBloqueadoMotivo]=useState(null);
-  const isAdmin = true; // todos los usuarios tienen acceso completo en el nuevo modelo
+  // Roles desactivados: todos los usuarios de una org tienen acceso completo. Si se implementan roles, reemplazar por lookup real.
+  const isAdmin = true;
   const [tareas,setTareas]=useState([]);
   const [bloqueos,setBloqueos]=useState([]);
   const [recordatorios,setRecordatorios]=useState([]);
@@ -4459,12 +4445,12 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   useEffect(()=>{
     if(!loaded) return;
     const INACTIVITY_MS = 30*60*1000;
-    const updateActivity = () => { lastActivityRef.current = Date.now(); };
+    const WARNING_MS = 28*60*1000;
+    const updateActivity = () => { lastActivityRef.current = Date.now(); setInactivityWarning(false); };
     window.addEventListener('click', updateActivity);
     window.addEventListener('touchstart', updateActivity);
     window.addEventListener('keydown', updateActivity);
 
-    // Chequear al volver de background (mobile/tab suspendida)
     const onVisible = () => {
       if(document.visibilityState === 'visible') {
         if(Date.now() - lastActivityRef.current > INACTIVITY_MS) {
@@ -4475,11 +4461,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     document.addEventListener('visibilitychange', onVisible);
 
     let tickCount=0;
-    // Chequeo periódico como fallback (cuando la tab está activa)
     const interval=setInterval(()=>{
       setCheckTick(t=>t+1);
-      if(Date.now() - lastActivityRef.current > INACTIVITY_MS) {
+      const elapsed = Date.now() - lastActivityRef.current;
+      if(elapsed > INACTIVITY_MS) {
         handleLogout();
+      } else if(elapsed > WARNING_MS) {
+        setInactivityWarning(true);
       }
       // Re-verificar suscripción cada hora (60 ticks × 60s)
       tickCount++;
@@ -4600,7 +4588,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const saveConfig=async(cfg)=>{
     setConfig(cfg);
     lsSet("quincho_config",JSON.stringify(cfg));
-    await supabase.from("config").upsert({id:"main",precios:cfg.precios,actualizado_en:new Date().toISOString()});
+    await supabase.from("config").upsert({org_id:getCurrentOrgId(),precios:cfg.precios,actualizado_en:new Date().toISOString()},{onConflict:"org_id"});
   };
   const removeUsuario = async id => { await sb.remove("usuarios", id); setUsuarios(u=>u.filter(x=>x.id!==id)); };
   const saveC =async d=>{const prev=clientes;setClientes(d);const r=await sb.upsert("clientes",d.map(mapCliente));if(!r){setClientes(prev);showToast("Error al guardar cliente. Intentá de nuevo.","error");}};
@@ -4953,7 +4941,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {tab==="reservas" && <Suspense fallback={<ViewLoader/>}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} extrasReserva={extrasReserva} onReservaClick={r=>setDetailReserva(r)} onNewReserva={()=>{setEditReserva(null);setModal("reserva");}} /></Suspense>}
       {tab==="clientes" && <Suspense fallback={<ViewLoader/>}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} /></Suspense>}
       {tab==="gastos" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><GastosViewLazy gastos={gastos} onNewGasto={()=>setModal("gasto")} /></Suspense></ErrorBoundary>}
-      {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />}
+      {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} />}
       {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} setTemporadasPrecio={setTemporadasPrecio} setPreciosTemporada={setPreciosTemporada} onGoMiPlan={()=>setTab("miplan")} />}
       {tab==="miplan" && <MiPlanView currentUser={currentUser} onBack={()=>setTab("config")} />}
       {tab==="recordatorios" && <Suspense fallback={<ViewLoader/>}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
@@ -5071,6 +5059,16 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {currentUser && ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
+      {inactivityWarning && (
+        <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
+          <div style={{background:"#FFF",borderRadius:16,padding:"28px 32px",maxWidth:380,width:"90%",textAlign:"center",boxShadow:"0 8px 40px rgba(0,0,0,0.25)"}}>
+            <div style={{fontSize:36,marginBottom:12}}>&#x23F3;</div>
+            <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:800,color:"#1C1C1E"}}>¿Seguís ahí?</h3>
+            <p style={{margin:"0 0 20px",fontSize:13,color:"#8B7355"}}>Tu sesión se cerrará en 2 minutos por inactividad.</p>
+            <button onClick={()=>{lastActivityRef.current=Date.now();setInactivityWarning(false);}} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"10px 28px",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Seguir conectado</button>
+          </div>
+        </div>
+      )}
       {onboarding && <OnboardingWizard
         userName={currentUser?.nombre || currentUser?.email?.split('@')[0] || ''}
         onFinish={async(data)=>{

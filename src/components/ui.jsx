@@ -1,6 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { STATUS, TURNOS } from "../lib/constants.js";
 import { inputStyle, labelStyle } from "../lib/styles.js";
+
+function useIsDesktopModal() {
+  const [is, setIs] = useState(() => window.innerWidth >= 900);
+  useEffect(() => {
+    const fn = () => setIs(window.innerWidth >= 900);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return is;
+}
 
 export function Field({ label, children }) {
   return <div style={{marginBottom:14}}><label style={labelStyle}>{label}</label>{children}</div>;
@@ -49,10 +59,11 @@ export function Btn({ onClick, children, variant="primary", small, fullWidth, di
   );
 }
 export function BottomModal({ title, onClose, children }) {
+  const desk = useIsDesktopModal();
   useEffect(() => { document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; }, []);
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.55)",display:"flex",alignItems:window.innerWidth>=900?"flex-start":"flex-end",justifyContent:"center",zIndex:2000,paddingTop:window.innerWidth>=900?"5vh":0}} onClick={onClose}>
-      <div style={{background:"#FFF",borderRadius:window.innerWidth>=900?20:"20px 20px 0 0",width:"100%",maxWidth:window.innerWidth>=900?560:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 40px rgba(0,0,0,0.2)"}} onClick={e=>e.stopPropagation()}>
+    <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.55)",display:"flex",alignItems:desk?"flex-start":"flex-end",justifyContent:"center",zIndex:2000,paddingTop:desk?"5vh":0}} onClick={onClose}>
+      <div style={{background:"#FFF",borderRadius:desk?20:"20px 20px 0 0",width:"100%",maxWidth:desk?560:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 40px rgba(0,0,0,0.2)"}} onClick={e=>e.stopPropagation()}>
         <div style={{position:"sticky",top:0,background:"#FFF",zIndex:1,padding:"10px 20px 14px",borderBottom:"1px solid #EDE0D0"}}>
           <div style={{width:36,height:4,background:"#D4C5B5",borderRadius:2,margin:"0 auto 14px"}} />
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>

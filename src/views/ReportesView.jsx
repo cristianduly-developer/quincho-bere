@@ -87,11 +87,12 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
       +"<div class=\"ft\">Generado el "+new Date().toLocaleDateString("es-AR",{day:"2-digit",month:"long",year:"numeric"})+" · "+(negocio?.nombreNegocio||"Mi Negocio")+"</div>"
       +"</body></html>";
 
-    const w=window.open("","_blank");
-    if(!w){ alert("Tu navegador bloqueó la ventana emergente. Habilitá los pop-ups para este sitio y volvé a intentarlo."); return; }
-    w.document.write(html);
-    w.document.close();
-    setTimeout(()=>w.print(),600);
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if(!w){ alert("Tu navegador bloqueó la ventana emergente. Habilitá los pop-ups para este sitio y volvé a intentarlo."); URL.revokeObjectURL(url); return; }
+    w.onafterprint = () => URL.revokeObjectURL(url);
+    setTimeout(()=>{ w.print(); setTimeout(()=>URL.revokeObjectURL(url), 60000); }, 600);
   };
 
   const now = new Date();
