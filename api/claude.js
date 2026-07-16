@@ -3,6 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 const LIMIT_POR_MINUTO = 10
 const LIMIT_POR_DIA    = 80
 const LIMIT_POR_MES    = 800
+const MAX_TOKENS_ALLOWED = 1500
+const ALLOWED_MODELS = [
+  'claude-sonnet-4-20250514',
+  'claude-haiku-4-5-20251001',
+]
 
 const central = createClient(
   process.env.CENTRAL_URL,
@@ -47,6 +52,32 @@ export default async function handler(req, res) {
   const bloqueadoMes = await checkRateLimit(`claude:mes:${email}`, LIMIT_POR_MES, 2592000)
   if (bloqueadoMes) return res.status(429).json({ error: 'limite_por_mes', retry_after: 86400 })
 
+  // Validar y sanitizar input — no pasar req.body directo a Anthropic
+  const { system, messages } = req.body || {}
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'messages requerido (array no vacío)' })
+  }
+
+  const sanitizedMessages = messages
+    .filter(m => m && typeof m.role === 'string' && typeof m.content === 'string')
+    .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content.slice(0, 4000) }))
+
+  if (sanitizedMessages.length === 0) {
+    return res.status(400).json({ error: 'messages inválidos' })
+  }
+
+  const model = ALLOWED_MODELS.includes(req.body?.model) ? req.body.model : ALLOWED_MODELS[0]
+  const maxTokens = Math.min(Number(req.body?.max_tokens) || 1000, MAX_TOKENS_ALLOWED)
+  const systemPrompt = typeof system === 'string' ? system.slice(0, 3000) : undefined
+
+  const apiBody = {
+    model,
+    max_tokens: maxTokens,
+    messages: sanitizedMessages,
+  }
+  if (systemPrompt) apiBody.system = systemPrompt
+
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -55,7 +86,7 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
         'x-api-key': process.env.ANTHROPIC_API_KEY,
       },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(apiBody),
     })
     const data = await response.json()
     res.status(response.status).json(data)

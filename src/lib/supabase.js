@@ -2,7 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPA_URL,
-  import.meta.env.VITE_SUPA_KEY
+  import.meta.env.VITE_SUPA_KEY,
+  { auth: { flowType: 'pkce' } }
 );
 
 // org_id activo — se setea al login
@@ -27,7 +28,9 @@ export const sb = {
   async upsert(table, rows) {
     const arr = Array.isArray(rows) ? rows : [rows];
     if (!arr.length) return true;
-    const { error } = await supabase.from(table).upsert(arr);
+    const orgId = _currentOrgId;
+    const withOrg = orgId ? arr.map(r => r.org_id ? r : { ...r, org_id: orgId }) : arr;
+    const { error } = await supabase.from(table).upsert(withOrg);
     if (error) { console.error("SB upsert error:", table, error); _ultimoError = mensajeErrorGuardado(error); return null; }
     _ultimoError = null;
     return true;
@@ -51,9 +54,8 @@ export const verificarLimiteServidor = async (accion) => {
     p_accion: accion,
   });
   if (error) {
-    console.warn("verificar_limite_plan no disponible, usando fallback cliente:", error.message);
-    // fail-open: el fallback cliente en App.jsx verifica el límite correctamente
-    return { permitido: true };
+    console.warn("verificar_limite_plan error:", error.message);
+    return { permitido: false, motivo: "No se pudo verificar el límite de plan. Intentá de nuevo." };
   }
   return data || { permitido: false, motivo: "Respuesta inesperada del servidor." };
 };

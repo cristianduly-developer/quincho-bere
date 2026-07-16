@@ -50,8 +50,17 @@ export default async function handler(req, res) {
       .select('*', { count: 'exact', head: true })
       .eq('org_id', userOrgId)
       .eq('activo', true)
-    const MAX_COLABORADORES = 5
-    if ((count ?? 0) >= MAX_COLABORADORES) {
+
+    const { data: sub } = await central
+      .from('suscripciones_apps')
+      .select('plan')
+      .eq('org_id', userOrgId)
+      .eq('app_id', APP_ID)
+      .maybeSingle()
+    const LIMITS = { basico: 2, profesional: 5, premium: 10, sincargo: 10, demo: 3 }
+    const maxColab = LIMITS[sub?.plan] || 2
+
+    if ((count ?? 0) >= maxColab) {
       return res.status(403).json({ error: 'LIMITE_PLAN: Máximo de colaboradores alcanzado' })
     }
 

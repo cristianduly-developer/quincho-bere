@@ -504,7 +504,7 @@ function ClienteModal({ onClose, onSave, cliente }) {
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn onClick={()=>{
           if(!f.nombre)return alert("El nombre es obligatorio.");
-          if(f.whatsapp&&!/^[\d\s+\-().]{7,20}$/.test(f.whatsapp))return alert("El WhatsApp ingresado no parece válido. Ejemplo: +54 223 1234567");
+          if(f.whatsapp&&(!/^[\d\s+\-().]{7,20}$/.test(f.whatsapp)||f.whatsapp.replace(/\D/g,'').length<7))return alert("El WhatsApp ingresado no parece válido. Ejemplo: +54 223 1234567");
           onSave(f);
         }}>
           {cliente?"Guardar":"Agregar cliente"}
@@ -3097,7 +3097,7 @@ function MiPlanView({ currentUser, onBack }) {
 }
 
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio, setPreciosTemporada, onGoMiPlan }) {
-  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false });
+  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"" });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
   const [open, setOpen] = useState("negocio");
@@ -3106,10 +3106,10 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const toggle = s => setOpen(o => o===s ? null : s);
 
   const handleSaveNegocio = async () => {
-    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo };
+    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail };
     const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
     if (error) { alert("Error al guardar: " + error.message); return; }
-    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo });
+    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail });
     setNegSaved(true);
     setTimeout(()=>setNegSaved(false), 2000);
   };
@@ -3206,6 +3206,12 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                   </div>
                 </div>
               )}
+            </div>
+            {/* Condiciones para email de reserva */}
+            <div style={{borderTop:"1px solid #EDE0D0",paddingTop:14,marginTop:14,marginBottom:16}}>
+              <label style={lblS}>Condiciones del alquiler (se incluyen en el email de confirmación)</label>
+              <textarea style={{...inpS,height:120,resize:"vertical",fontSize:12}} value={negForm.condicionesEmail} onChange={e=>setNegForm(p=>({...p,condicionesEmail:e.target.value}))} placeholder={"Ej:\n- Depósito de garantía: $50.000\n- Limpieza opcional: $30.000\n- Sin pirotecnia ni mascotas\n- Cumplir horarios de ingreso y egreso"} />
+              <div style={{fontSize:11,color:"#8B7355",marginTop:4}}>Si dejás este campo vacío, el email no incluirá condiciones.</div>
             </div>
             <button onClick={handleSaveNegocio} style={{width:"100%",padding:"12px",background:negSaved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s"}}>
               {negSaved ? "✅ Guardado" : "💾 Guardar"}
@@ -3500,13 +3506,12 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
 
   const resumenRes = upcoming.slice(0,10).map(r=>{
     const c=clientes.find(x=>x.id===r.clienteId);
-    return "- "+r.fecha+" | "+r.turno+" | "+(c?c.nombre+" "+c.apellido:"Sin cliente")+" | "+r.estado+" | $"+r.montoPactado;
+    return "- "+r.fecha+" | "+r.turno+" | "+(c?c.nombre:"Sin cliente")+" | "+r.estado;
   }).join("\n");
-  const systemPrompt = "Sos el asistente del Quincho de Bere en Mar del Plata. Hoy es "+today+".\n\n"+
+  const systemPrompt = "Sos el asistente de "+(config?.nombreNegocio||"App Eventos")+". Hoy es "+today+".\n\n"+
     "RESERVAS PROXIMAS ("+upcoming.length+"):\n"+resumenRes+"\n\n"+
     "FINES DISPONIBLES: "+finesDisponibles.slice(0,8).join(", ")+"\n"+
-    "CLIENTES: "+clientes.length+"\n"+
-    "INGRESOS MES: $"+pagos.filter(p=>p.fecha&&p.fecha.startsWith(today.slice(0,7))).reduce((s,p)=>s+p.monto,0)+"\n\n"+
+    "CLIENTES: "+clientes.length+"\n\n"+
     "Responde conciso y util. Si piden crear algo, explica que datos completar en la app.";
 
   const send = async () => {
@@ -3516,14 +3521,15 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
     setInput("");
     setLoading(true);
     try {
+      const {data:{session:sess}} = await supabase.auth.getSession();
       const res = await fetch("/api/claude",{
         method:"POST",
-        headers:{"Content-Type":"application/json"},
+        headers:{"Content-Type":"application/json",Authorization:`Bearer ${sess?.access_token}`},
         body:JSON.stringify({
           model:"claude-sonnet-4-20250514",
           max_tokens:1000,
           system:systemPrompt,
-          messages:[...msgs,userMsg].filter(m=>m.role!=="assistant").map(m=>({role:m.role,content:m.content}))
+          messages:[...msgs,userMsg].map(m=>({role:m.role,content:m.content}))
         })
       });
       const data = await res.json();
@@ -3652,9 +3658,10 @@ function SelectorPlanesMP({ orgId, titulo, subtitulo, onSignOut }) {
     if (!orgId) { setError('No se encontró tu organización. Intentá de nuevo.'); return; }
     setCargando(true); setError('');
     try {
+      const { data:{session:s} } = await supabase.auth.getSession();
       const r = await fetch('/api/mp-pago-publico', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s?.access_token}` },
         body: JSON.stringify({ org_id: orgId, plan: planSel }),
       });
       const data = await r.json();
@@ -4250,7 +4257,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
 ¡Muchas gracias por elegirnos!`;
 
-  const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true });
+  const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true, condicionesEmail:"" });
   const [onboarding,setOnboarding]=useState(false); // wizard primer uso
   const [usuarios,setUsuarios]=useState([]);
   const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
@@ -4527,7 +4534,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
-    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false});
+    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||""});
     if(!rc?.length && orgId) setOnboarding(true);
 
     // ── TIER 2: diferido — carga en background sin bloquear el render ─
@@ -4660,9 +4667,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
             const recurso = recursos.find(r=>r.id===data.recursoId);
             const turno = turnosRecurso.find(t=>t.id===data.turnoId);
             const totalPagos = data.sena ? Number(data.sena) : 0;
+            supabase.auth.getSession().then(({data:{session}})=>{
             fetch("/api/mail-reserva", {
               method:"POST",
-              headers:{"Content-Type":"application/json"},
+              headers:{"Content-Type":"application/json",Authorization:`Bearer ${session?.access_token}`},
               body: JSON.stringify({
                 clienteEmail:   cli.email,
                 clienteNombre:  clientName(cli),
@@ -4680,8 +4688,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 saldo:          data.montoPactado - totalPagos,
                 metodoPago:     data.metodoPago || "",
                 notas:          data.notas || "",
+                condiciones:    negocio?.condicionesEmail || "",
               }),
             }).catch(()=>{}); // silencioso — no bloquea el flujo
+            }).catch(()=>{});
           }
         }
       }
@@ -4715,7 +4725,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
             if(cli?.email){
               const recurso=recursos.find(r=>r.id===res.recursoId);
               const turno=turnosRecurso.find(t=>t.id===res.turnoId);
-              fetch("/api/mail-reserva",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+              supabase.auth.getSession().then(({data:{session:s}})=>{
+              fetch("/api/mail-reserva",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${s?.access_token}`},body:JSON.stringify({
                 clienteEmail:cli.email,clienteNombre:clientName(cli),
                 negocioNombre:negocio?.nombreNegocio||"",negocioLogo:negocio?.logoUrl||"",negocioTelefono:negocio?.telefono||"",
                 espacioNombre:recurso?.nombre||res.turno||"",fecha:res.fecha,
@@ -4723,8 +4734,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 cantInvitados:res.cantInvitados||"",montoPactado:res.montoPactado,
                 sena:tot,saldo:res.montoPactado-tot,
                 metodoPago:data.metodo||"",notas:res.notas||"",
+                condiciones:negocio?.condicionesEmail||"",
                 estado:newEstado,
               })}).then(()=>showToast("📧 Mail enviado a "+cli.email,"ok")).catch(()=>showToast("📧 Mail no se pudo enviar","error"));
+              }).catch(()=>{});
             } else {
               showToast("⚠️ Reserva "+newEstado+", pero el cliente no tiene mail registrado","warn");
             }
@@ -4835,7 +4848,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     {isDesktop && <DesktopNav negocio={negocio} onNavigate={setTab} tab={tab} currentUser={currentUser} onNewCobro={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onLogout={handleLogout} />}
     <div style={isDesktop ? {flex:1,minWidth:0,position:"relative",maxWidth:"calc(100% - 220px)"} : {}}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap');
+        /* fonts loaded via index.html preconnect + stylesheet link */
         *{box-sizing:border-box;}
         ::-webkit-scrollbar{width:0;height:0;}
         input,select,textarea,button{font-family:'DM Sans',sans-serif;}

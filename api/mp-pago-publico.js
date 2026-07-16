@@ -1,11 +1,28 @@
+import { createClient } from '@supabase/supabase-js'
+
 const SAAS_URL = process.env.SAAS_ADMIN_URL || 'https://saas.solucionesmdp.com.ar'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  const origin = req.headers['origin'] || ''
+  const allowed = process.env.APP_ORIGIN || 'https://eventos.solucionesmdp.com.ar'
+  if (origin === allowed || origin.endsWith('.vercel.app')) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'content-type')
+  res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type')
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' })
+
+  const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim()
+  if (!token) return res.status(401).json({ error: 'no_auth' })
+
+  const supabaseApp = createClient(
+    process.env.VITE_SUPA_URL,
+    process.env.VITE_SUPA_KEY,
+    { global: { headers: { Authorization: `Bearer ${token}` } } }
+  )
+  const { data: { user }, error: userErr } = await supabaseApp.auth.getUser()
+  if (userErr || !user?.email) return res.status(401).json({ error: 'no_auth' })
 
   const { org_id, plan } = req.body || {}
   if (!org_id || !plan) return res.status(400).json({ error: 'org_id y plan requeridos' })

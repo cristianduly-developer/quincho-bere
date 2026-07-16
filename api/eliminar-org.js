@@ -1,20 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-async function findUserByEmail(supa, email) {
-  const target = email?.toLowerCase()
-  if (!target) return null
-  for (let page = 1; page <= 20; page++) {
-    const { data, error } = await supa.auth.admin.listUsers({ page, perPage: 1000 })
-    if (error) return null
-    const found = data.users.find(u => u.email?.toLowerCase() === target)
-    if (found) return found
-    if (data.users.length < 1000) break
-  }
-  return null
-}
-
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  const origin = req.headers['origin'] || ''
+  const allowed = process.env.APP_ORIGIN || 'https://eventos.solucionesmdp.com.ar'
+  if (origin === allowed || origin.endsWith('.vercel.app')) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'content-type, x-app-key')
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -35,30 +26,42 @@ export default async function handler(req, res) {
 
     const supa = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-    const user = await findUserByEmail(supa, org.email_contacto)
-    if (!user) return res.status(200).json({ ok: true, msg: 'usuario no encontrado en satellite' })
+    // H-05: buscar user_id desde user_orgs por org_id (O(1) en vez de iterar todos los auth users)
+    const { data: userOrg } = await supa
+      .from('user_orgs')
+      .select('user_id')
+      .eq('org_id', org_id)
+      .maybeSingle()
 
-    const uid = user.id
+    const uid = userOrg?.user_id
 
-    // Tablas con org_id
-    await supa.from('pagos').delete().eq('org_id', org_id)
-    await supa.from('recordatorios').delete().eq('org_id', org_id)
-    await supa.from('extras_reserva').delete().eq('org_id', org_id)
-    await supa.from('reservas').delete().eq('org_id', org_id)
-    await supa.from('bloqueos').delete().eq('org_id', org_id)
-    await supa.from('clientes').delete().eq('org_id', org_id)
-    await supa.from('gastos').delete().eq('org_id', org_id)
-    await supa.from('tareas').delete().eq('org_id', org_id)
-    await supa.from('precios_temporada').delete().eq('org_id', org_id)
-    await supa.from('temporadas_precio').delete().eq('org_id', org_id)
-    await supa.from('servicios_extras').delete().eq('org_id', org_id)
-    await supa.from('turnos_recurso').delete().eq('org_id', org_id)
-    await supa.from('recursos').delete().eq('org_id', org_id)
-    // Tablas con user_id
-    await supa.from('config').delete().eq('org_id', org_id)
-    await supa.from('user_orgs').delete().eq('user_id', uid)
+    // H-04: usar RPC transaccional si existe, sino borrar en orden de FK
+    const { error: rpcErr } = await supa.rpc('eliminar_datos_org', { p_org_id: org_id })
 
-    await supa.auth.admin.deleteUser(uid)
+    if (rpcErr) {
+      // Fallback: borrar secuencialmente en orden de dependencia (hijos antes que padres)
+      await supa.from('extras_reserva').delete().eq('org_id', org_id)
+      await supa.from('pagos').delete().eq('org_id', org_id)
+      await supa.from('recordatorios').delete().eq('org_id', org_id)
+      await supa.from('reservas').delete().eq('org_id', org_id)
+      await supa.from('bloqueos').delete().eq('org_id', org_id)
+      await supa.from('clientes').delete().eq('org_id', org_id)
+      await supa.from('gastos').delete().eq('org_id', org_id)
+      await supa.from('tareas').delete().eq('org_id', org_id)
+      await supa.from('precios_temporada').delete().eq('org_id', org_id)
+      await supa.from('temporadas_precio').delete().eq('org_id', org_id)
+      await supa.from('servicios_extras').delete().eq('org_id', org_id)
+      await supa.from('turnos_recurso').delete().eq('org_id', org_id)
+      await supa.from('recursos').delete().eq('org_id', org_id)
+      await supa.from('config').delete().eq('org_id', org_id)
+      await supa.from('tenant_access').delete().eq('tenant_id', org_id)
+      if (uid) await supa.from('user_orgs').delete().eq('user_id', uid)
+    }
+
+    if (uid) {
+      await supa.auth.admin.deleteUser(uid)
+    }
+
     return res.status(200).json({ ok: true })
   } catch (err) {
     console.error('[eliminar-org]', err)

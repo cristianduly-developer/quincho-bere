@@ -3,7 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 const SAAS_URL = process.env.SAAS_ADMIN_URL || 'https://saas.solucionesmdp.com.ar'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  const origin = req.headers['origin'] || ''
+  const allowed = process.env.APP_ORIGIN || 'https://eventos.solucionesmdp.com.ar'
+  if (origin === allowed || origin.endsWith('.vercel.app')) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type')
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -27,6 +31,16 @@ export default async function handler(req, res) {
     .maybeSingle()
 
   if (!emp?.org_id) return res.status(404).json({ error: 'Organización no encontrada.' })
+
+  const { data: orgData } = await central
+    .from('organizaciones')
+    .select('email_contacto')
+    .eq('id', emp.org_id)
+    .single()
+
+  if (orgData?.email_contacto?.toLowerCase() !== user.email.toLowerCase()) {
+    return res.status(403).json({ error: 'Solo el titular de la cuenta puede cancelar la suscripción.' })
+  }
 
   const { data: sub } = await central
     .from('suscripciones_apps')

@@ -18,7 +18,11 @@ async function isRateLimited(central, ip) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  const origin = req.headers['origin'] || ''
+  const allowed = process.env.APP_ORIGIN || 'https://eventos.solucionesmdp.com.ar'
+  if (origin === allowed || origin.endsWith('.vercel.app')) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type')
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -70,9 +74,12 @@ export default async function handler(req, res) {
     plan: 'profesional',
   }).then(() => {})
 
+  const esc = s => typeof s === 'string' ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : s
+
   try {
-    const nombreGoogle = user.user_metadata?.full_name || email.split('@')[0]
     const fechaAlta = new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    const safeNombre = esc(nombreGoogle)
+    const safeEmail = esc(email)
     // Email al admin
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -80,11 +87,11 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         from: process.env.MAIL_FROM ?? 'onboarding@resend.dev',
         to: process.env.ADMIN_NOTIFICATION_EMAIL || 'cristianduly@gmail.com',
-        subject: `🆕 Nueva cuenta demo — ${nombreGoogle}`,
+        subject: `🆕 Nueva cuenta demo — ${safeNombre}`,
         html: `<h2>🆕 Nueva cuenta demo en App-Eventos</h2>
           <table style="border-collapse:collapse;font-family:sans-serif;">
-            <tr><td style="padding:8px;font-weight:bold;">Nombre</td><td style="padding:8px;">${nombreGoogle}</td></tr>
-            <tr><td style="padding:8px;font-weight:bold;">Email</td><td style="padding:8px;">${email}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;">Nombre</td><td style="padding:8px;">${safeNombre}</td></tr>
+            <tr><td style="padding:8px;font-weight:bold;">Email</td><td style="padding:8px;">${safeEmail}</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">App</td><td style="padding:8px;">App-Eventos</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">Plan</td><td style="padding:8px;">Profesional (demo)</td></tr>
             <tr><td style="padding:8px;font-weight:bold;">Días de prueba</td><td style="padding:8px;">${DEMO_DIAS} días</td></tr>
@@ -93,7 +100,7 @@ export default async function handler(req, res) {
       }),
     })
     // Email de bienvenida al usuario
-    const primerNombre = nombreGoogle.split(' ')[0]
+    const primerNombre = safeNombre.split(' ')[0]
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },

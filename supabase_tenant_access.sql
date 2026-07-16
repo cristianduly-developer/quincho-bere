@@ -29,7 +29,7 @@ ON CONFLICT (plan) DO UPDATE SET
 
 CREATE OR REPLACE FUNCTION tiene_acceso(tid UUID) RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT COALESCE((SELECT valid_until > now() FROM tenant_access WHERE tenant_id = tid), TRUE);
+  SELECT COALESCE((SELECT valid_until > now() FROM tenant_access WHERE tenant_id = tid), FALSE);
 $$;
 
 CREATE OR REPLACE FUNCTION plan_tenant(tid UUID) RETURNS TEXT
