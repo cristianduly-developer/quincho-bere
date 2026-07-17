@@ -160,11 +160,7 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, extr
   return (
     <div style={{padding:"16px 14px 100px"}}>
       {/* Header */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div>
-          <div style={{fontSize:20,fontWeight:800,color:"#1C1C1E"}}>Reservas</div>
-          <div style={{fontSize:11,color:"#8B7355"}}>Ordenadas por fecha del evento</div>
-        </div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:14}}>
         <button onClick={onNewReserva} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva</button>
       </div>
 
