@@ -86,7 +86,7 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.RESEND_API_KEY}` },
       body: JSON.stringify({
         from: process.env.MAIL_FROM ?? 'onboarding@resend.dev',
-        to: process.env.ADMIN_NOTIFICATION_EMAIL || 'cristianduly@gmail.com',
+        to: process.env.ADMIN_NOTIFICATION_EMAIL || 'solucionesmdp.oficial@gmail.com',
         subject: `🆕 Nueva cuenta demo — ${safeNombre}`,
         html: `<h2>🆕 Nueva cuenta demo en App-Eventos</h2>
           <table style="border-collapse:collapse;font-family:sans-serif;">
