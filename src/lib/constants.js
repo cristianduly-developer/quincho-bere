@@ -1,6 +1,6 @@
 export const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 export const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-export const DAYS_SHORT = ["D","L","M","X","J","V","S"];
+export const DAYS_SHORT = ["L","M","X","J","V","S","D"];
 
 export const STATUS = {
   pendiente:  { label:"Pendiente",  color:"#6B7280", bg:"#F3F4F6", border:"#D1D5DB" },
