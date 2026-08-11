@@ -259,6 +259,61 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         );
       })()}
 
+      {/* ¿Cuándo reservan? — para decidir cuándo invertir en publicidad */}
+      {(()=>{
+        const anioVista = selYear;
+        // Agrupar por mes de creación de la reserva (no del evento)
+        const porMesCreacion = Array.from({length:12},(_,m)=>({
+          mes: MONTHS[m].slice(0,3),
+          mesNum: m,
+          cant: reservas.filter(r=>{
+            if(!r.fechaCreacion && !r.creadoEn) return false;
+            const fc = (r.fechaCreacion||r.creadoEn||"").slice(0,7);
+            return fc === `${anioVista}-${String(m+1).padStart(2,"0")}` && r.estado !== "cancelada";
+          }).length,
+        }));
+        const maxCant = Math.max(...porMesCreacion.map(m=>m.cant), 1);
+        // Top 3 meses
+        const top3 = [...porMesCreacion].sort((a,b)=>b.cant-a.cant).slice(0,3).filter(m=>m.cant>0);
+        return (
+          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:4}}>📣 ¿Cuándo reservan? ({anioVista})</div>
+            <div style={{fontSize:11,color:"#8B7355",marginBottom:12}}>Mes en que se hizo la reserva — para planificar publicidad</div>
+            <div style={{display:"flex",alignItems:"flex-end",gap:3,height:80,marginBottom:6}}>
+              {porMesCreacion.map((m,i)=>{
+                const isTop = top3.some(t=>t.mesNum===m.mesNum);
+                return (
+                  <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                    <div style={{
+                      width:"100%",borderRadius:"3px 3px 0 0",
+                      background: isTop ? "#C4602B" : "#EDE0D0",
+                      height: Math.max(m.cant>0?6:2, Math.round((m.cant/maxCant)*64))+"px",
+                      transition:"height .3s"
+                    }} />
+                    <div style={{fontSize:8,color:isTop?"#C4602B":"#8B7355",fontWeight:isTop?700:400}}>{m.mes}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {top3.length>0 && (
+              <div style={{borderTop:"1px solid #EDE0D0",paddingTop:10,marginTop:4}}>
+                <div style={{fontSize:11,color:"#5C4033",fontWeight:700,marginBottom:6}}>🏆 Meses con más reservas:</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {top3.map((m,i)=>(
+                    <div key={m.mes} style={{background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,padding:"6px 12px",fontSize:12}}>
+                      <span style={{color:["#C4602B","#D97706","#6B7280"][i],fontWeight:800}}>{["1°","2°","3°"][i]}</span>
+                      {" "}<span style={{fontWeight:700}}>{MONTHS[m.mesNum]}</span>
+                      <span style={{color:"#8B7355"}}> · {m.cant} reserva{m.cant!==1?"s":""}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {top3.length===0 && <div style={{fontSize:12,color:"#8B7355",textAlign:"center",padding:"8px 0"}}>Sin datos de reservas para {anioVista}</div>}
+          </div>
+        );
+      })()}
+
       <div style={{...card,padding:"14px 16px",marginBottom:10}}>
         <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Últimos 6 meses</div>
         <div style={{display:"flex",alignItems:"flex-end",gap:6,height:100,marginBottom:8}}>
