@@ -1906,28 +1906,39 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
                   );
                 })()
               ) : (
-                /* Modo turnos nombrados: chips con ícono + iniciales */
-                dr.map((r,ri)=>{
-                  const t=TURNOS[r.turno];
-                  const cl=clientes&&clientes.find(x=>x.id===r.clienteId);
-                  const ini=cl?(cl.nombre?cl.nombre[0].toUpperCase():"")+(cl.apellido?cl.apellido[0].toUpperCase():""):"?";
-                  const turnoCustom=turnosDelFiltro.find(x=>x.id===r.turnoId);
-                  var cellBg;
-                  if(isPast){ cellBg="#9CA3AF"; }
-                  else if(r.estado==="pendiente"){ cellBg="#6B7280"; }
-                  else if(r.estado==="senada"||r.estado==="confirmada"){
-                    cellBg=turnoCustom?"#C4602B":(t?.color||"#C4602B");
-                  } else if(r.estado==="finalizada"){ cellBg="#9CA3AF"; }
-                  else { cellBg="#6B7280"; }
-                  const icono = turnoCustom?(turnoCustom.icono||"📌"):(t?t.icon:"📌");
-                  const label = turnoCustom?(turnoCustom.nombre.length>7?turnoCustom.horaInicio:turnoCustom.nombre):ini;
-                  return (
-                    <div key={`${year}-${month}-${day}-${ri}`} style={{flex:1,background:cellBg,display:"flex",alignItems:"center",gap:2,padding:"1px 3px",borderRadius:3,marginBottom:1}}>
-                      <div style={{fontSize:10,lineHeight:1}}>{icono}</div>
-                      <div style={{fontSize:8,fontWeight:800,color:"#FFF",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</div>
-                    </div>
-                  );
-                })
+                /* Modo turnos nombrados: chips con color por tipo de turno */
+                (()=>{
+                  const toMinCal=s=>{if(!s)return 0;const[h,m]=(s+":0").split(":");return Number(h)*60+Number(m||0);};
+                  const getTurnoColor=(r,tc)=>{
+                    if(isPast||r.estado==="finalizada") return "#9CA3AF";
+                    if(r.estado==="pendiente") return "#6B7280";
+                    if(!tc) return TURNOS[r.turno]?.color||"#C4602B";
+                    const dur=(toMinCal(tc.horaFin)||1440)-toMinCal(tc.horaInicio);
+                    if(dur>=600) return "#059669";
+                    return toMinCal(tc.horaInicio)<14*60?"#D97706":"#4F46E5";
+                  };
+                  const isCompletoCal=(r,tc)=>{
+                    if(r.turno==="completo") return true;
+                    if(!tc) return false;
+                    return (toMinCal(tc.horaFin)||1440)-toMinCal(tc.horaInicio)>=600;
+                  };
+                  return dr.map((r,ri)=>{
+                    const t=TURNOS[r.turno];
+                    const cl=clientes&&clientes.find(x=>x.id===r.clienteId);
+                    const ini=cl?(cl.nombre?cl.nombre[0].toUpperCase():"")+(cl.apellido?cl.apellido[0].toUpperCase():""):"?";
+                    const tc=turnosDelFiltro.find(x=>x.id===r.turnoId);
+                    const cellBg=getTurnoColor(r,tc);
+                    const completo=isCompletoCal(r,tc);
+                    const icono=tc?(tc.icono||"📌"):(t?t.icon:"📌");
+                    const label=tc?(tc.nombre.length>7?tc.horaInicio:tc.nombre):ini;
+                    return (
+                      <div key={`${year}-${month}-${day}-${ri}`} style={{flex:completo?"1 1 auto":1,background:cellBg,display:"flex",alignItems:"center",gap:2,padding:"1px 3px",borderRadius:3,marginBottom:1,minHeight:completo?28:0}}>
+                        <div style={{fontSize:10,lineHeight:1}}>{icono}</div>
+                        <div style={{fontSize:8,fontWeight:800,color:"#FFF",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{label}</div>
+                      </div>
+                    );
+                  });
+                })()
               )}
             </div>
           );
