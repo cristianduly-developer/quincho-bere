@@ -1922,11 +1922,12 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
                     if(!tc) return false;
                     return (toMinCal(tc.horaFin)||1440)-toMinCal(tc.horaInicio)>=600;
                   };
+                  const allTurnos=turnosRecurso||[];
                   return dr.map((r,ri)=>{
                     const t=TURNOS[r.turno];
                     const cl=clientes&&clientes.find(x=>x.id===r.clienteId);
                     const ini=cl?(cl.nombre?cl.nombre[0].toUpperCase():"")+(cl.apellido?cl.apellido[0].toUpperCase():""):"?";
-                    const tc=turnosDelFiltro.find(x=>x.id===r.turnoId);
+                    const tc=allTurnos.find(x=>x.id===r.turnoId);
                     const cellBg=getTurnoColor(r,tc);
                     const completo=isCompletoCal(r,tc);
                     const icono=tc?(tc.icono||"📌"):(t?t.icon:"📌");
