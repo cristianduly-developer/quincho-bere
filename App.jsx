@@ -998,7 +998,7 @@ function EditPagoModal({ pago, onClose, onSave }) {
   );
 }
 
-function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueosDia, onBloquear, canBloquear, turnosRecurso, espacioFiltro }) {
+function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueosDia, onBloquear, canBloquear, turnosRecurso, espacioFiltro, temporadasPrecio, preciosTemporada }) {
   const bloqueosDiaArr = bloqueosDia||[];
   const hayBloqueoCompleto = bloqueosDiaArr.some(b=>b.turno==="completo");
   // Para compatibilidad con código viejo que usa bloqueo singular
@@ -1107,7 +1107,7 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
             const esFinde=(()=>{try{const d=new Date(date+"T12:00:00");const dow=d.getDay();return dow===0||dow===6;}catch(e){return false;}})();
             const ocupados = turnosDelEspacio.filter(t=>isOccCustom(t.id)).length;
             const libres = turnosDelEspacio.length - ocupados;
-            const potencialDia = turnosDelEspacio.reduce((s,t)=>s+(esFinde?t.precioFinde:t.precioSemana),0);
+            const potencialDia = turnosDelEspacio.reduce((s,t)=>{const tmp=getTemporadaActiva(date,temporadasPrecio,t.recursoId);const pt=tmp?(preciosTemporada||[]).find(p=>p.temporadaId===tmp.id&&p.turnoId===t.id):null;return s+(pt?(esFinde?pt.precioFinde:pt.precioSemana):(esFinde?t.precioFinde:t.precioSemana));},0);
             const cobradoDia = dayRes.reduce((s,r)=>s+(r.montoPactado||0),0);
             const pct = turnosDelEspacio.length>0 ? Math.round((ocupados/turnosDelEspacio.length)*100) : 0;
             const barColor = pct===100?"#DC2626":pct>=60?"#D97706":"#16A34A";
@@ -1149,7 +1149,9 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
                 const bloqueado = isSlotBloqueado(t.id); // incluye bloqueo completo Y por slot
                 const finalBusy = busy || bloqueado;
                 const esFinde = (()=>{try{const d=new Date(date+"T12:00:00");const dow=d.getDay();return dow===0||dow===6;}catch(e){return false;}})();
-                const precio = esFinde ? t.precioFinde : t.precioSemana;
+                const tmpActiva = getTemporadaActiva(date, temporadasPrecio, t.recursoId);
+                const ptRow = tmpActiva ? (preciosTemporada||[]).find(p=>p.temporadaId===tmpActiva.id&&p.turnoId===t.id) : null;
+                const precio = ptRow ? (esFinde ? ptRow.precioFinde : ptRow.precioSemana) : (esFinde ? t.precioFinde : t.precioSemana);
 
                 if(modoAgenda) {
                   const cli = res ? clientes.find(c=>c.id===res.clienteId) : null;
@@ -5142,6 +5144,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         canBloquear={currentUser?.gestionOperativa!==false}
         onClose={()=>setDayModal(null)}
         turnosRecurso={turnosRecurso}
+        temporadasPrecio={temporadasPrecio}
+        preciosTemporada={preciosTemporada}
         espacioFiltro={dayModal.espacioFiltro||"all"}
         onNewReserva={(date,turnoIdOrKey,turnoObj)=>{
           setInitDate(date);
