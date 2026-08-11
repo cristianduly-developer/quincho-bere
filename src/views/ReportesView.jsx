@@ -132,6 +132,25 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
     ? Math.round(withDates.reduce((s,r)=>s+Math.round((new Date(r.fecha)-new Date(r.fechaCreacion))/(86400000)),0)/withDates.length)
     : null;
 
+  const ticketPromedio = monthRes.length>0
+    ? Math.round(monthRes.reduce((s,r)=>s+r.montoPactado,0)/monthRes.length)
+    : null;
+
+  const topClientes = (()=>{
+    const map = {};
+    pagos.filter(p=>p.fecha?.startsWith(selKey)).forEach(p=>{
+      const r = reservas.find(x=>x.id===p.reservaId);
+      if(!r) return;
+      const c = clientes.find(x=>x.id===r.clienteId);
+      if(!c) return;
+      const key = c.id;
+      if(!map[key]) map[key]={ nombre: (c.nombre+" "+c.apellido).trim()||"Sin nombre", total:0, cant:0 };
+      map[key].total += p.monto;
+      map[key].cant += 1;
+    });
+    return Object.values(map).sort((a,b)=>b.total-a.total).slice(0,3);
+  })();
+
   const last6 = Array.from({length:6},(_,i)=>{
     const d=new Date(selYear,selMonth-5+i,1);
     const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
@@ -222,6 +241,12 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               </div>
             ));
           })()}
+          {ticketPromedio!==null&&(
+            <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #EDE0D0"}}>
+              <div style={{fontSize:11,color:"#8B7355"}}>Ticket promedio</div>
+              <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E"}}>{fmtCurrency(ticketPromedio)}</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -258,6 +283,22 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           </div>
         );
       })()}
+
+      {/* Top clientes del mes */}
+      {topClientes.length>0&&(
+        <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>⭐ Top clientes del mes</div>
+          {topClientes.map((c,i)=>(
+            <div key={c.nombre} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<topClientes.length-1?"1px solid #F5EDE4":"none"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{width:22,height:22,borderRadius:11,background:["#C4602B","#D97706","#6B7280"][i],display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontSize:11,fontWeight:800,flexShrink:0}}>{i+1}</span>
+                <span style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{c.nombre}</span>
+              </div>
+              <span style={{fontWeight:800,color:"#16A34A",fontSize:14}}>{fmtCurrency(c.total)}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ¿Cuándo reservan? — para decidir cuándo invertir en publicidad */}
       {(()=>{
