@@ -437,7 +437,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     turno:        reserva?.turno        || initialTurno || "dia",
     horario:      initH.horario,
     horarioFin:   initH.horarioFin,
-    cantInvitados:reserva?.cantInvitados||1,
+    cantInvitados:reserva?.cantInvitados||(recursos.find(r=>r.id===initRecursoId)?.capacidadMax)||1,
     montoPactado: getInitMonto(),
     estado:       reserva?.estado       || "pendiente",
     notas:        reserva?.notas        || "",
@@ -467,7 +467,8 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
       const primerTurno = turnos[0];
       const esFin = esFinde(p.fecha);
       const precio = primerTurno ? (esFin ? primerTurno.precioFinde : primerTurno.precioSemana) : "";
-      return {...p, recursoId:v, turnoId:primerTurno?.id||"", horario:primerTurno?.horaInicio||"", horarioFin:primerTurno?.horaFin||"", montoPactado:precio||""};
+      const capMax = recursos.find(r=>r.id===v)?.capacidadMax || p.cantInvitados;
+      return {...p, recursoId:v, turnoId:primerTurno?.id||"", horario:primerTurno?.horaInicio||"", horarioFin:primerTurno?.horaFin||"", montoPactado:precio||"", cantInvitados:capMax};
     }
     if(k==="turnoId") {
       const { turnos } = getTurnosConPrecio(p.recursoId, p.fecha);
