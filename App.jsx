@@ -517,10 +517,14 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
             {turnosDelEspacio.map(t=>{
               const precio = esFinde(f.fecha) ? t.precioFinde : t.precioSemana;
               const sel = f.turnoId===t.id;
-              const ocupado = !isEdit && reservas.some(r=>
-                r.turnoId===t.id && r.fecha===f.fecha && r.recursoId===f.recursoId &&
-                r.estado!=="cancelada" && r.id!==(reserva?.id)
-              );
+              const toMinR = (s) => { if(!s) return 0; const [h,m]=(s+":0").split(":"); return Number(h)*60+Number(m||0); };
+              const ocupado = !isEdit && reservas.some(r=>{
+                if(r.fecha!==f.fecha || r.recursoId!==f.recursoId || r.estado==="cancelada" || r.id===(reserva?.id) || !r.turnoId) return false;
+                const a=turnosRecurso.find(x=>x.id===r.turnoId), b=t;
+                if(!a) return r.turnoId===t.id;
+                const s1=toMinR(a.horaInicio),e1=toMinR(a.horaFin)||1440,s2=toMinR(b.horaInicio),e2=toMinR(b.horaFin)||1440;
+                return s1<e2 && s2<e1;
+              });
               return (
                 <button key={t.id} onClick={()=>{ if(!ocupado) set("turnoId")(t.id); }}
                   disabled={ocupado}
@@ -1126,8 +1130,18 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
   // Slot bloqueado: reserva con ese turnoId O bloqueo con ese turnoId O bloqueo completo
   const isSlotBloqueado = (turnoId) =>
     hayBloqueoCompleto || bloqueosDiaArr.some(b=>b.turno===turnoId);
+
+  // Conflicto por solapamiento de horario (ej: Día 11-17 bloquea Completo 11-23)
+  const toMin = (t) => { if(!t) return 0; const [h,m]=(t+":0").split(":"); return Number(h)*60+Number(m||0); };
+  const turnosConflictan = (idA, idB) => {
+    if(idA===idB) return true;
+    const a=todosLosTurnos.find(t=>t.id===idA), b=todosLosTurnos.find(t=>t.id===idB);
+    if(!a||!b) return false;
+    const s1=toMin(a.horaInicio),e1=toMin(a.horaFin)||1440,s2=toMin(b.horaInicio),e2=toMin(b.horaFin)||1440;
+    return s1<e2 && s2<e1;
+  };
   const isOccCustom = (turnoId) =>
-    dayRes.some(r=>r.turnoId===turnoId);
+    dayRes.some(r=>r.turnoId && turnosConflictan(r.turnoId, turnoId));
 
   const isBlocked = t => hayBloqueoCompleto || bloqueosDiaArr.some(b=>b.turno===t);
   const isOcc = t => {
