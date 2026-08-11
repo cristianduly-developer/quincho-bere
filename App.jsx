@@ -517,14 +517,22 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
             {turnosDelEspacio.map(t=>{
               const precio = esFinde(f.fecha) ? t.precioFinde : t.precioSemana;
               const sel = f.turnoId===t.id;
+              const ocupado = !isEdit && reservas.some(r=>
+                r.turnoId===t.id && r.fecha===f.fecha && r.recursoId===f.recursoId &&
+                r.estado!=="cancelada" && r.id!==(reserva?.id)
+              );
               return (
-                <button key={t.id} onClick={()=>set("turnoId")(t.id)}
-                  style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderRadius:10,border:`1.5px solid ${sel?"#C4602B":"#EDE0D0"}`,background:sel?"#FEF3EC":"#FFF",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                <button key={t.id} onClick={()=>{ if(!ocupado) set("turnoId")(t.id); }}
+                  disabled={ocupado}
+                  style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderRadius:10,
+                    border:`1.5px solid ${ocupado?"#FECACA":sel?"#C4602B":"#EDE0D0"}`,
+                    background:ocupado?"#FEF2F2":sel?"#FEF3EC":"#FFF",
+                    cursor:ocupado?"not-allowed":"pointer",fontFamily:"inherit",textAlign:"left",opacity:ocupado?0.75:1}}>
                   <div>
-                    <div style={{fontWeight:700,fontSize:13,color:sel?"#C4602B":"#1C1C1E"}}>{t.nombre}</div>
+                    <div style={{fontWeight:700,fontSize:13,color:ocupado?"#DC2626":sel?"#C4602B":"#1C1C1E"}}>{t.nombre}{ocupado?" · 🔒 Ocupado":""}</div>
                     <div style={{fontSize:11,color:"#8B7355"}}>{t.horaInicio} – {t.horaFin}</div>
                   </div>
-                  <div style={{fontWeight:700,fontSize:13,color:sel?"#C4602B":"#5C4033"}}>{fmtCurrency(precio||0)}</div>
+                  <div style={{fontWeight:700,fontSize:13,color:ocupado?"#DC2626":sel?"#C4602B":"#5C4033"}}>{fmtCurrency(precio||0)}</div>
                 </button>
               );
             })}
