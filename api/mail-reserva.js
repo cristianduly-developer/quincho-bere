@@ -109,11 +109,11 @@ export default async function handler(req, res) {
           💡 Recordá abonar el saldo de <strong>${fmtMonto(saldo)}</strong> el día del evento.
         </div>` : ''}
 
-        <!-- Condiciones (solo si el negocio las envía) -->
+        <!-- Condiciones (solo si el negocio las configuró) -->
         ${condiciones ? `
         <div style="border:1px solid #EDE0D0;border-radius:12px;overflow:hidden;margin-bottom:24px;">
           <div style="background:#3D2B1F;padding:12px 20px;">
-            <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.5px;">📋 NORMAS Y CONDICIONES</span>
+            <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.5px;">📋 NORMAS Y CONDICIONES DEL ALQUILER</span>
           </div>
           <div style="padding:16px 20px;background:#fff;font-size:13px;color:#3D2B1F;line-height:1.8;white-space:pre-line;">
             ${esc(condiciones)}

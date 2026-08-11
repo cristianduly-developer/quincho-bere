@@ -255,6 +255,93 @@ function printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio){
   return buildDoc('Ficha '+escHtml(clientName(cliente)),body);
 }
 
+function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
+  var te=resExtras.reduce(function(s,e){return s+(e.precioHistorico*e.cantidad);},0);
+  var tp=resPagos.reduce(function(s,p){return s+p.monto;},0);
+  var saldo=(reserva.montoPactado+te)-tp;
+  var hoy=new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
+  var tel=negocio&&negocio.telefono?escHtml(negocio.telefono):'';
+  var ciudad=negocio&&negocio.ciudad?escHtml(negocio.ciudad):'Mar del Plata';
+
+  var CSS_EXTRA=
+    ".contrato-title{text-align:center;font-size:18px;font-weight:800;color:#3D2B1F;margin:24px 0 4px;letter-spacing:.5px}" +
+    ".contrato-sub{text-align:center;font-size:12px;color:#8B7355;margin-bottom:24px}" +
+    ".clausula{margin:14px 0 8px;font-weight:700;font-size:13px;color:#3D2B1F;border-left:3px solid #C4602B;padding-left:8px}" +
+    ".condicion{font-size:12.5px;color:#333;padding:4px 0 4px 12px;border-bottom:1px dotted #EDE0D0}" +
+    ".firma2{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:50px;padding-top:14px;border-top:1px dashed #EDE0D0}" +
+    ".firma2-item{text-align:center}" +
+    ".firma2-line{border-top:1px solid #1C1C1E;margin-top:48px;padding-top:5px;font-size:11px;color:#8B7355}";
+
+  var hdr=pLogoHdr(negocio,'Contrato de Alquiler','<div style="font-size:11px;color:#8B7355;text-align:right">'+ciudad+'<br>'+hoy+'</div>');
+  var titulo='<div class="contrato-title">CONTRATO DE ALQUILER DE ESPACIO</div><div class="contrato-sub">Ref. N° '+reserva.id.slice(-8).toUpperCase()+'</div>';
+
+  // Partes
+  var partes=pH2('LAS PARTES')+
+    '<div class="clausula">Prestador del Servicio</div>'+
+    pRow('Nombre / Razón social',nombreNeg)+(tel?pRow('Contacto',tel):'')+
+    '<div class="clausula">Contratante</div>'+
+    pRow('Nombre',escHtml(clientName(cliente)))+
+    (cliente&&cliente.whatsapp?pRow('WhatsApp',escHtml(cliente.whatsapp)):'')+
+    (cliente&&cliente.email?pRow('Email',escHtml(cliente.email)):'')+
+    (cliente&&cliente.localidad?pRow('Localidad',escHtml(cliente.localidad)):'');
+
+  // Objeto del contrato
+  var evento=pH2('OBJETO DEL CONTRATO')+
+    pRow('Espacio alquilado',escHtml(recurso?recurso.nombre:'—'))+
+    pRow('Fecha del evento',fmtDate(reserva.fecha))+
+    (TURNOS[reserva.turno]?pRow('Turno',escHtml(TURNOS[reserva.turno].label)):'')+
+    (reserva.horario?pRow('Horario de inicio',escHtml(reserva.horario)+' hs'):'')+
+    (reserva.horarioFin?pRow('Horario de finalización',escHtml(reserva.horarioFin)+' hs'):'')+
+    (reserva.cantInvitados>0?pRow('Cantidad de invitados',String(reserva.cantInvitados)+' personas'):'')+
+    (reserva.notas?pRow('Observaciones',escHtml(reserva.notas)):'');
+
+  // Condiciones económicas
+  var economia=pH2('CONDICIONES ECONÓMICAS')+
+    pRow('Monto total acordado',fmtCurrency(reserva.montoPactado+te))+
+    (te>0?pRow('Extras incluidos',fmtCurrency(te)):'')+
+    (tp>0?pRow('Seña / pagos recibidos',fmtCurrency(tp)):'')+
+    '<div class="total"><span>'+(saldo>0?'Saldo pendiente al evento':'Estado de cuenta')+'</span><span class="'+(saldo>0?'neg':'pos')+'">'+(saldo>0?fmtCurrency(saldo):'Pagado en su totalidad')+'</span></div>';
+
+  // Condiciones del alquiler
+  var condiciones=pH2('NORMAS Y CONDICIONES DEL ALQUILER')+
+    '<div style="font-size:12px;color:#5C4033;margin-bottom:10px;font-style:italic">Agradecemos que nos hayan elegido para realizar su evento. Para que todos podamos disfrutar y cuidar el espacio, solicitamos leer y respetar las siguientes condiciones.</div>'+
+    '<div class="clausula">💰 Depósitos y Pagos</div>'+
+    '<div class="condicion">• Depósito de garantía: $50.000. Será reintegrado al finalizar el evento, una vez verificado el estado del espacio.</div>'+
+    '<div class="condicion">• Seña: no reembolsable.</div>'+
+    '<div class="condicion">• En caso de reprogramación por condiciones climáticas adversas, la seña podrá trasladarse a una nueva fecha, sujeto a disponibilidad.</div>'+
+    '<div class="clausula">🧹 Orden y Limpieza</div>'+
+    '<div class="condicion">• Se ofrece un servicio de limpieza opcional por $40.000.</div>'+
+    '<div class="condicion">• En caso de no contratar el servicio, el espacio deberá entregarse ordenado: residuos recogidos, vajilla lavada y mobiliario reacomodado.</div>'+
+    '<div class="clausula">🚫 Condiciones de Uso del Espacio</div>'+
+    '<div class="condicion">• Música: volumen moderado. No se permiten DJs ni bandas en vivo.</div>'+
+    '<div class="condicion">• La puerta deberá permanecer cerrada durante todo el evento.</div>'+
+    '<div class="condicion">• No está permitido ingresar vehículos al predio.</div>'+
+    '<div class="condicion">• No se permite el uso de pirotecnia ni el ingreso de mascotas.</div>'+
+    '<div class="condicion">• Está prohibido el uso de: globos con confeti, papel picado, bombuchas e inflables con agua.</div>'+
+    '<div class="condicion">• El uso de la piscina queda bajo responsabilidad del contratante.</div>'+
+    '<div class="clausula">🕐 Horarios</div>'+
+    '<div class="condicion">• Se deberán respetar estrictamente los horarios de ingreso y egreso del turno contratado.</div>'+
+    '<div class="condicion">• La decoración y limpieza deberán realizarse dentro del horario del turno.</div>'+
+    '<div class="condicion">• Tolerancia máxima de 15 minutos al finalizar el turno.</div>'+
+    '<div style="margin-top:12px;background:#FDF8F3;border-left:3px solid #C4602B;padding:10px 14px;font-size:12px;color:#3D2B1F;font-style:italic">❤️ El respeto por estas pautas nos permite cuidar las instalaciones y brindar un mejor servicio para todos. Muchas gracias por elegirnos.</div>';
+
+  // Aceptación
+  var aceptacion='<div style="margin-top:20px;background:#FDF8F3;border:1px solid #EDE0D0;border-radius:8px;padding:14px 16px;font-size:12px;color:#5C4033;line-height:1.7">'+
+    'Las partes declaran haber leído y aceptado las condiciones del presente contrato en la ciudad de '+ciudad+', el '+hoy+'.'+
+    '</div>';
+
+  var firmas='<div class="firma2">'+
+    '<div class="firma2-item"><div class="firma2-line">Firma y aclaración del Prestador<br><b>'+nombreNeg+'</b></div></div>'+
+    '<div class="firma2-item"><div class="firma2-line">Firma y aclaración del Contratante<br><b>'+escHtml(clientName(cliente))+'</b></div></div>'+
+    '</div>';
+
+  var style='<style>'+PDF_CSS+CSS_EXTRA+'</style>';
+  var footer=pDiv('footer',nombreNeg+' · Generado el '+new Date().toLocaleDateString('es-AR')+' | Soluciones MDP');
+  var html=style+hdr+titulo+partes+evento+economia+condiciones+aceptacion+firmas+footer;
+  return {title:'Contrato '+escHtml(clientName(cliente)),html:html};
+}
+
 function printRecibo(pago,reserva,cliente,negocio){
   var hdr=pLogoHdr(negocio,'Comprobante de Pago','<b>N° '+pago.id.slice(-6).toUpperCase()+'</b><br>'+new Date().toLocaleDateString('es-AR'));
   var texto='Recibi de '+escHtml(clientName(cliente))+' la suma de '+fmtCurrency(pago.monto)+' en concepto de pago para la reserva del dia '+fmtDate(reserva?reserva.fecha:'-')+' en '+escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio')+'. Metodo: '+escHtml(pago.metodo)+'.';
@@ -821,6 +908,11 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                       )}
                     </div>
                   </div>
+                  {p.comprobante && (
+                    <a href={p.comprobante} target="_blank" rel="noreferrer" style={{display:"block",marginTop:8}}>
+                      <img src={p.comprobante} alt="Comprobante" style={{width:"100%",maxHeight:160,objectFit:"cover",borderRadius:8,border:"1px solid #EDE0D0",display:"block"}} />
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
@@ -877,6 +969,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
 
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         <Btn small onClick={()=>onShowPDF(printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio))}>🖨️ PDF</Btn>
+        <Btn small variant="secondary" onClick={()=>onShowPDF(printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio))}>📄 Contrato</Btn>
         <Btn small variant="secondary" onClick={onEdit}>✏️ Editar</Btn>
         {canModifyCaja&&reserva.estado!=="cancelada"&&reserva.estado!=="finalizada"&&(
           <Btn small variant="secondary" onClick={()=>setShowReschedule(v=>!v)}>📅 Reprogramar</Btn>
@@ -4541,7 +4634,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     ]).then(async _t2=>{
       const _t2d=(i)=>_t2[i].status==="fulfilled"?_t2[i].value?.data:null;
       const [p,g,er,se,t,bl,rec,tmp]=[0,1,2,3,4,5,6,7].map(_t2d);
-      if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
+      if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",comprobante:x.comprobante||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
       setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
