@@ -181,7 +181,7 @@ function AlertaItem({ icon, texto, urgente }) {
   );
 }
 
-export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso, negocio, recordatorios, onClose }) {
+export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso, negocio, recordatorios, tareas, onClose }) {
   const hoy = new Date();
   const diaLabel = `${DIAS[hoy.getDay()]} ${hoy.getDate()}/${hoy.getMonth()+1}`;
   const hora = hoy.getHours();
@@ -196,6 +196,9 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
   const hoyStr = toISO(new Date());
   const recHoy = (recordatorios||[]).filter(r => r.estado === "Pendiente" && r.fechaAlerta === hoyStr)
     .sort((a,b) => (a.horaAlerta||"").localeCompare(b.horaAlerta||""));
+
+  // Tareas pendientes del quincho
+  const tareasPendientes = (tareas||[]).filter(t => t.estado === "pendiente");
 
   const hayAlgo = alertasHoy.length || alertasSemana.length || oportunidades.length;
 
@@ -247,6 +250,15 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,fontWeight:700,color:"#C4602B",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>🔴 Hoy</div>
               {alertasHoy.map((a,i) => <AlertaItem key={i} {...a} />)}
+            </div>
+          )}
+
+          {tareasPendientes.length > 0 && (
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#0369A1",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>✅ Tareas pendientes del quincho</div>
+              {tareasPendientes.map(t => (
+                <AlertaItem key={t.id} icon="🔧" texto={t.descripcion} />
+              ))}
             </div>
           )}
 
