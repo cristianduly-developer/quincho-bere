@@ -627,7 +627,7 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
         <div style={{display:"flex",gap:0,borderRadius:8,overflow:"hidden",border:"1px solid #EDE0D0"}}>
           <button onClick={()=>setVista("lista")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="lista"?"#C4602B":"#FDF8F3",color:vista==="lista"?"#FFF":"#8B7355",transition:"all 0.15s"}}>☰ Lista</button>
           <button onClick={()=>setVista("semanas")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="semanas"?"#C4602B":"#FDF8F3",color:vista==="semanas"?"#FFF":"#8B7355",transition:"all 0.15s"}}>📅 Semanas</button>
-          <button onClick={()=>setVista("disponibilidad")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="disponibilidad"?"#C4602B":"#FDF8F3",color:vista==="disponibilidad"?"#FFF":"#8B7355",transition:"all 0.15s"}}>🟢 Meses</button>
+          <button onClick={()=>setVista("disponibilidad")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="disponibilidad"?"#C4602B":"#FDF8F3",color:vista==="disponibilidad"?"#FFF":"#8B7355",transition:"all 0.15s"}}>🟢 Dispo</button>
         </div>
         <button onClick={onNewReserva} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva</button>
       </div>
