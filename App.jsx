@@ -3340,10 +3340,16 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
     </button>
   );
 
+  const SaveBtn = () => (
+    <button onClick={handleSaveNegocio} style={{width:"100%",padding:"12px",background:negSaved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s",marginTop:4}}>
+      {negSaved ? "✅ Guardado" : "💾 Guardar"}
+    </button>
+  );
+
   return (
     <div style={{padding:"16px 16px 100px",display:"flex",flexDirection:"column",gap:10}}>
 
-      {/* ── MI NEGOCIO ── */}
+      {/* 1 ── MI NEGOCIO ── */}
       <div style={{...card, padding:16}}>
         <SectionHeader id="negocio" icon="🏢" title="Mi Negocio" subtitle={negocio?.nombreNegocio||"Sin configurar"} />
         {open==="negocio" && (
@@ -3372,76 +3378,12 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                 </div>
               </div>
             </div>
-            {/* Mensajes de WhatsApp - colapsable */}
-            <div style={{borderTop:"1px solid #EDE0D0",paddingTop:14,marginTop:4}}>
-              <button onClick={()=>setShowMsgs(p=>!p)}
-                style={{width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0,marginBottom:showMsgs?14:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:16}}>💬</span>
-                  <div style={{textAlign:"left"}}>
-                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>Mensajes de WhatsApp</div>
-                    <div style={{fontSize:11,color:"#8B7355"}}>Personalizar recordatorio y post-evento</div>
-                  </div>
-                </div>
-                <span style={{fontSize:18,color:"#8B7355",transform:showMsgs?"rotate(180deg)":"none",transition:"transform 0.2s"}}>›</span>
-              </button>
-
-              {showMsgs && (
-                <div>
-                  {/* Recordatorio */}
-                  <div style={{marginBottom:12,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.recordatorioActivo?10:0}}>
-                      <div>
-                        <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>📲 Recordatorio pre-evento</div>
-                        <div style={{fontSize:11,color:"#8B7355"}}>Se envía el día anterior al evento</div>
-                      </div>
-                      <button onClick={()=>setNegForm(p=>({...p,recordatorioActivo:!p.recordatorioActivo}))}
-                        style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.recordatorioActivo?"#16A34A":"#EDE0D0",color:negForm.recordatorioActivo?"#FFF":"#8B7355",flexShrink:0,marginLeft:8}}>
-                        {negForm.recordatorioActivo?"✅ Activo":"Inactivo"}
-                      </button>
-                    </div>
-                    {negForm.recordatorioActivo&&<textarea style={{...inpS,height:130,resize:"vertical",fontSize:12}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} />}
-                  </div>
-
-                  {/* Link Google Reviews */}
-                  <div style={{marginBottom:12,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
-                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",marginBottom:4}}>⭐ Link de reseñas de Google</div>
-                    <div style={{fontSize:11,color:"#8B7355",marginBottom:8}}>Se puede incluir opcionalmente en el mensaje post-evento para pedir reseñas.</div>
-                    <input style={inpS} value={negForm.googleReviewUrl} onChange={e=>setNegForm(p=>({...p,googleReviewUrl:e.target.value}))} placeholder="https://g.page/r/XXXXXX/review" />
-                    {negForm.googleReviewUrl && <a href={negForm.googleReviewUrl} target="_blank" rel="noreferrer" style={{fontSize:11,color:"#C4602B",display:"inline-block",marginTop:6}}>Probar link →</a>}
-                  </div>
-
-                  {/* Post-evento */}
-                  <div style={{marginBottom:4,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.postEventoActivo?10:0}}>
-                      <div>
-                        <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>💌 Mensaje post-evento</div>
-                        <div style={{fontSize:11,color:"#8B7355"}}>Se envía el día siguiente al evento</div>
-                      </div>
-                      <button onClick={()=>setNegForm(p=>({...p,postEventoActivo:!p.postEventoActivo}))}
-                        style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.postEventoActivo?"#16A34A":"#EDE0D0",color:negForm.postEventoActivo?"#FFF":"#8B7355",flexShrink:0,marginLeft:8}}>
-                        {negForm.postEventoActivo?"✅ Activo":"Inactivo"}
-                      </button>
-                    </div>
-                    {negForm.postEventoActivo&&<textarea style={{...inpS,height:130,resize:"vertical",fontSize:12}} value={negForm.msgPostEvento} onChange={e=>setNegForm(p=>({...p,msgPostEvento:e.target.value}))} />}
-                  </div>
-                </div>
-              )}
-            </div>
-            {/* Condiciones para email de reserva */}
-            <div style={{borderTop:"1px solid #EDE0D0",paddingTop:14,marginTop:14,marginBottom:16}}>
-              <label style={lblS}>Condiciones del alquiler (se incluyen en el email de confirmación)</label>
-              <textarea style={{...inpS,height:120,resize:"vertical",fontSize:12}} value={negForm.condicionesEmail} onChange={e=>setNegForm(p=>({...p,condicionesEmail:e.target.value}))} placeholder={"Ej:\n- Depósito de garantía: $50.000\n- Limpieza opcional: $30.000\n- Sin pirotecnia ni mascotas\n- Cumplir horarios de ingreso y egreso"} />
-              <div style={{fontSize:11,color:"#8B7355",marginTop:4}}>Si dejás este campo vacío, el email no incluirá condiciones.</div>
-            </div>
-            <button onClick={handleSaveNegocio} style={{width:"100%",padding:"12px",background:negSaved?"#16A34A":"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",transition:"background 0.3s"}}>
-              {negSaved ? "✅ Guardado" : "💾 Guardar"}
-            </button>
+            <SaveBtn />
           </div>
         )}
       </div>
 
-      {/* ── ESPACIOS ── */}
+      {/* 2 ── ESPACIOS ── */}
       <div style={{...card, padding:16}}>
         <SectionHeader id="espacios" icon="🏠" title="Espacios" subtitle={`${recursos.length} espacio${recursos.length!==1?"s":""} configurado${recursos.length!==1?"s":""}`} />
         {open==="espacios" && (
@@ -3450,7 +3392,6 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
             {recursos.map(r=>(
               <EspacioCard key={r.id} espacio={r} onDelete={async()=>{
                 if(!window.confirm(`¿Eliminás "${r.nombre}"? El espacio quedará inactivo y se preservará el historial.`)) return;
-                // Soft delete: preserva historial de reservas
                 const {error:delErr} = await supabase.from("recursos").update({deleted_at: new Date().toISOString()}).eq("id",r.id);
                 if(delErr){ showToast("No se pudo eliminar el espacio: "+delErr.message,"error"); return; }
                 showToast(`Espacio "${r.nombre}" eliminado`,"ok");
@@ -3469,24 +3410,76 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
         )}
       </div>
 
-      {/* ── MI SUSCRIPCIÓN ── */}
-      {currentUser?.rol === "Administrador" && onGoMiPlan && (
-        <div style={{...card, padding:16, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
-          <div>
-            <div style={{fontWeight:700, fontSize:14, color:"#1C1C1E"}}>Mi suscripción</div>
-            <div style={{fontSize:12, color:"#8B7355", marginTop:2}}>Plan activo, pagos y débito automático</div>
-          </div>
-          <button onClick={onGoMiPlan} style={{background:"none",border:"none",color:"#C4602B",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Gestionar →</button>
-        </div>
-      )}
-
-      {/* ── COLABORADORES ── */}
+      {/* 3 ── MENSAJES WHATSAPP ── */}
       <div style={{...card, padding:16}}>
-        <SectionHeader id="colab" icon="👥" title="Colaboradores" subtitle={planLimits.colaboradores===0?"No disponible en tu plan":`Hasta ${planLimits.colaboradores} en tu plan`} />
-        {open==="colab" && <div style={{marginTop:16}}><ColaboradoresSection orgId={getCurrentOrgId()} plan={currentUser?.plan} embedded /></div>}
+        <SectionHeader id="mensajes" icon="💬" title="Mensajes WhatsApp"
+          subtitle={`Recordatorio ${negForm.recordatorioActivo?"✅":"⏸"} · Post-evento ${negForm.postEventoActivo?"✅":"⏸"}`} />
+        {open==="mensajes" && (
+          <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10}}>
+            {/* Recordatorio */}
+            <div style={{padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.recordatorioActivo?10:0}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>📲 Recordatorio pre-evento</div>
+                  <div style={{fontSize:11,color:"#8B7355"}}>Se envía el día anterior al evento</div>
+                </div>
+                <button onClick={()=>setNegForm(p=>({...p,recordatorioActivo:!p.recordatorioActivo}))}
+                  style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.recordatorioActivo?"#16A34A":"#EDE0D0",color:negForm.recordatorioActivo?"#FFF":"#8B7355",flexShrink:0,marginLeft:8}}>
+                  {negForm.recordatorioActivo?"✅ Activo":"Inactivo"}
+                </button>
+              </div>
+              {negForm.recordatorioActivo&&(
+                <>
+                  <textarea style={{...inpS,height:110,resize:"vertical",fontSize:12}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} />
+                  <div style={{fontSize:10,color:"#9CA3AF",marginTop:4}}>Variables: {"{nombre}"} {"{fecha}"} {"{horario_inicio}"} {"{horario_fin}"} {"{saldo}"}</div>
+                </>
+              )}
+            </div>
+            {/* Post-evento */}
+            <div style={{padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:negForm.postEventoActivo?10:0}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>💌 Mensaje post-evento</div>
+                  <div style={{fontSize:11,color:"#8B7355"}}>Se envía el día siguiente al evento</div>
+                </div>
+                <button onClick={()=>setNegForm(p=>({...p,postEventoActivo:!p.postEventoActivo}))}
+                  style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.postEventoActivo?"#16A34A":"#EDE0D0",color:negForm.postEventoActivo?"#FFF":"#8B7355",flexShrink:0,marginLeft:8}}>
+                  {negForm.postEventoActivo?"✅ Activo":"Inactivo"}
+                </button>
+              </div>
+              {negForm.postEventoActivo&&(
+                <>
+                  <textarea style={{...inpS,height:110,resize:"vertical",fontSize:12}} value={negForm.msgPostEvento} onChange={e=>setNegForm(p=>({...p,msgPostEvento:e.target.value}))} />
+                  <div style={{fontSize:10,color:"#9CA3AF",marginTop:4}}>Variables: {"{nombre}"} {"{nombre_negocio}"}</div>
+                </>
+              )}
+            </div>
+            {/* Google Reviews */}
+            <div style={{padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",marginBottom:2}}>⭐ Link de reseñas de Google</div>
+              <div style={{fontSize:11,color:"#8B7355",marginBottom:8}}>Aparece como tilde opcional en el mensaje post-evento para pedir reseñas a clientes satisfechos.</div>
+              <input style={inpS} value={negForm.googleReviewUrl} onChange={e=>setNegForm(p=>({...p,googleReviewUrl:e.target.value}))} placeholder="https://g.page/r/XXXXXX/review" />
+              {negForm.googleReviewUrl && <a href={negForm.googleReviewUrl} target="_blank" rel="noreferrer" style={{fontSize:11,color:"#C4602B",display:"inline-block",marginTop:6}}>Probar link →</a>}
+            </div>
+            <SaveBtn />
+          </div>
+        )}
       </div>
 
-      {/* ── SERVICIOS EXTRAS ── */}
+      {/* 4 ── CONDICIONES DEL ALQUILER ── */}
+      <div style={{...card, padding:16}}>
+        <SectionHeader id="condiciones" icon="📋" title="Condiciones del alquiler" subtitle="Se incluyen en el email y en el contrato PDF" />
+        {open==="condiciones" && (
+          <div style={{marginTop:16}}>
+            <div style={{fontSize:12,color:"#8B7355",marginBottom:10}}>Estas condiciones aparecen en el email de confirmación de reserva y en el contrato PDF. Si el campo queda vacío no se incluyen.</div>
+            <textarea style={{...inpS,height:180,resize:"vertical",fontSize:12}} value={negForm.condicionesEmail} onChange={e=>setNegForm(p=>({...p,condicionesEmail:e.target.value}))}
+              placeholder={"Ej:\n- Depósito de garantía: $60.000\n- Limpieza opcional: $40.000\n- Sin pirotecnia ni mascotas\n- Cumplir horarios de ingreso y egreso"} />
+            <SaveBtn />
+          </div>
+        )}
+      </div>
+
+      {/* 5 ── SERVICIOS EXTRAS ── */}
       <div style={{...card, padding:16, opacity:planLimits.serviciosExtras===false?0.7:1}}>
         <SectionHeader id="extras" icon="✨" title="Servicios Extras" subtitle={planLimits.serviciosExtras===false?"No disponible en tu plan":`${serviciosExtras.length} servicio${serviciosExtras.length!==1?"s":""}`} />
         {open==="extras" && (
@@ -3511,6 +3504,23 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
           </div>
         )}
       </div>
+
+      {/* 6 ── COLABORADORES ── */}
+      <div style={{...card, padding:16}}>
+        <SectionHeader id="colab" icon="👥" title="Colaboradores" subtitle={planLimits.colaboradores===0?"No disponible en tu plan":`Hasta ${planLimits.colaboradores} en tu plan`} />
+        {open==="colab" && <div style={{marginTop:16}}><ColaboradoresSection orgId={getCurrentOrgId()} plan={currentUser?.plan} embedded /></div>}
+      </div>
+
+      {/* 7 ── MI SUSCRIPCIÓN ── */}
+      {currentUser?.rol === "Administrador" && onGoMiPlan && (
+        <div style={{...card, padding:16, display:"flex", alignItems:"center", justifyContent:"space-between"}}>
+          <div>
+            <div style={{fontWeight:700, fontSize:14, color:"#1C1C1E"}}>💳 Mi suscripción</div>
+            <div style={{fontSize:12, color:"#8B7355", marginTop:2}}>Plan activo, pagos y débito automático</div>
+          </div>
+          <button onClick={onGoMiPlan} style={{background:"none",border:"none",color:"#C4602B",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Gestionar →</button>
+        </div>
+      )}
 
     </div>
   );
