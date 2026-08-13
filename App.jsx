@@ -2267,8 +2267,9 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
             {[
               {icon:"📅",label:"Reserva",action:()=>setModal("reserva"),perm:currentUser?.gestionOperativa!==false},
               {icon:"👥",label:"Cliente",action:()=>setModal("cliente"),perm:currentUser?.gestionOperativa!==false},
-              {icon:"💡",label:"Operativa",action:()=>onOpenBriefing&&onOpenBriefing(),perm:true},
-              {icon:"💸",label:"Gastos",action:()=>setModal("gasto"),perm:currentUser?.gestionOperativa!==false},
+
+              {icon:"💸",label:"Gastos",action:()=>onNavigate("gastos"),perm:currentUser?.gestionOperativa!==false},
+              {icon:"🔔",label:"Alertas",action:()=>getPlanLimits(currentUser?.plan).recordatorios!==false?onNavigate("recordatorios"):alert("Los recordatorios no están disponibles en tu plan."),perm:true},
             ].map((b,i)=>(
               <button key={i} onClick={b.perm?b.action:()=>alert("Sin permiso.")} style={{
                 display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 4px",
