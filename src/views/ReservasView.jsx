@@ -369,7 +369,179 @@ function SemanaView({ reservas, clientes, recursos, turnosRecurso, onReservaClic
   );
 }
 
-export default function ReservasView({ reservas, clientes, pagos, recursos, turnosRecurso, extrasReserva, onReservaClick, onNewReserva, onCobrar, negocio }) {
+const MESES_FULL2 = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+function DisponibilidadView({ reservas, bloqueos, turnosRecurso }) {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const hoyStr = toISO(hoy);
+  const [mes, setMes] = useState(hoy.getMonth());
+  const [anio, setAnio] = useState(hoy.getFullYear());
+  const ACTIVAS = ["pendiente","senada","confirmada"];
+
+  // Turnos a mostrar: custom o fallback a legacy TURNOS
+  const turnos = turnosRecurso?.length > 0
+    ? turnosRecurso
+    : Object.entries(TURNOS).map(([k,v]) => ({ id: k, nombre: v.label }));
+
+  const navMes = (d) => {
+    const dt = new Date(anio, mes + d, 1);
+    setMes(dt.getMonth()); setAnio(dt.getFullYear());
+  };
+
+  // Días del mes (con padding de lunes)
+  const primerDia = new Date(anio, mes, 1);
+  const dowInicio = primerDia.getDay() === 0 ? 6 : primerDia.getDay() - 1; // 0=lun
+  const diasMes = new Date(anio, mes + 1, 0).getDate();
+  const celdas = Array(dowInicio).fill(null).concat(
+    Array.from({ length: diasMes }, (_, i) => i + 1)
+  );
+
+  // Índices por fecha
+  const resIdx = useMemo(() => {
+    const idx = {};
+    reservas.filter(r => ACTIVAS.includes(r.estado)).forEach(r => {
+      if (!idx[r.fecha]) idx[r.fecha] = [];
+      idx[r.fecha].push(r);
+    });
+    return idx;
+  }, [reservas]);
+
+  const bloqIdx = useMemo(() => {
+    const idx = {};
+    (bloqueos||[]).forEach(b => {
+      if (!idx[b.fecha]) idx[b.fecha] = [];
+      idx[b.fecha].push(b);
+    });
+    return idx;
+  }, [bloqueos]);
+
+  // Estado de cada turno en un día
+  const getTurnoEstado = (dayStr, turno) => {
+    const bls = bloqIdx[dayStr] || [];
+    const bloqueado = bls.some(b => b.turno === "completo" || b.turno === turno.id);
+    if (bloqueado) return "bloqueado";
+    const res = resIdx[dayStr] || [];
+    const ocupado = res.some(r => {
+      if (r.turnoId === turno.id) return true;
+      if (turnosRecurso?.length === 0 && r.turno === turno.id) return true;
+      if (turnosRecurso?.length === 0 && r.turno === "completo") return true;
+      return false;
+    });
+    return ocupado ? "ocupado" : "libre";
+  };
+
+  const COLOR = { libre:"#D1FAE5", ocupado:"#FECACA", bloqueado:"#E5E7EB", libreborder:"#6EE7B7", ocupadoborder:"#FCA5A5", bloqueadoborder:"#D1D5DB" };
+  const LABEL_COLOR = { libre:"#065F46", ocupado:"#991B1B", bloqueado:"#6B7280" };
+
+  return (
+    <div>
+      {/* Navegación mes */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,background:"#FDF8F3",borderRadius:10,padding:"8px 16px",border:"0.5px solid #EDE0D0"}}>
+        <button onClick={()=>navMes(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"#C4602B",padding:"0 4px"}}>‹</button>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:15,fontWeight:800,color:"#1C1C1E"}}>{MESES_FULL2[mes]} {anio}</div>
+        </div>
+        <button onClick={()=>navMes(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"#C4602B",padding:"0 4px"}}>›</button>
+      </div>
+
+      {/* Leyenda */}
+      <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap"}}>
+        {[["#D1FAE5","#065F46","Libre"],["#FECACA","#991B1B","Ocupado"],["#E5E7EB","#6B7280","Bloqueado"]].map(([bg,c,l])=>(
+          <div key={l} style={{display:"flex",alignItems:"center",gap:4}}>
+            <div style={{width:12,height:12,borderRadius:3,background:bg,border:`1px solid ${c}22`}} />
+            <span style={{fontSize:11,color:"#8B7355"}}>{l}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Cabecera días */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:2}}>
+        {DIAS_SEMANA.map(d=>(
+          <div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#8B7355",padding:"4px 0"}}>{d}</div>
+        ))}
+      </div>
+
+      {/* Grilla días */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2}}>
+        {celdas.map((dia, idx) => {
+          if (!dia) return <div key={`e${idx}`} />;
+          const dayStr = `${anio}-${String(mes+1).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
+          const esHoy = dayStr === hoyStr;
+          const pasado = dayStr < hoyStr;
+          const estadosTurnos = turnos.map(t => getTurnoEstado(dayStr, t));
+          const todosLibres = estadosTurnos.every(e=>e==="libre");
+          const todosBloq = estadosTurnos.every(e=>e==="bloqueado");
+          const todosOcup = estadosTurnos.every(e=>e==="ocupado");
+          const parcial = !todosLibres && !todosBloq && !todosOcup;
+
+          return (
+            <div key={dayStr} style={{
+              borderRadius:8, overflow:"hidden", border:`1px solid ${esHoy?"#C4602B":"#EDE0D0"}`,
+              opacity: pasado ? 0.5 : 1,
+              outline: esHoy ? "2px solid #C4602B" : "none",
+              outlineOffset: esHoy ? "1px" : "0",
+            }}>
+              {/* Número del día */}
+              <div style={{
+                textAlign:"center", fontSize:11, fontWeight: esHoy?800:600,
+                color: esHoy?"#C4602B":"#1C1C1E",
+                padding:"3px 2px 2px", background:"#FAFAFA",
+                borderBottom: turnos.length > 1 ? "0.5px solid #EDE0D0" : "none",
+              }}>{dia}</div>
+
+              {/* Franjas por turno */}
+              {turnos.length === 1 ? (
+                <div style={{
+                  height:28,
+                  background: estadosTurnos[0]==="bloqueado"?"#E5E7EB": estadosTurnos[0]==="ocupado"?"#FECACA":"#D1FAE5",
+                }} />
+              ) : (
+                <div style={{display:"flex",flexDirection:"column"}}>
+                  {turnos.map((t,ti) => {
+                    const est = estadosTurnos[ti];
+                    return (
+                      <div key={t.id} style={{
+                        height: Math.max(10, Math.floor(32/turnos.length)),
+                        background: est==="bloqueado"?"#E5E7EB": est==="ocupado"?"#FECACA":"#D1FAE5",
+                        borderTop: ti>0?"0.5px solid rgba(255,255,255,0.6)":"none",
+                      }} title={t.nombre} />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Resumen del mes */}
+      {(() => {
+        const mesStr = `${anio}-${String(mes+1).padStart(2,"0")}`;
+        const resMes = reservas.filter(r=>r.fecha?.startsWith(mesStr)&&ACTIVAS.includes(r.estado));
+        const bloqMes = (bloqueos||[]).filter(b=>b.fecha?.startsWith(mesStr));
+        if (!resMes.length && !bloqMes.length) return null;
+        return (
+          <div style={{display:"flex",gap:8,marginTop:14}}>
+            {resMes.length>0&&<div style={{flex:1,background:"#FEF2F2",border:"0.5px solid #FECACA",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
+              <div style={{fontSize:20,fontWeight:800,color:"#991B1B"}}>{resMes.length}</div>
+              <div style={{fontSize:11,color:"#991B1B"}}>Reservas</div>
+            </div>}
+            {bloqMes.length>0&&<div style={{flex:1,background:"#F3F4F6",border:"0.5px solid #D1D5DB",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
+              <div style={{fontSize:20,fontWeight:800,color:"#6B7280"}}>{bloqMes.length}</div>
+              <div style={{fontSize:11,color:"#6B7280"}}>Bloqueados</div>
+            </div>}
+            <div style={{flex:1,background:"#ECFDF5",border:"0.5px solid #6EE7B7",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
+              <div style={{fontSize:20,fontWeight:800,color:"#065F46"}}>{diasMes - new Set(resMes.map(r=>r.fecha)).size - new Set(bloqMes.map(b=>b.fecha)).size}</div>
+              <div style={{fontSize:11,color:"#065F46"}}>Días libres</div>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+export default function ReservasView({ reservas, clientes, pagos, recursos, turnosRecurso, extrasReserva, bloqueos, onReservaClick, onNewReserva, onCobrar, negocio }) {
   const ACTIVAS = ["pendiente","senada","confirmada"];
   const [filter, setFilter] = useState("activas");
   const [search, setSearch]  = useState("");
@@ -435,8 +607,9 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         {/* Toggle vista */}
         <div style={{display:"flex",gap:0,borderRadius:8,overflow:"hidden",border:"1px solid #EDE0D0"}}>
-          <button onClick={()=>setVista("lista")} style={{padding:"7px 12px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,background:vista==="lista"?"#C4602B":"#FDF8F3",color:vista==="lista"?"#FFF":"#8B7355",transition:"all 0.15s"}}>☰ Lista</button>
-          <button onClick={()=>setVista("semanas")} style={{padding:"7px 12px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,background:vista==="semanas"?"#C4602B":"#FDF8F3",color:vista==="semanas"?"#FFF":"#8B7355",transition:"all 0.15s"}}>📅 Semanas</button>
+          <button onClick={()=>setVista("lista")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="lista"?"#C4602B":"#FDF8F3",color:vista==="lista"?"#FFF":"#8B7355",transition:"all 0.15s"}}>☰ Lista</button>
+          <button onClick={()=>setVista("semanas")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="semanas"?"#C4602B":"#FDF8F3",color:vista==="semanas"?"#FFF":"#8B7355",transition:"all 0.15s"}}>📅 Semanas</button>
+          <button onClick={()=>setVista("disponibilidad")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="disponibilidad"?"#C4602B":"#FDF8F3",color:vista==="disponibilidad"?"#FFF":"#8B7355",transition:"all 0.15s"}}>🟢 Meses</button>
         </div>
         <button onClick={onNewReserva} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva</button>
       </div>
@@ -444,6 +617,11 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
       {/* Vista semanas */}
       {vista === "semanas" && (
         <SemanaView reservas={reservas} clientes={clientes} recursos={recursos} turnosRecurso={turnosRecurso} onReservaClick={onReservaClick} />
+      )}
+
+      {/* Vista disponibilidad */}
+      {vista === "disponibilidad" && (
+        <DisponibilidadView reservas={reservas} bloqueos={bloqueos} turnosRecurso={turnosRecurso} />
       )}
 
       {/* Vista lista */}
