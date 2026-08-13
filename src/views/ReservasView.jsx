@@ -77,19 +77,20 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
 
       {activa && <ProgressBar pct={pct} />}
 
-      {r.proximoPagoMonto && activa && (() => {
-        const vencido = r.proximoPagoFecha && diffDays(r.proximoPagoFecha) < 0;
-        return (
-          <div style={{fontSize:11,color:vencido?"#DC2626":"#C4602B",background:vencido?"#FEE2E2":"#FFF8E1",border:`0.5px solid ${vencido?"#FCA5A5":"#FCD34D"}`,borderRadius:6,padding:"3px 8px",marginBottom:6,display:"inline-block"}}>
-            ⏳ Próx. pago: {fmtCurrency(r.proximoPagoMonto)}{r.proximoPagoFecha ? ` · ${fmtDate(r.proximoPagoFecha)}` : ""}
-          </div>
-        );
-      })()}
-
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:activa?0:8}}>
-        <span style={{fontSize:12,fontWeight:700,color:deuda?"#C4602B":saldo===0?"#16A34A":"#8B7355"}}>
-          {deuda ? `⚠️ Saldo ${fmtCurrency(saldo)}` : `✅ ${fmtCurrency(total)}`}
-        </span>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+          <span style={{fontSize:12,fontWeight:700,color:deuda?"#C4602B":saldo===0?"#16A34A":"#8B7355"}}>
+            {deuda ? `⚠️ Saldo ${fmtCurrency(saldo)}` : `✅ ${fmtCurrency(total)}`}
+          </span>
+          {r.proximoPagoMonto && activa && (() => {
+            const vencido = r.proximoPagoFecha && diffDays(r.proximoPagoFecha) < 0;
+            return (
+              <span style={{fontSize:10,fontWeight:600,color:"#fff",background:vencido?"#DC2626":"#16A34A",borderRadius:4,padding:"2px 6px",whiteSpace:"nowrap"}}>
+                ⏳ {fmtCurrency(r.proximoPagoMonto)}{r.proximoPagoFecha ? ` · ${fmtDate(r.proximoPagoFecha)}` : ""}
+              </span>
+            );
+          })()}
+        </div>
         {activa && (
           <div style={{display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>
             {c?.whatsapp && (
