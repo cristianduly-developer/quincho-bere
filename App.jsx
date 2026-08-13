@@ -3490,13 +3490,18 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
               <>
                 {serviciosExtras.length===0 && <div style={{fontSize:13,color:"#8B7355",marginBottom:10}}>No hay servicios extras creados.</div>}
                 {serviciosExtras.map(s=>(
-                  <div key={s.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderBottom:"1px solid #F5EDE4"}}>
-                    <div>
-                      <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
-                      <div style={{fontSize:12,color:"#8B7355"}}>{fmtCurrency(s.precioActual)}</div>
-                    </div>
-                    <button onClick={async()=>{await sb.remove("servicios_extras",s.id);setServiciosExtras(prev=>prev.filter(x=>x.id!==s.id));}} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
-                  </div>
+                  <ServicioExtraRow key={s.id} s={s}
+                    onDelete={async()=>{
+                      if(!window.confirm(`¿Eliminás "${s.descripcion}"?`)) return;
+                      await sb.remove("servicios_extras",s.id);
+                      setServiciosExtras(prev=>prev.filter(x=>x.id!==s.id));
+                    }}
+                    onEdit={async(nuevoMonto)=>{
+                      const updated={...s,precioActual:nuevoMonto};
+                      setServiciosExtras(prev=>prev.map(x=>x.id===s.id?updated:x));
+                      await sb.upsert("servicios_extras",[{id:s.id,org_id:getCurrentOrgId(),descripcion:s.descripcion,precio_actual:nuevoMonto,activo:true}]);
+                    }}
+                  />
                 ))}
                 <AddSrvForm serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} />
               </>
@@ -3554,6 +3559,45 @@ function AddEspacioForm({ recursos, setRecursos, plan }) {
           setForm({nombre:"",capacidadMax:""});setShow(false);
         }} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
       </div>
+    </div>
+  );
+}
+
+function ServicioExtraRow({ s, onDelete, onEdit }) {
+  const [editando, setEditando] = useState(false);
+  const [precio, setPrecio] = useState(String(s.precioActual));
+  return (
+    <div style={{padding:"10px 0",borderBottom:"1px solid #F5EDE4"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
+          {!editando && <div style={{fontSize:12,color:"#8B7355"}}>{fmtCurrency(s.precioActual)}</div>}
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={()=>{setEditando(p=>!p);setPrecio(String(s.precioActual));}}
+            style={{background:"#FDF8F3",border:"1px solid #EDE0D0",color:"#C4602B",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600}}>
+            {editando?"Cancelar":"✏️"}
+          </button>
+          <button onClick={onDelete}
+            style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
+            🗑️
+          </button>
+        </div>
+      </div>
+      {editando && (
+        <div style={{display:"flex",gap:6,marginTop:8}}>
+          <input type="number" value={precio} onChange={e=>setPrecio(e.target.value)}
+            style={{flex:1,padding:"7px 10px",borderRadius:8,border:"1.5px solid #C4602B",fontSize:13,fontFamily:"inherit",outline:"none"}} />
+          <button onClick={async()=>{
+            const v=Number(precio);
+            if(!v||v<0) return alert("Ingresá un precio válido.");
+            await onEdit(v);
+            setEditando(false);
+          }} style={{padding:"7px 14px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+            Guardar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
