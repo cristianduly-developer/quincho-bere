@@ -4882,6 +4882,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     if(savingPago) return;
     const resCheck=reservas.find(r=>r.id===data.reservaId);
     if(resCheck&&['cancelada','finalizada'].includes(resCheck.estado)){alert("No se puede registrar un pago en una reserva "+resCheck.estado+".");return;}
+    if(resCheck){
+      const yaP=pagos.filter(p=>p.reservaId===data.reservaId).reduce((s,p)=>s+p.monto,0);
+      const totalEvCheck=resCheck.montoPactado+getTotalExtras(resCheck.id,extrasReserva);
+      if(yaP+data.monto>totalEvCheck){alert(`El pago de ${fmtCurrency(data.monto)} supera el total del evento (${fmtCurrency(totalEvCheck)}). Ya cobrado: ${fmtCurrency(yaP)}.`);return;}
+    }
     setSavingPago(true);
     try{
     const newP={id:genId(),...data,creadoEn:new Date().toISOString(),creadoPor:currentUser?.nombre||""};
