@@ -2194,6 +2194,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const nextEvento=upcoming[0]||null;
   const esHorarioComercial=now.getHours()>=8&&now.getHours()<21;
   const [forzarEnvio,setForzarEnvio]=useState({});
+  const [incluirReview,setIncluirReview]=useState({});
   const puedeEnviar=(id)=>esHorarioComercial||forzarEnvio[id];
   const [newTarea,setNewTarea]=useState("");
   const tieneSlots=recursos?.some(r=>r.modo==="slot");
@@ -2314,12 +2315,20 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
       }).map(r=>{
         const c=clientes.find(x=>x.id===r.clienteId);
         if(!c||!c.whatsapp) return null;
-        const msg=buildPostMsg(r);
+        const conReview = incluirReview[r.id] && negocio?.googleReviewUrl;
+        const msgBase=buildPostMsg(r);
+        const msg=conReview ? msgBase+`\n\n⭐ Si querés ayudarnos a crecer, te agradecería mucho que nos dejes una reseña en Google. ¡Solo un minuto! → ${negocio.googleReviewUrl}` : msgBase;
         const puede=puedeEnviar(r.id);
         return (
           <div key={r.id} style={{...card,padding:"14px 16px",marginBottom:12,border:"2px solid #F59E0B",background:"#FFFBEB"}}>
             <div style={{fontWeight:700,fontSize:14,color:"#D97706",marginBottom:4}}>💌 Mensaje post-evento</div>
-            <div style={{fontSize:13,color:"#1C1C1E",marginBottom:10}}>{clientName(c)} · {fmtDate(r.fecha)}</div>
+            <div style={{fontSize:13,color:"#1C1C1E",marginBottom:8}}>{clientName(c)} · {fmtDate(r.fecha)}</div>
+            {negocio?.googleReviewUrl && (
+              <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#1C1C1E",marginBottom:10,cursor:"pointer"}}>
+                <input type="checkbox" checked={!!incluirReview[r.id]} onChange={e=>setIncluirReview(p=>({...p,[r.id]:e.target.checked}))} style={{width:16,height:16,accentColor:"#F59E0B",cursor:"pointer"}} />
+                ⭐ Incluir link para reseña en Google
+              </label>
+            )}
             {!puede&&(
               <div style={{fontSize:12,color:"#92400E",background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:8,padding:"7px 10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <span>⏰ Fuera de horario comercial</span>
@@ -3301,7 +3310,7 @@ function MiPlanView({ currentUser, onBack }) {
 }
 
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio, setPreciosTemporada, onGoMiPlan }) {
-  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"" });
+  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"", googleReviewUrl: negocio?.googleReviewUrl||"" });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
   const [open, setOpen] = useState("negocio");
@@ -3310,10 +3319,10 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const toggle = s => setOpen(o => o===s ? null : s);
 
   const handleSaveNegocio = async () => {
-    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail };
+    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail, google_review_url: negForm.googleReviewUrl };
     const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
     if (error) { alert("Error al guardar: " + error.message); return; }
-    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail });
+    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail, googleReviewUrl: negForm.googleReviewUrl });
     setNegSaved(true);
     setTimeout(()=>setNegSaved(false), 2000);
   };
@@ -3392,6 +3401,14 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                       </button>
                     </div>
                     {negForm.recordatorioActivo&&<textarea style={{...inpS,height:130,resize:"vertical",fontSize:12}} value={negForm.msgRecordatorio} onChange={e=>setNegForm(p=>({...p,msgRecordatorio:e.target.value}))} />}
+                  </div>
+
+                  {/* Link Google Reviews */}
+                  <div style={{marginBottom:12,padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",marginBottom:4}}>⭐ Link de reseñas de Google</div>
+                    <div style={{fontSize:11,color:"#8B7355",marginBottom:8}}>Se puede incluir opcionalmente en el mensaje post-evento para pedir reseñas.</div>
+                    <input style={inpS} value={negForm.googleReviewUrl} onChange={e=>setNegForm(p=>({...p,googleReviewUrl:e.target.value}))} placeholder="https://g.page/r/XXXXXX/review" />
+                    {negForm.googleReviewUrl && <a href={negForm.googleReviewUrl} target="_blank" rel="noreferrer" style={{fontSize:11,color:"#C4602B",display:"inline-block",marginTop:6}}>Probar link →</a>}
                   </div>
 
                   {/* Post-evento */}
@@ -4726,7 +4743,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
-    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||""});
+    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||""});
     if(!rc?.length && orgId) setOnboarding(true);
 
     // ── TIER 2: diferido — carga en background sin bloquear el render ─
