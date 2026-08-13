@@ -3,6 +3,119 @@ import { clientName, fmtDate, fmtCurrency, getSaldo, getTotalExtras } from "../l
 import { STATUS, TURNOS } from "../lib/constants.js";
 import { Btn, StatusBadge } from "../components/ui.jsx";
 
+const DIAS_SEMANA = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const ESTADO_COLOR = { pendiente:"#F59E0B", senada:"#3B82F6", confirmada:"#16A34A", finalizada:"#8B7355", cancelada:"#DC2626" };
+
+function getWeekDays() {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const dow = hoy.getDay(); // 0=sun
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - (dow === 0 ? 6 : dow - 1));
+  return Array.from({length:7}, (_, i) => { const d = new Date(lunes); d.setDate(lunes.getDate()+i); return d; });
+}
+
+function toISO(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+
+function WeeklyGrid({ reservas, clientes, recursos, turnosRecurso, onReservaClick }) {
+  const days = getWeekDays();
+  const hoyStr = toISO(new Date());
+
+  const turnos = useMemo(() => {
+    if (turnosRecurso?.length > 0) return turnosRecurso.map(t => ({ id: t.id, label: t.nombre, custom: true }));
+    return Object.entries(TURNOS).map(([k, v]) => ({ id: k, label: `${v.icon} ${v.label}`, custom: false }));
+  }, [turnosRecurso]);
+
+  const semanaISO = useMemo(() => days.map(toISO), [days]);
+  const reservasSemana = useMemo(() =>
+    reservas.filter(r => semanaISO.includes(r.fecha) && ["pendiente","senada","confirmada"].includes(r.estado)),
+    [reservas, semanaISO]
+  );
+
+  const getCellReserva = (dayStr, turnoId) =>
+    reservasSemana.find(r => {
+      if (r.fecha !== dayStr) return false;
+      if (turnosRecurso?.length > 0) return r.turnoId === turnoId;
+      return r.turno === turnoId;
+    });
+
+  return (
+    <div style={{overflowX:"auto",marginTop:4}}>
+      <div style={{minWidth: turnos.length > 1 ? `${80 + turnos.length * 110}px` : "100%"}}>
+        {/* Header días */}
+        <div style={{display:"grid", gridTemplateColumns:`80px repeat(${turnos.length},1fr)`, gap:4, marginBottom:4}}>
+          <div />
+          {turnos.map(t => (
+            <div key={t.id} style={{
+              textAlign:"center", fontSize:11, fontWeight:700, color:"#8B7355",
+              background:"#FDF8F3", borderRadius:8, padding:"6px 4px",
+              border:"0.5px solid #EDE0D0",
+            }}>{t.label}</div>
+          ))}
+        </div>
+
+        {/* Filas por día */}
+        {days.map((d, di) => {
+          const dayStr = toISO(d);
+          const esHoy = dayStr === hoyStr;
+          const pasado = dayStr < hoyStr;
+          return (
+            <div key={dayStr} style={{
+              display:"grid", gridTemplateColumns:`80px repeat(${turnos.length},1fr)`, gap:4, marginBottom:4,
+            }}>
+              {/* Etiqueta día */}
+              <div style={{
+                display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center",
+                background: esHoy ? "#C4602B" : pasado ? "#F5F0EB" : "#FDF8F3",
+                borderRadius:8, padding:"6px 4px", border:`0.5px solid ${esHoy?"#C4602B":"#EDE0D0"}`,
+              }}>
+                <div style={{fontSize:10, fontWeight:700, color: esHoy?"#FFF":"#8B7355", textTransform:"uppercase"}}>{DIAS_SEMANA[di]}</div>
+                <div style={{fontSize:15, fontWeight:800, color: esHoy?"#FFF": pasado?"#C4B49A":"#1C1C1E"}}>{d.getDate()}</div>
+              </div>
+
+              {/* Celdas por turno */}
+              {turnos.map(t => {
+                const r = getCellReserva(dayStr, t.id);
+                const c = r ? clientes.find(x => x.id === r.clienteId) : null;
+                const rec = r ? recursos.find(x => x.id === r.recursoId) : null;
+                if (r) {
+                  return (
+                    <div key={t.id} onClick={()=>onReservaClick(r)} style={{
+                      background:"#FFF", borderRadius:8, padding:"7px 8px", cursor:"pointer",
+                      border:`1.5px solid ${ESTADO_COLOR[r.estado]||"#EDE0D0"}`,
+                      borderLeft:`4px solid ${ESTADO_COLOR[r.estado]||"#EDE0D0"}`,
+                      minHeight:54, display:"flex", flexDirection:"column", justifyContent:"center",
+                    }}
+                    onMouseEnter={e=>e.currentTarget.style.background="#FDF5EE"}
+                    onMouseLeave={e=>e.currentTarget.style.background="#FFF"}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#1C1C1E",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{clientName(c)}</div>
+                      {rec && <div style={{fontSize:10,color:"#8B7355",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🏠 {rec.nombre}</div>}
+                      <div style={{marginTop:3}}>
+                        <span style={{fontSize:9,fontWeight:700,color:"#FFF",background:ESTADO_COLOR[r.estado]||"#8B7355",borderRadius:4,padding:"1px 5px"}}>
+                          {r.estado}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={t.id} style={{
+                    background: pasado ? "#F9F6F2" : "#FFF",
+                    borderRadius:8, padding:"7px 8px", border:"0.5px solid #EDE0D0",
+                    minHeight:54, display:"flex", alignItems:"center", justifyContent:"center",
+                  }}>
+                    <span style={{fontSize:10,color: pasado?"#D1C4B5":"#C4D9C0",fontWeight:600}}>
+                      {pasado ? "—" : "Libre"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const today = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
 const parseDate = s => { const [y,m,d]=s.split("-"); const dt=new Date(y,m-1,d); dt.setHours(0,0,0,0); return dt; };
 const diffDays = s => Math.round((parseDate(s)-today())/86400000);
@@ -110,7 +223,7 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
   );
 }
 
-export default function ReservasView({ reservas, clientes, pagos, recursos, extrasReserva, onReservaClick, onNewReserva, onCobrar, negocio }) {
+export default function ReservasView({ reservas, clientes, pagos, recursos, turnosRecurso, extrasReserva, onReservaClick, onNewReserva, onCobrar, negocio }) {
   const ACTIVAS = ["pendiente","senada","confirmada"];
   const [filter, setFilter] = useState("activas");
   const [search, setSearch]  = useState("");
@@ -159,14 +272,15 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, extr
   }, [filtered, filter]);
 
   const FILTERS = [
-    { v:"activas",  l:"Activas" },
-    { v:"saldo",    l:"⚠️ Con saldo" },
-    { v:"vencidos", l:"⏰ Vencidos" },
-    { v:"senada",   l:"Señada" },
+    { v:"activas",   l:"Activas" },
+    { v:"semana",    l:"📅 Esta semana" },
+    { v:"saldo",     l:"⚠️ Con saldo" },
+    { v:"vencidos",  l:"⏰ Vencidos" },
+    { v:"senada",    l:"Señada" },
     { v:"confirmada",l:"Confirmada" },
     { v:"pendiente", l:"Pendiente" },
-    { v:"all",      l:"Todas" },
-    { v:"historial",l:"Historial" },
+    { v:"all",       l:"Todas" },
+    { v:"historial", l:"Historial" },
   ];
 
   return (
@@ -198,8 +312,16 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, extr
       <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Buscar por cliente, fecha o espacio..."
         style={{width:"100%",padding:"9px 12px",border:"0.5px solid #EDE0D0",borderRadius:8,fontSize:13,background:"#FFF",color:"#1C1C1E",fontFamily:"inherit",marginBottom:14,boxSizing:"border-box"}} />
 
-      {/* Lista agrupada */}
-      {filtered.length===0 ? (
+      {/* Vista semanal */}
+      {filter === "semana" ? (
+        <WeeklyGrid
+          reservas={reservas}
+          clientes={clientes}
+          recursos={recursos}
+          turnosRecurso={turnosRecurso}
+          onReservaClick={onReservaClick}
+        />
+      ) : filtered.length===0 ? (
         <div style={{textAlign:"center",padding:"48px 0",color:"#8B7355"}}>
           <div style={{fontSize:44,marginBottom:10}}>📋</div>
           <div style={{fontWeight:600}}>No hay reservas{search?" con ese criterio":""}</div>
