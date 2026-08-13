@@ -5,6 +5,7 @@ import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor
 import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario } from "./src/lib/mappers.js";
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
 import { Field, Input, Select, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
+import DailyBriefing, { shouldShowBriefing, markBriefingShown } from "./src/components/DailyBriefing.jsx";
 
 const GastosViewLazy        = lazy(() => import("./src/views/GastosView.jsx"));
 const ReportesViewLazy      = lazy(() => import("./src/views/ReportesView.jsx"));
@@ -2151,7 +2152,7 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
   );
 });
 
-function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop }) {
+function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop, onOpenBriefing }) {
   const today=toDateStr(new Date()), now=new Date();
   const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const curTimeDash=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -2213,6 +2214,23 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
 
   return (
     <div style={{padding: isDesktop ? "20px 28px 40px" : "16px 16px 100px"}}>
+
+      {/* Botón operativa diaria */}
+      {onOpenBriefing && (
+        <button onClick={onOpenBriefing} style={{
+          display:"flex",alignItems:"center",gap:8,width:"100%",marginBottom:14,
+          background:"linear-gradient(135deg,#1C1C1E,#374151)",
+          border:"none",borderRadius:12,padding:"11px 16px",cursor:"pointer",fontFamily:"inherit",
+          color:"#FFF",textAlign:"left",
+        }}>
+          <span style={{fontSize:18}}>💡</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:700}}>Operativa del día</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",marginTop:1}}>Alertas, extras y recordatorios</div>
+          </div>
+          <span style={{fontSize:16,color:"rgba(255,255,255,0.4)"}}>›</span>
+        </button>
+      )}
 
       {isDesktop ? (
         /* ── Desktop: stats horizontales compactas arriba ── */
@@ -4529,12 +4547,16 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const [bloqueos,setBloqueos]=useState([]);
   const [recordatorios,setRecordatorios]=useState([]);
   const [bloqueoModal,setBloqueoModal]=useState(null);
+  const [showBriefing,setShowBriefing]=useState(false);
   const [loaded,setLoaded]=useState(false);
   const [tier2Loading,setTier2Loading]=useState(false);
   const [nuevaVersion,setNuevaVersion]=useState(false);
 
   // Mostrar onboarding cuando no hay espacios (primer uso o los borró todos)
   useEffect(()=>{ if(loaded && currentUser && !onboarding && recursos.length===0) setOnboarding(true); },[loaded,currentUser,recursos.length]);
+
+  // Briefing diario: mostrar una vez por día después de las 7am
+  useEffect(()=>{ if(loaded && currentUser && shouldShowBriefing()) setShowBriefing(true); },[loaded,currentUser]);
 
   // Ping de presencia cada 5 minutos para mantener ultimo_acceso actualizado en el SaaS
   useEffect(()=>{
@@ -5225,7 +5247,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       )}
 
       {/* Views */}
-      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>{
+      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} onOpenBriefing={()=>setShowBriefing(true)} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>{
   const filtro=ef||"all";
   if(filtro==="all"&&recursos.length>1){
     setEspacioPicker({date:ds,reservas:dr});
@@ -5358,6 +5380,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       />}
       {currentUser && ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
+      {showBriefing && <DailyBriefing reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} recursos={recursos} servicios={serviciosExtras} turnosRecurso={turnosRecurso} negocio={negocio} onClose={()=>{markBriefingShown();setShowBriefing(false);}} />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
       {inactivityWarning && (
         <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
