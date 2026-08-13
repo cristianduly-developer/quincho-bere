@@ -378,10 +378,22 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso }) {
   const [anio, setAnio] = useState(hoy.getFullYear());
   const ACTIVAS = ["pendiente","senada","confirmada"];
 
-  // Turnos a mostrar: custom o fallback a legacy TURNOS
-  const turnos = turnosRecurso?.length > 0
+  const toMin = s => { const [h,m] = (s+":0").split(":"); return Number(h)*60+Number(m||0); };
+  const solapan = (a, b) => toMin(a.horaInicio) < toMin(b.horaFin) && toMin(b.horaInicio) < toMin(a.horaFin);
+
+  // Turnos a mostrar: excluir los que solapan con 2+ otros (ej: "Día Completo")
+  // Así mostramos solo las franjas base y el completo afecta ambas
+  const todosLosTurnos = turnosRecurso?.length > 0
     ? turnosRecurso
-    : Object.entries(TURNOS).map(([k,v]) => ({ id: k, nombre: v.label }));
+    : Object.entries(TURNOS).map(([k,v]) => ({ id: k, nombre: v.label, horaInicio: v.horaInicio||"00:00", horaFin: v.horaFin||"23:59" }));
+
+  const turnosBase = todosLosTurnos.filter(t => {
+    const solapaCon = todosLosTurnos.filter(o => o.id !== t.id && solapan(t, o));
+    // Si solapa con TODOS los demás → es el "completo", no lo mostramos como franja
+    return solapaCon.length < todosLosTurnos.length - 1;
+  });
+
+  const turnos = turnosBase.length > 0 ? turnosBase : todosLosTurnos;
 
   const navMes = (d) => {
     const dt = new Date(anio, mes + d, 1);
@@ -415,17 +427,23 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso }) {
     return idx;
   }, [bloqueos]);
 
-  // Estado de cada turno en un día
+  // Estado de cada franja base en un día
   const getTurnoEstado = (dayStr, turno) => {
     const bls = bloqIdx[dayStr] || [];
-    const bloqueado = bls.some(b => b.turno === "completo" || b.turno === turno.id);
+    // Bloqueado si hay bloqueo completo o que solapa con esta franja
+    const bloqueado = bls.some(b => {
+      if (b.turno === "completo") return true;
+      if (b.turno === turno.id) return true;
+      const bt = todosLosTurnos.find(t => t.id === b.turno);
+      return bt ? solapan(turno, bt) : false;
+    });
     if (bloqueado) return "bloqueado";
     const res = resIdx[dayStr] || [];
+    // Ocupado si hay reserva que coincide o que (siendo "completo") solapa con esta franja
     const ocupado = res.some(r => {
       if (r.turnoId === turno.id) return true;
-      if (turnosRecurso?.length === 0 && r.turno === turno.id) return true;
-      if (turnosRecurso?.length === 0 && r.turno === "completo") return true;
-      return false;
+      const rt = todosLosTurnos.find(t => t.id === r.turnoId);
+      return rt ? solapan(turno, rt) : false;
     });
     return ocupado ? "ocupado" : "libre";
   };
