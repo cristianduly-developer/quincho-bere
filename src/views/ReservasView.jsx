@@ -371,11 +371,12 @@ function SemanaView({ reservas, clientes, recursos, turnosRecurso, onReservaClic
 
 const MESES_FULL2 = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-function DisponibilidadView({ reservas, bloqueos, turnosRecurso }) {
+function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onReservaClick, onNewReserva }) {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const hoyStr = toISO(hoy);
   const [mes, setMes] = useState(hoy.getMonth());
   const [anio, setAnio] = useState(hoy.getFullYear());
+  const [diaModal, setDiaModal] = useState(null); // { dayStr, dia }
   const ACTIVAS = ["pendiente","senada","confirmada"];
 
   const toMin = s => { const [h,m] = (s+":0").split(":"); return Number(h)*60+Number(m||0); };
@@ -493,11 +494,12 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso }) {
           const parcial = !todosLibres && !todosBloq && !todosOcup;
 
           return (
-            <div key={dayStr} style={{
+            <div key={dayStr} onClick={()=>setDiaModal({dayStr,dia})} style={{
               borderRadius:8, overflow:"hidden", border:`1px solid ${esHoy?"#C4602B":"#EDE0D0"}`,
               opacity: pasado ? 0.5 : 1,
               outline: esHoy ? "2px solid #C4602B" : "none",
               outlineOffset: esHoy ? "1px" : "0",
+              cursor:"pointer",
             }}>
               {/* Número del día */}
               <div style={{
@@ -551,6 +553,73 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso }) {
             <div style={{flex:1,background:"#ECFDF5",border:"0.5px solid #6EE7B7",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
               <div style={{fontSize:20,fontWeight:800,color:"#065F46"}}>{diasMes - new Set(resMes.map(r=>r.fecha)).size - new Set(bloqMes.map(b=>b.fecha)).size}</div>
               <div style={{fontSize:11,color:"#065F46"}}>Días libres</div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Mini modal día */}
+      {diaModal && (() => {
+        const { dayStr, dia } = diaModal;
+        const resDelDia = (resIdx[dayStr]||[]);
+        const bloqDelDia = (bloqIdx[dayStr]||[]);
+        const pasado = dayStr < hoyStr;
+        const label = (() => {
+          const d = new Date(dayStr+"T12:00:00");
+          return `${DIAS_SEMANA[d.getDay()===0?6:d.getDay()-1]} ${dia} ${MESES_FULL2[mes]}`;
+        })();
+        return (
+          <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:3000}} onClick={()=>setDiaModal(null)}>
+            <div onClick={e=>e.stopPropagation()} style={{background:"#FFF",borderRadius:"16px 16px 0 0",width:"100%",maxWidth:480,padding:"20px 20px 32px",boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
+              <div style={{width:36,height:4,borderRadius:2,background:"#EDE0D0",margin:"0 auto 16px"}} />
+              <div style={{fontSize:15,fontWeight:800,color:"#1C1C1E",marginBottom:12}}>📅 {label}</div>
+
+              {bloqDelDia.length > 0 && bloqDelDia.map(b => {
+                const tn = todosLosTurnos.find(t=>t.id===b.turno);
+                return (
+                  <div key={b.id} style={{background:"#F3F4F6",borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
+                    <span style={{fontSize:16}}>🚫</span>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>{tn?.nombre||"Día completo"} — Bloqueado</div>
+                      {b.motivo&&<div style={{fontSize:12,color:"#6B7280",marginTop:2}}>{b.motivo}</div>}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {resDelDia.length > 0 && resDelDia.map(r => {
+                const c = clientes?.find(x=>x.id===r.clienteId);
+                const tn = todosLosTurnos.find(t=>t.id===r.turnoId);
+                return (
+                  <div key={r.id} onClick={()=>{onReservaClick&&onReservaClick(r);setDiaModal(null);}}
+                    style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:"10px 14px",marginBottom:8,cursor:"pointer",display:"flex",gap:10,alignItems:"center"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="#FEE2E2"}
+                    onMouseLeave={e=>e.currentTarget.style.background="#FEF2F2"}>
+                    <span style={{fontSize:16}}>🔴</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#991B1B"}}>{tn?.nombre||"Turno"} — {c?clientName(c):"Cliente"}</div>
+                      {tn&&<div style={{fontSize:11,color:"#B91C1C",marginTop:1}}>{tn.horaInicio}–{tn.horaFin}</div>}
+                    </div>
+                    <span style={{fontSize:12,color:"#991B1B",fontWeight:700}}>Ver →</span>
+                  </div>
+                );
+              })}
+
+              {resDelDia.length === 0 && bloqDelDia.length === 0 && (
+                <div style={{background:"#ECFDF5",border:"1px solid #6EE7B7",borderRadius:10,padding:"12px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
+                  <span style={{fontSize:16}}>🟢</span>
+                  <div style={{fontSize:13,fontWeight:700,color:"#065F46"}}>Día disponible para reservar</div>
+                </div>
+              )}
+
+              {!pasado && resDelDia.length < turnos.length && bloqDelDia.length === 0 && (
+                <button onClick={()=>{onNewReserva&&onNewReserva();setDiaModal(null);}} style={{
+                  width:"100%",marginTop:8,padding:"12px",background:"#C4602B",color:"#FFF",
+                  border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",
+                }}>+ Crear reserva</button>
+              )}
+
+              <button onClick={()=>setDiaModal(null)} style={{width:"100%",marginTop:8,padding:"10px",background:"#F3F0EB",border:"none",borderRadius:10,fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:"#8B7355"}}>Cerrar</button>
             </div>
           </div>
         );
@@ -639,7 +708,7 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
 
       {/* Vista disponibilidad */}
       {vista === "disponibilidad" && (
-        <DisponibilidadView reservas={reservas} bloqueos={bloqueos} turnosRecurso={turnosRecurso} />
+        <DisponibilidadView reservas={reservas} bloqueos={bloqueos} turnosRecurso={turnosRecurso} clientes={clientes} onReservaClick={onReservaClick} onNewReserva={onNewReserva} />
       )}
 
       {/* Vista lista */}
