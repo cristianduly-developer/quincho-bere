@@ -5064,8 +5064,21 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     setDetailReserva(null);
   };
   const handleBloquear=(date,{turno,motivo})=>{
-    const conflict=reservas.find(r=>r.fecha===date&&r.estado!=="cancelada"&&(r.turno===turno||turno==="completo"||r.turno==="completo"));
-    if(conflict){const c=clientes.find(x=>x.id===conflict.clienteId);return alert("No se puede bloquear: hay una reserva de "+clientName(c)+" en este turno.");}
+    const conflict=reservas.find(r=>{
+      if(r.fecha!==date||r.estado==="cancelada") return false;
+      if(turno==="completo") return true; // bloquear día completo choca con cualquier reserva
+      if(r.turno==="completo"||r.turnoId===null&&r.turno===turno) return true; // reserva cubre ese turno legacy
+      if(r.turnoId===turno) return true; // reserva custom en ese slot
+      // verificar solapamiento horario entre turnos custom
+      const tA=turnosRecurso.find(t=>t.id===turno);
+      const tB=turnosRecurso.find(t=>t.id===r.turnoId);
+      if(tA&&tB){
+        const toMin=s=>{const[h,m]=(s+":0").split(":");return Number(h)*60+Number(m||0);};
+        return toMin(tA.horaInicio)<toMin(tB.horaFin)&&toMin(tB.horaInicio)<toMin(tA.horaFin);
+      }
+      return false;
+    });
+    if(conflict){const c=clientes.find(x=>x.id===conflict.clienteId);return alert("No se puede bloquear: hay una reserva de "+clientName(c)+" en ese turno.");}
     saveBloqueos([...bloqueos,{id:genId(),fecha:date,turno,motivo,creadoPor:currentUser?.nombre||"",creadoEn:new Date().toISOString()}]);
     setBloqueoModal(null);setDayModal(null);
   };
