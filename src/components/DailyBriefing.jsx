@@ -181,7 +181,7 @@ function AlertaItem({ icon, texto, urgente }) {
   );
 }
 
-export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso, negocio, onClose }) {
+export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso, negocio, recordatorios, onClose }) {
   const hoy = new Date();
   const diaLabel = `${DIAS[hoy.getDay()]} ${hoy.getDate()}/${hoy.getMonth()+1}`;
   const hora = hoy.getHours();
@@ -191,6 +191,11 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
     generarAlertas({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso }),
     [reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso]
   );
+
+  // Recordatorios manuales de hoy
+  const hoyStr = toISO(new Date());
+  const recHoy = (recordatorios||[]).filter(r => r.estado === "Pendiente" && r.fechaAlerta === hoyStr)
+    .sort((a,b) => (a.horaAlerta||"").localeCompare(b.horaAlerta||""));
 
   const hayAlgo = alertasHoy.length || alertasSemana.length || oportunidades.length;
 
@@ -226,6 +231,15 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
             <div style={{textAlign:"center",padding:"32px 0",color:"#8B7355"}}>
               <div style={{fontSize:40,marginBottom:8}}>✅</div>
               <div style={{fontWeight:600}}>Todo tranquilo por hoy</div>
+            </div>
+          )}
+
+          {recHoy.length > 0 && (
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>📌 Tus recordatorios de hoy</div>
+              {recHoy.map(r => (
+                <AlertaItem key={r.id} icon="📌" texto={`${r.horaAlerta ? r.horaAlerta+"hs · " : ""}${r.tipo}${r.nota ? ": "+r.nota : ""}`} urgente />
+              ))}
             </div>
           )}
 

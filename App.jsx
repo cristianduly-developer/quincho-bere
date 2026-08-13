@@ -5380,7 +5380,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       />}
       {currentUser && ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
-      {showBriefing && <DailyBriefing reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} recursos={recursos} servicios={serviciosExtras} turnosRecurso={turnosRecurso} negocio={negocio} onClose={()=>{markBriefingShown();setShowBriefing(false);}} />}
+      {showBriefing && <DailyBriefing reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} recursos={recursos} servicios={serviciosExtras} turnosRecurso={turnosRecurso} negocio={negocio} recordatorios={recordatorios} onClose={()=>{markBriefingShown();setShowBriefing(false);}} />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
       {inactivityWarning && (
         <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
