@@ -2207,6 +2207,9 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const buildReminderMsg=(r)=>applyTemplate(negocio?.msgRecordatorio||"Hola {nombre}! Te recordamos tu evento ma\u00f1ana {fecha} de {horario_inicio} a {horario_fin} en {nombre_negocio}. Saldo: {saldo}",r);
   const buildPostMsg=(r)=>applyTemplate(negocio?.msgPostEvento||"Hola {nombre}! Gracias por tu evento en {nombre_negocio}. \u00a1Te esperamos nuevamente!",r);
   const nextEvento=upcoming[0]||null;
+  const esHorarioComercial=now.getHours()>=8&&now.getHours()<21;
+  const [forzarEnvio,setForzarEnvio]=useState({});
+  const puedeEnviar=(id)=>esHorarioComercial||forzarEnvio[id];
   const [newTarea,setNewTarea]=useState("");
   const tieneSlots=recursos?.some(r=>r.modo==="slot");
   const [vistaModo,setVistaModo]=useState(()=>{const s=lsGet("vistaModoInicio");if(s)return s;return tieneSlots?"dia":"mes";});
@@ -2320,23 +2323,36 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
 
       {/* ── Próximas reservas ── */}
       {/* Post-event fidelization */}
-      {negocio?.postEventoActivo!==false&&now.getHours()>=8&&now.getHours()<21&&reservas.filter(r=>{
+      {negocio?.postEventoActivo!==false&&reservas.filter(r=>{
         const yest=new Date(now); yest.setDate(yest.getDate()-1);
         return r.fecha===toDateStr(yest)&&r.estado==="finalizada"&&!r.postEventoProcesado;
       }).map(r=>{
         const c=clientes.find(x=>x.id===r.clienteId);
         if(!c||!c.whatsapp) return null;
         const msg=buildPostMsg(r);
+        const puede=puedeEnviar(r.id);
         return (
           <div key={r.id} style={{...card,padding:"14px 16px",marginBottom:12,border:"2px solid #F59E0B",background:"#FFFBEB"}}>
             <div style={{fontWeight:700,fontSize:14,color:"#D97706",marginBottom:4}}>💌 Mensaje post-evento</div>
             <div style={{fontSize:13,color:"#1C1C1E",marginBottom:10}}>{clientName(c)} · {fmtDate(r.fecha)}</div>
+            {!puede&&(
+              <div style={{fontSize:12,color:"#92400E",background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:8,padding:"7px 10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span>⏰ Fuera de horario comercial</span>
+                <button onClick={()=>setForzarEnvio(p=>({...p,[r.id]:true}))} style={{fontSize:11,fontWeight:700,color:"#C4602B",background:"none",border:"none",cursor:"pointer",padding:0}}>Enviar igual</button>
+              </div>
+            )}
             <div style={{display:"flex",gap:8}}>
-              <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent(msg)} target="_blank" rel="noreferrer"
-                onClick={()=>saveReservas(reservas.map(x=>x.id===r.id?{...x,postEventoProcesado:true}:x))}
-                style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:"#25D366",color:"#FFF",textDecoration:"none",padding:"9px 12px",borderRadius:8,fontWeight:700,fontSize:13}}>
-                💬 Enviar mensaje
-              </a>
+              {puede ? (
+                <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent(msg)} target="_blank" rel="noreferrer"
+                  onClick={()=>saveReservas(reservas.map(x=>x.id===r.id?{...x,postEventoProcesado:true}:x))}
+                  style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:"#25D366",color:"#FFF",textDecoration:"none",padding:"9px 12px",borderRadius:8,fontWeight:700,fontSize:13}}>
+                  💬 Enviar mensaje
+                </a>
+              ) : (
+                <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:"#D1FAE5",color:"#065F46",padding:"9px 12px",borderRadius:8,fontSize:13,fontWeight:600,opacity:0.6}}>
+                  💬 Enviar mensaje
+                </div>
+              )}
               <button onClick={()=>saveReservas(reservas.map(x=>x.id===r.id?{...x,postEventoProcesado:true}:x))}
                 style={{padding:"9px 14px",background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#8B7355",fontWeight:600}}>
                 No enviar
@@ -2345,7 +2361,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           </div>
         );
       })}
-      {negocio?.recordatorioActivo!==false&&now.getHours()>=8&&now.getHours()<21&&tmReservas.length>0&&(
+      {negocio?.recordatorioActivo!==false&&tmReservas.length>0&&(
         <div id="reminders-section" style={{...card,padding:"14px 16px",marginBottom:16,border:"2px solid #25D366"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
             <div>
@@ -2356,24 +2372,37 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           {tmReservas.map(r=>{
             const c=clientes.find(x=>x.id===r.clienteId);
             const saldo=Math.max(0,getSaldo(r,extrasReserva,pagos));
+            const tc=turnosRecurso?.find(x=>x.id===r.turnoId);
+            const turnoLabel=tc?tc.nombre:(TURNOS[r.turno]?.label||r.turno||"");
+            const puede=puedeEnviar("rec_"+r.id);
             return (
               <div key={r.id} style={{background:"#F0FDF4",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                   <div>
                     <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(c)}</div>
-                    <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>{TURNOS[r.turno]?.icon} {TURNOS[r.turno]?.label} · {r.horario||"--"} → {r.horarioFin||"--"}</div>
+                    <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>{turnoLabel} · {r.horario||"--"} → {r.horarioFin||"--"}</div>
                     {saldo>0&&<div style={{fontSize:12,color:"#DC2626",fontWeight:700,marginTop:2}}>⚠️ Saldo: {fmtCurrency(saldo)}</div>}
                   </div>
                   <StatusBadge estado={r.estado} />
                 </div>
-                {c&&c.whatsapp&&(
+                {!puede&&(
+                  <div style={{fontSize:12,color:"#166534",background:"#DCFCE7",border:"1px solid #BBF7D0",borderRadius:8,padding:"7px 10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span>⏰ Fuera de horario comercial</span>
+                    <button onClick={()=>setForzarEnvio(p=>({...p,["rec_"+r.id]:true}))} style={{fontSize:11,fontWeight:700,color:"#C4602B",background:"none",border:"none",cursor:"pointer",padding:0}}>Enviar igual</button>
+                  </div>
+                )}
+                {c&&c.whatsapp&&(puede?(
                   <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent(buildReminderMsg(r))}
                     target="_blank" rel="noreferrer"
                     onClick={()=>saveReservas(reservas.map(x=>x.id===r.id?{...x,recordatorioEnviado:true}:x))}
                     style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"#25D366",color:"#FFF",textDecoration:"none",padding:"10px 14px",borderRadius:8,fontWeight:700,fontSize:13}}>
                     💬 Enviar recordatorio
                   </a>
-                )}
+                ):(
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",background:"#D1FAE5",color:"#065F46",padding:"10px 14px",borderRadius:8,fontSize:13,fontWeight:600,opacity:0.6}}>
+                    💬 Enviar recordatorio
+                  </div>
+                ))}
                 {!(c&&c.whatsapp)&&<div style={{fontSize:12,color:"#DC2626"}}>⚠️ Sin número de WhatsApp</div>}
               </div>
             );
