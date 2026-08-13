@@ -303,28 +303,13 @@ function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
     (tp>0?pRow('Seña / pagos recibidos',fmtCurrency(tp)):'')+
     '<div class="total"><span>'+(saldo>0?'Saldo pendiente al evento':'Estado de cuenta')+'</span><span class="'+(saldo>0?'neg':'pos')+'">'+(saldo>0?fmtCurrency(saldo):'Pagado en su totalidad')+'</span></div>';
 
-  // Condiciones del alquiler
+  // Condiciones del alquiler — usa las configuradas en Config (condicionesEmail)
+  var condTxt=negocio&&negocio.condicionesEmail?negocio.condicionesEmail:'';
   var condiciones=pH2('NORMAS Y CONDICIONES DEL ALQUILER')+
-    '<div style="font-size:12px;color:#5C4033;margin-bottom:10px;font-style:italic">Agradecemos que nos hayan elegido para realizar su evento. Para que todos podamos disfrutar y cuidar el espacio, solicitamos leer y respetar las siguientes condiciones.</div>'+
-    '<div class="clausula">💰 Depósitos y Pagos</div>'+
-    '<div class="condicion">• Depósito de garantía: $50.000. Será reintegrado al finalizar el evento, una vez verificado el estado del espacio.</div>'+
-    '<div class="condicion">• Seña: no reembolsable.</div>'+
-    '<div class="condicion">• En caso de reprogramación por condiciones climáticas adversas, la seña podrá trasladarse a una nueva fecha, sujeto a disponibilidad.</div>'+
-    '<div class="clausula">🧹 Orden y Limpieza</div>'+
-    '<div class="condicion">• Se ofrece un servicio de limpieza opcional por $40.000.</div>'+
-    '<div class="condicion">• En caso de no contratar el servicio, el espacio deberá entregarse ordenado: residuos recogidos, vajilla lavada y mobiliario reacomodado.</div>'+
-    '<div class="clausula">🚫 Condiciones de Uso del Espacio</div>'+
-    '<div class="condicion">• Música: volumen moderado. No se permiten DJs ni bandas en vivo.</div>'+
-    '<div class="condicion">• La puerta deberá permanecer cerrada durante todo el evento.</div>'+
-    '<div class="condicion">• No está permitido ingresar vehículos al predio.</div>'+
-    '<div class="condicion">• No se permite el uso de pirotecnia ni el ingreso de mascotas.</div>'+
-    '<div class="condicion">• Está prohibido el uso de: globos con confeti, papel picado, bombuchas e inflables con agua.</div>'+
-    '<div class="condicion">• El uso de la piscina queda bajo responsabilidad del contratante.</div>'+
-    '<div class="clausula">🕐 Horarios</div>'+
-    '<div class="condicion">• Se deberán respetar estrictamente los horarios de ingreso y egreso del turno contratado.</div>'+
-    '<div class="condicion">• La decoración y limpieza deberán realizarse dentro del horario del turno.</div>'+
-    '<div class="condicion">• Tolerancia máxima de 15 minutos al finalizar el turno.</div>'+
-    '<div style="margin-top:12px;background:#FDF8F3;border-left:3px solid #C4602B;padding:10px 14px;font-size:12px;color:#3D2B1F;font-style:italic">❤️ El respeto por estas pautas nos permite cuidar las instalaciones y brindar un mejor servicio para todos. Muchas gracias por elegirnos.</div>';
+    (condTxt
+      ? '<div style="font-size:12.5px;color:#333;line-height:1.8;white-space:pre-line;padding:4px 0">'+escHtml(condTxt)+'</div>'
+      : '<div style="font-size:12px;color:#8B7355;font-style:italic">No se configuraron condiciones. Podés agregarlas desde Config → Condiciones del email.</div>'
+    );
 
   // Aceptación
   var aceptacion='<div style="margin-top:20px;background:#FDF8F3;border:1px solid #EDE0D0;border-radius:8px;padding:14px 16px;font-size:12px;color:#5C4033;line-height:1.7">'+
