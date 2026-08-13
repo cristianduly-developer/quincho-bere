@@ -223,10 +223,157 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
   );
 }
 
+const MESES_CORTO = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+function getWeekStart(offsetWeeks = 0) {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const dow = hoy.getDay();
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - (dow === 0 ? 6 : dow - 1) + offsetWeeks * 7);
+  return lunes;
+}
+
+function SemanaView({ reservas, clientes, recursos, turnosRecurso, onReservaClick }) {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const ACTIVAS = ["pendiente","senada","confirmada"];
+  const hoyStr = toISO(new Date());
+
+  const days = useMemo(() => {
+    const lunes = getWeekStart(weekOffset);
+    return Array.from({length:7}, (_, i) => { const d = new Date(lunes); d.setDate(lunes.getDate()+i); return d; });
+  }, [weekOffset]);
+
+  const weekLabel = useMemo(() => {
+    const ini = days[0]; const fin = days[6];
+    if (ini.getMonth() === fin.getMonth())
+      return `${ini.getDate()} – ${fin.getDate()} ${MESES_CORTO[ini.getMonth()]} ${ini.getFullYear()}`;
+    return `${ini.getDate()} ${MESES_CORTO[ini.getMonth()]} – ${fin.getDate()} ${MESES_CORTO[fin.getMonth()]} ${fin.getFullYear()}`;
+  }, [days]);
+
+  const reservasPorDia = useMemo(() => {
+    const map = {};
+    days.forEach(d => { map[toISO(d)] = []; });
+    reservas.filter(r => ACTIVAS.includes(r.estado) && map[r.fecha] !== undefined)
+      .forEach(r => map[r.fecha].push(r));
+    Object.keys(map).forEach(k => map[k].sort((a,b) => {
+      const hA = turnosRecurso?.find(t=>t.id===a.turnoId)?.horaInicio || TURNOS[a.turno]?.label || "";
+      const hB = turnosRecurso?.find(t=>t.id===b.turnoId)?.horaInicio || TURNOS[b.turno]?.label || "";
+      return hA.localeCompare(hB);
+    }));
+    return map;
+  }, [reservas, days, turnosRecurso]);
+
+  const getTurnoLabel = (r) => {
+    if (r.turnoId) {
+      const t = turnosRecurso?.find(x=>x.id===r.turnoId);
+      return t ? `${t.horaInicio}–${t.horaFin}` : "";
+    }
+    const t = TURNOS[r.turno];
+    return t ? `${t.icon} ${t.label}` : "";
+  };
+
+  const totalSemana = days.reduce((s,d) => s + (reservasPorDia[toISO(d)]?.length||0), 0);
+
+  return (
+    <div>
+      {/* Navegación semana */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,background:"#FDF8F3",borderRadius:10,padding:"8px 12px",border:"0.5px solid #EDE0D0"}}>
+        <button onClick={()=>setWeekOffset(p=>p-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#C4602B",padding:"0 6px",fontFamily:"inherit"}}>‹</button>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E"}}>{weekLabel}</div>
+          <div style={{fontSize:11,color:"#8B7355",marginTop:1}}>{totalSemana} evento{totalSemana!==1?"s":""} esta semana</div>
+        </div>
+        <button onClick={()=>setWeekOffset(p=>p+1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#C4602B",padding:"0 6px",fontFamily:"inherit"}}>›</button>
+      </div>
+
+      {weekOffset !== 0 && (
+        <button onClick={()=>setWeekOffset(0)} style={{display:"block",margin:"0 auto 12px",fontSize:11,fontWeight:600,color:"#C4602B",background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline"}}>
+          Volver a hoy
+        </button>
+      )}
+
+      {/* Días */}
+      {days.map(d => {
+        const dayStr = toISO(d);
+        const esHoy = dayStr === hoyStr;
+        const pasado = dayStr < hoyStr;
+        const items = reservasPorDia[dayStr] || [];
+        const esFinde = d.getDay() === 6 || d.getDay() === 0;
+
+        return (
+          <div key={dayStr} style={{
+            marginBottom:8, borderRadius:12, overflow:"hidden",
+            border:`1px solid ${esHoy?"#C4602B":items.length>1?"#FCD34D":items.length===1?"#EDE0D0":"#F0EBE4"}`,
+            opacity: pasado && items.length===0 ? 0.45 : 1,
+          }}>
+            {/* Cabecera del día */}
+            <div style={{
+              display:"flex", alignItems:"center", gap:10, padding:"8px 12px",
+              background: esHoy?"#C4602B": items.length>1?"#FFFBEB": esFinde&&items.length?"#F0FFF4":"#FDF8F3",
+            }}>
+              <div style={{
+                width:36, height:36, borderRadius:8, display:"flex", flexDirection:"column",
+                alignItems:"center", justifyContent:"center", flexShrink:0,
+                background: esHoy?"rgba(255,255,255,0.2)": pasado?"#EDE0D0":"#FFF",
+                border: esHoy?"none":"0.5px solid #EDE0D0",
+              }}>
+                <div style={{fontSize:9,fontWeight:700,color:esHoy?"#FFF":"#8B7355",textTransform:"uppercase",lineHeight:1}}>{DIAS_SEMANA[d.getDay()===0?6:d.getDay()-1]}</div>
+                <div style={{fontSize:16,fontWeight:800,color:esHoy?"#FFF":pasado?"#B0A090":"#1C1C1E",lineHeight:1.1}}>{d.getDate()}</div>
+              </div>
+              <div style={{flex:1}}>
+                {items.length === 0 ? (
+                  <span style={{fontSize:12,color:esHoy?"rgba(255,255,255,0.7)":"#C4B49A"}}>Sin eventos</span>
+                ) : (
+                  <span style={{fontSize:12,fontWeight:700,color:esHoy?"#FFF":items.length>1?"#92400E":"#8B7355"}}>
+                    {items.length > 1 ? `⚠️ ${items.length} eventos — revisar operativo` : "1 evento"}
+                  </span>
+                )}
+              </div>
+              {items.length > 1 && (
+                <span style={{fontSize:10,background:"#FEF3C7",color:"#92400E",borderRadius:4,padding:"2px 6px",fontWeight:700,border:"1px solid #FCD34D"}}>DOBLE</span>
+              )}
+            </div>
+
+            {/* Chips de reservas */}
+            {items.map(r => {
+              const c = clientes.find(x=>x.id===r.clienteId);
+              const rec = recursos.find(x=>x.id===r.recursoId);
+              const turnoLbl = getTurnoLabel(r);
+              const saldo = getSaldo(r, [], []);
+              return (
+                <div key={r.id} onClick={()=>onReservaClick(r)} style={{
+                  display:"flex", alignItems:"center", gap:10, padding:"10px 12px",
+                  borderTop:"0.5px solid #F0EBE4", background:"#FFF", cursor:"pointer",
+                }}
+                onMouseEnter={e=>e.currentTarget.style.background="#FDF5EE"}
+                onMouseLeave={e=>e.currentTarget.style.background="#FFF"}>
+                  <div style={{width:4,alignSelf:"stretch",borderRadius:2,background:ESTADO_COLOR[r.estado]||"#EDE0D0",flexShrink:0}} />
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{clientName(c)}</div>
+                    <div style={{fontSize:11,color:"#8B7355",marginTop:1,display:"flex",gap:6,flexWrap:"wrap"}}>
+                      {turnoLbl && <span>🕐 {turnoLbl}</span>}
+                      {rec && <span>🏠 {rec.nombre}</span>}
+                      {r.cantInvitados>0 && <span>👥 {r.cantInvitados}</span>}
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <span style={{fontSize:10,fontWeight:700,color:"#FFF",background:ESTADO_COLOR[r.estado]||"#8B7355",borderRadius:4,padding:"2px 6px"}}>{r.estado}</span>
+                    {saldo>0 && <div style={{fontSize:10,color:"#C4602B",fontWeight:600,marginTop:2}}>⚠️ Saldo</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ReservasView({ reservas, clientes, pagos, recursos, turnosRecurso, extrasReserva, onReservaClick, onNewReserva, onCobrar, negocio }) {
   const ACTIVAS = ["pendiente","senada","confirmada"];
   const [filter, setFilter] = useState("activas");
   const [search, setSearch]  = useState("");
+  const [vista, setVista] = useState("lista");
 
   const stats = useMemo(() => {
     const activas = reservas.filter(r=>ACTIVAS.includes(r.estado));
@@ -285,7 +432,12 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
   return (
     <div style={{padding:"16px 14px 100px"}}>
       {/* Header */}
-      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        {/* Toggle vista */}
+        <div style={{display:"flex",gap:0,borderRadius:8,overflow:"hidden",border:"1px solid #EDE0D0"}}>
+          <button onClick={()=>setVista("lista")} style={{padding:"7px 12px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,background:vista==="lista"?"#C4602B":"#FDF8F3",color:vista==="lista"?"#FFF":"#8B7355",transition:"all 0.15s"}}>☰ Lista</button>
+          <button onClick={()=>setVista("semanas")} style={{padding:"7px 12px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:700,background:vista==="semanas"?"#C4602B":"#FDF8F3",color:vista==="semanas"?"#FFF":"#8B7355",transition:"all 0.15s"}}>📅 Semanas</button>
+        </div>
         <button onClick={onNewReserva} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva</button>
       </div>
 
@@ -296,6 +448,13 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
         <StatCard val={fmtCurrency(stats.cobradoMes)} label="Cobrado este mes" color="#16A34A" />
       </div>
 
+      {/* Vista semanas */}
+      {vista === "semanas" && (
+        <SemanaView reservas={reservas} clientes={clientes} recursos={recursos} turnosRecurso={turnosRecurso} onReservaClick={onReservaClick} />
+      )}
+
+      {/* Vista lista */}
+      {vista === "lista" && (<>
       {/* Filtros */}
       <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,marginBottom:10,scrollbarWidth:"none"}}>
         {FILTERS.map(f=>(
@@ -331,6 +490,7 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
           ))}
         </div>
       ))}
+      </>)}
     </div>
   );
 }
