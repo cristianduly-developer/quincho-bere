@@ -273,7 +273,6 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
 
   const FILTERS = [
     { v:"activas",   l:"Activas" },
-    { v:"semana",    l:"📅 Esta semana" },
     { v:"saldo",     l:"⚠️ Con saldo" },
     { v:"vencidos",  l:"⏰ Vencidos" },
     { v:"senada",    l:"Señada" },
@@ -312,16 +311,8 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
       <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Buscar por cliente, fecha o espacio..."
         style={{width:"100%",padding:"9px 12px",border:"0.5px solid #EDE0D0",borderRadius:8,fontSize:13,background:"#FFF",color:"#1C1C1E",fontFamily:"inherit",marginBottom:14,boxSizing:"border-box"}} />
 
-      {/* Vista semanal */}
-      {filter === "semana" ? (
-        <WeeklyGrid
-          reservas={reservas}
-          clientes={clientes}
-          recursos={recursos}
-          turnosRecurso={turnosRecurso}
-          onReservaClick={onReservaClick}
-        />
-      ) : filtered.length===0 ? (
+      {/* Lista agrupada */}
+      {filtered.length===0 ? (
         <div style={{textAlign:"center",padding:"48px 0",color:"#8B7355"}}>
           <div style={{fontSize:44,marginBottom:10}}>📋</div>
           <div style={{fontWeight:600}}>No hay reservas{search?" con ese criterio":""}</div>
@@ -332,7 +323,9 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
       ) : groups.map(g=>(
         <div key={g.label}>
           <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:".7px",margin:"16px 0 8px"}}>{g.label}</div>
-          {g.items.map(r=>(
+          {g.label==="📅 Esta semana" ? (
+            <WeeklyGrid reservas={reservas} clientes={clientes} recursos={recursos} turnosRecurso={turnosRecurso} onReservaClick={onReservaClick} />
+          ) : g.items.map(r=>(
             <ReservaCard key={r.id} r={r} clientes={clientes} recursos={recursos} extrasReserva={extrasReserva} pagos={pagos}
               onReservaClick={onReservaClick} onCobrar={onCobrar} negocio={negocio} />
           ))}
