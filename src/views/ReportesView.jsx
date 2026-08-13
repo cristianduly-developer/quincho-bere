@@ -96,21 +96,37 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   };
 
   const now = new Date();
+  const [modo, setModo] = useState("mes"); // "mes" | "rango"
   const [selYear,  setSelYear]  = useState(now.getFullYear());
   const [selMonth, setSelMonth] = useState(now.getMonth());
+  const [desde, setDesde] = useState(toDateStr(new Date(now.getFullYear(), 0, 1))); // 1 ene año actual
+  const [hasta, setHasta] = useState(toDateStr(now));
+
+  // Filtro unificado según modo
+  const enRango = (fecha) => {
+    if (!fecha) return false;
+    if (modo === "mes") return fecha.startsWith(selKey);
+    return fecha >= desde && fecha <= hasta;
+  };
+  const enRangoPago = (fecha) => {
+    if (!fecha) return false;
+    if (modo === "mes") return fecha.startsWith(selKey);
+    return fecha >= desde && fecha <= hasta;
+  };
+
   const selKey = `${selYear}-${String(selMonth+1).padStart(2,"0")}`;
   const todayKey = toDateStr(now).slice(0,7);
-  const isFutureMonth = selKey > todayKey;
-  const monthRes = reservas.filter(r=>r.fecha&&r.fecha.startsWith(selKey)&&r.estado!=="cancelada");
+  const isFutureMonth = modo==="mes" && selKey > todayKey;
+  const monthRes = reservas.filter(r=>r.fecha&&enRango(r.fecha)&&r.estado!=="cancelada");
 
-  const ingresos = pagos.filter(p=>p.fecha?.startsWith(selKey)).reduce((s,p)=>s+p.monto,0);
-  const gastosTotal = gastos.filter(g=>g.fecha?.startsWith(selKey)).reduce((s,g)=>s+g.monto,0);
+  const ingresos = pagos.filter(p=>enRangoPago(p.fecha)).reduce((s,p)=>s+p.monto,0);
+  const gastosTotal = gastos.filter(g=>enRangoPago(g.fecha)).reduce((s,g)=>s+g.monto,0);
   const ganancia = ingresos - gastosTotal;
 
-  const ingEfectivo = pagos.filter(p=>p.fecha?.startsWith(selKey)&&p.metodo==="Efectivo").reduce((s,p)=>s+p.monto,0);
-  const ingTransf   = pagos.filter(p=>p.fecha?.startsWith(selKey)&&p.metodo==="Transferencia").reduce((s,p)=>s+p.monto,0);
-  const gstEfectivo = gastos.filter(g=>g.fecha?.startsWith(selKey)&&g.metodo==="Efectivo").reduce((s,g)=>s+g.monto,0);
-  const gstTransf   = gastos.filter(g=>g.fecha?.startsWith(selKey)&&g.metodo==="Transferencia").reduce((s,g)=>s+g.monto,0);
+  const ingEfectivo = pagos.filter(p=>enRangoPago(p.fecha)&&p.metodo==="Efectivo").reduce((s,p)=>s+p.monto,0);
+  const ingTransf   = pagos.filter(p=>enRangoPago(p.fecha)&&p.metodo==="Transferencia").reduce((s,p)=>s+p.monto,0);
+  const gstEfectivo = gastos.filter(g=>enRangoPago(g.fecha)&&g.metodo==="Efectivo").reduce((s,g)=>s+g.monto,0);
+  const gstTransf   = gastos.filter(g=>enRangoPago(g.fecha)&&g.metodo==="Transferencia").reduce((s,g)=>s+g.monto,0);
   const cajaFisica  = ingEfectivo - gstEfectivo;
   const cuentas     = ingTransf - gstTransf;
 
@@ -119,12 +135,12 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
     : null;
 
   const porCobrar = !isFutureMonth
-    ? reservas.filter(r=>r.fecha?.startsWith(selKey)&&["pendiente","senada"].includes(r.estado)).reduce((s,r)=>s+Math.max(0,getSaldo(r,extrasReserva,pagos)),0)
+    ? reservas.filter(r=>enRango(r.fecha)&&["pendiente","senada"].includes(r.estado)).reduce((s,r)=>s+Math.max(0,getSaldo(r,extrasReserva,pagos)),0)
     : 0;
 
   const topCats = EXPENSE_CATS.map(cat=>({
     name:cat,
-    value:gastos.filter(g=>g.fecha?.startsWith(selKey)&&g.categoria===cat).reduce((s,g)=>s+g.monto,0)
+    value:gastos.filter(g=>enRangoPago(g.fecha)&&g.categoria===cat).reduce((s,g)=>s+g.monto,0)
   })).filter(c=>c.value>0).sort((a,b)=>b.value-a.value).slice(0,3);
 
   const withDates = monthRes.filter(r=>r.fechaCreacion&&r.fecha);
@@ -138,7 +154,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
   const topClientes = (()=>{
     const map = {};
-    pagos.filter(p=>p.fecha?.startsWith(selKey)).forEach(p=>{
+    pagos.filter(p=>enRangoPago(p.fecha)).forEach(p=>{
       const r = reservas.find(x=>x.id===p.reservaId);
       if(!r) return;
       const c = clientes.find(x=>x.id===r.clienteId);
@@ -167,13 +183,37 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
       <button onClick={generarPDF} style={{width:"100%",padding:"13px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>📄 Generar PDF / Imprimir reporte</button>
 
-      <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
-        <button onClick={()=>{if(selMonth===0){setSelMonth(11);setSelYear(y=>y-1);}else setSelMonth(m=>m-1);}}
-          style={{background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:16}}>‹</button>
-        <div style={{...card,flex:1,padding:"9px 14px",textAlign:"center",fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{MONTHS[selMonth]} {selYear}</div>
-        <button onClick={()=>{if(selMonth===11){setSelMonth(0);setSelYear(y=>y+1);}else setSelMonth(m=>m+1);}}
-          style={{background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:16}}>›</button>
+      {/* Selector de modo */}
+      <div style={{display:"flex",gap:0,marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0"}}>
+        {[{v:"mes",l:"📅 Por mes"},{v:"rango",l:"📆 Por fechas"}].map(o=>(
+          <button key={o.v} onClick={()=>setModo(o.v)} style={{flex:1,padding:"10px 0",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:modo===o.v?"#C4602B":"#FDF8F3",color:modo===o.v?"#FFF":"#8B7355",transition:"all 0.15s"}}>{o.l}</button>
+        ))}
       </div>
+
+      {modo==="mes" && (
+        <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
+          <button onClick={()=>{if(selMonth===0){setSelMonth(11);setSelYear(y=>y-1);}else setSelMonth(m=>m-1);}}
+            style={{background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:16}}>‹</button>
+          <div style={{...card,flex:1,padding:"9px 14px",textAlign:"center",fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{MONTHS[selMonth]} {selYear}</div>
+          <button onClick={()=>{if(selMonth===11){setSelMonth(0);setSelYear(y=>y+1);}else setSelMonth(m=>m+1);}}
+            style={{background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:16}}>›</button>
+        </div>
+      )}
+
+      {modo==="rango" && (
+        <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>DESDE</div>
+            <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
+              style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 10px",fontSize:13,fontFamily:"inherit",color:"#1C1C1E",background:"#FDF8F3"}} />
+          </div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>HASTA</div>
+            <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
+              style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 10px",fontSize:13,fontFamily:"inherit",color:"#1C1C1E",background:"#FDF8F3"}} />
+          </div>
+        </div>
+      )}
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
         <div style={{...card,padding:"14px 16px"}}>
