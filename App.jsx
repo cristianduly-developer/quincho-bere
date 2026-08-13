@@ -614,7 +614,7 @@ function ClienteModal({ onClose, onSave, cliente }) {
   );
 }
 
-function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, initialReservaId }) {
+function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, initialReservaId, recursos, turnosRecurso }) {
   const initId = initialReservaId||reservas.filter(r=>r.estado!=="cancelada")[0]?.id||"";
   const calcSaldo = (rid) => {
     const res = reservas.find(r=>r.id===rid);
@@ -662,8 +662,11 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
       return getSaldo(r, extrasReserva, pagos) > 0;
     }).map(r=>{
       const c=clientes.find(x=>x.id===r.clienteId);
+      const rec=(recursos||[]).find(x=>x.id===r.recursoId);
+      const tc=(turnosRecurso||[]).find(x=>x.id===r.turnoId);
+      const turnoLabel=tc?tc.nombre:(TURNOS[r.turno]?.label||r.turno||"");
       const saldo = getSaldo(r, extrasReserva, pagos);
-      return {value:r.id, label:`${clientName(c)} · ${fmtDate(r.fecha)} · ${TURNOS[r.turno]?.icon} · Saldo: ${fmtCurrency(saldo)}`};
+      return {value:r.id, label:`${clientName(c)} · ${fmtDate(r.fecha)} · ${turnoLabel}${rec?` · ${rec.nombre}`:""} · Saldo: ${fmtCurrency(saldo)}`};
     })];
 
   const doSave = (print) => {
@@ -5162,7 +5165,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {/* Modals */}
       {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} turnosRecurso={turnosRecurso} temporadasPrecio={temporadasPrecio} preciosTemporada={preciosTemporada} />}
       {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} />}
-      {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} />}
+      {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} recursos={recursos} turnosRecurso={turnosRecurso} />}
       {modal==="gasto" && <GastoModal onClose={()=>setModal(null)} onSave={handleSaveGasto} />}
       {modal==="extra" && <ExtrasModal onClose={()=>{setModal(null);setExtraReservaId(null);}} onSave={handleSaveExtra} servicios={serviciosExtras} reservaId={extraReservaId} />}
 
