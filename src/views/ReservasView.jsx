@@ -441,13 +441,6 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
         <button onClick={onNewReserva} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva</button>
       </div>
 
-      {/* Stats */}
-      <div style={{display:"flex",gap:8,marginBottom:14}}>
-        <StatCard val={stats.activas} label="Activas" />
-        <StatCard val={fmtCurrency(stats.saldoTotal)} label="Saldo pendiente" color={stats.saldoTotal>0?"#C4602B":"#16A34A"} />
-        <StatCard val={fmtCurrency(stats.cobradoMes)} label="Cobrado este mes" color="#16A34A" />
-      </div>
-
       {/* Vista semanas */}
       {vista === "semanas" && (
         <SemanaView reservas={reservas} clientes={clientes} recursos={recursos} turnosRecurso={turnosRecurso} onReservaClick={onReservaClick} />

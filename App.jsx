@@ -2263,13 +2263,12 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
             </div>
           )}
           {/* ── Quick buttons (mobile) ── */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6,marginBottom:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:14}}>
             {[
-              {icon:"👥",label:"Cliente",action:()=>setModal("cliente"),perm:currentUser?.gestionOperativa!==false},
               {icon:"📅",label:"Reserva",action:()=>setModal("reserva"),perm:currentUser?.gestionOperativa!==false},
-              {icon:"💸",label:"Gastos",action:()=>onNavigate("gastos"),perm:currentUser?.gestionOperativa!==false},
-              {icon:"📈",label:"Reportes",action:()=>onNavigate("reportes"),perm:currentUser?.verFinanzas!==false},
-              {icon:"🔔",label:"Alertas",action:()=>getPlanLimits(currentUser?.plan).recordatorios!==false?onNavigate("recordatorios"):alert("Los recordatorios no están disponibles en tu plan. Actualizá a Profesional o superior."),perm:true},
+              {icon:"👥",label:"Cliente",action:()=>setModal("cliente"),perm:currentUser?.gestionOperativa!==false},
+              {icon:"💡",label:"Operativa",action:()=>onOpenBriefing&&onOpenBriefing(),perm:true},
+              {icon:"💸",label:"Gastos",action:()=>setModal("gasto"),perm:currentUser?.gestionOperativa!==false},
             ].map((b,i)=>(
               <button key={i} onClick={b.perm?b.action:()=>alert("Sin permiso.")} style={{
                 display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 4px",
@@ -2280,15 +2279,6 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
                 <span style={{fontSize:9,fontWeight:700,color:b.perm?"#5C4033":"#9CA3AF",textAlign:"center",lineHeight:1.1}}>{b.label}</span>
               </button>
             ))}
-          </div>
-          {/* ── Stats (mobile) ── */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-            <div style={{...card,padding:"14px 16px"}}><div style={{fontSize:22}}>📅</div><div style={{fontSize:28,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display', serif",lineHeight:1.1,marginTop:4}}>{monthRes.length}</div><div style={{fontSize:11,color:"#8B7355",marginTop:3}}>Reservas este mes</div></div>
-            <div style={{...card,padding:"14px 16px"}}><div style={{fontSize:22}}>{totalPorCobrar>0?"⚠️":"✅"}</div><div style={{fontSize:22,fontWeight:800,color:totalPorCobrar>0?"#DC2626":"#16A34A",fontFamily:"'Playfair Display', serif",lineHeight:1.1,marginTop:4}}>{fmtCurrency(totalPorCobrar)}</div><div style={{fontSize:11,color:"#8B7355",marginTop:3}}>Por cobrar</div></div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-            <div style={{...card,padding:"14px 16px"}}><div style={{fontSize:22}}>📋</div><div style={{fontSize:28,fontWeight:800,color:"#2563EB",fontFamily:"'Playfair Display', serif",lineHeight:1.1,marginTop:4}}>{confirmadas}</div><div style={{fontSize:11,color:"#8B7355",marginTop:3}}>Eventos activos</div></div>
-            <div style={{...card,padding:"14px 16px"}}><div style={{fontSize:22}}>💰</div><div style={{fontSize:20,fontWeight:800,color:"#16A34A",fontFamily:"'Playfair Display', serif",lineHeight:1.1,marginTop:4}}>{fmtCurrency(monthRevenue)}</div><div style={{fontSize:11,color:"#8B7355",marginTop:3}}>Cobrado este mes</div></div>
           </div>
         </>
       )}
@@ -5267,7 +5257,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
       {/* Bottom Tab Bar — oculto en desktop, la nav está en el sidebar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:isDesktop?"none":"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
-        {[{id:"reservas",icon:"📋",label:"Reservas"},{id:"inicio",icon:"🏠",label:"Inicio"},{id:"clientes",icon:"👥",label:"Clientes"}].map(t=>(
+        {[{id:"inicio",icon:"🏠",label:"Inicio"},{id:"clientes",icon:"👥",label:"Clientes"},{id:"reservas",icon:"📋",label:"Reservas"},{id:"reportes",icon:"📈",label:"Reportes"}].map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"10px 0 12px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,fontFamily:"inherit"}}>
             <span style={{fontSize:22}}>{t.icon}</span>
             <span style={{fontSize:10,fontWeight:t.id===tab?800:500,color:t.id===tab?"#C4602B":"#8B7355"}}>{t.label}</span>
