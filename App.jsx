@@ -783,13 +783,16 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
 
 // ─── DETAIL PANELS ────────────────────────────────────────
 
-function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, canModifyCaja, negocio, plan }) {
+function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [confirmDelPagoId, setConfirmDelPagoId] = useState(null); // null | "confirm" | "refund"
+  const [confirmDelPagoId, setConfirmDelPagoId] = useState(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [showReschedule, setShowReschedule] = useState(false);
+  const [showProximoPago, setShowProximoPago] = useState(false);
+  const [ppFecha, setPpFecha] = useState(reserva.proximoPagoFecha||"");
+  const [ppMonto, setPpMonto] = useState(reserva.proximoPagoMonto||"");
   const cliente = clientes.find(c=>c.id===reserva.clienteId);
   const recurso = recursos.find(r=>r.id===reserva.recursoId);
   const resPagos = pagos.filter(p=>p.reservaId===reserva.id).sort((a,b)=>a.fecha.localeCompare(b.fecha));
@@ -883,6 +886,60 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
           </div>
         ))}
       </div>
+
+      {/* Próximo pago acordado */}
+      {canModifyCaja && reserva.estado!=="cancelada" && reserva.estado!=="finalizada" && (
+        <div style={{marginBottom:12}}>
+          {reserva.proximoPagoFecha && reserva.proximoPagoMonto ? (
+            <div style={{background: new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "#FEF2F2":"#FFF8E1",
+              border:`1px solid ${new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "#FECACA":"#FFD54F"}`,
+              borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color: new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "#DC2626":"#6D4C00"}}>
+                  {new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "⚠️ Pago vencido":"💰 Próximo pago acordado"}
+                </div>
+                <div style={{fontSize:14,fontWeight:800,color:"#1C1C1E",marginTop:2}}>{fmtCurrency(reserva.proximoPagoMonto)} · {fmtDate(reserva.proximoPagoFecha)}</div>
+              </div>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={()=>{setPpFecha(reserva.proximoPagoFecha);setPpMonto(reserva.proximoPagoMonto);setShowProximoPago(true);}}
+                  style={{background:"#EFF6FF",border:"1px solid #93C5FD",color:"#2563EB",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit"}}>✏️</button>
+                <button onClick={()=>onEditProximoPago(null,null)}
+                  style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit"}}>✕</button>
+              </div>
+            </div>
+          ) : !showProximoPago ? (
+            <button onClick={()=>setShowProximoPago(true)}
+              style={{width:"100%",padding:"9px",background:"none",border:"1px dashed #EDE0D0",borderRadius:10,cursor:"pointer",fontSize:12,color:"#8B7355",fontFamily:"inherit",fontWeight:600}}>
+              💰 + Agregar próximo pago acordado
+            </button>
+          ) : null}
+          {showProximoPago && (
+            <div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:10,padding:"12px 14px",marginTop:4}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#6D4C00",marginBottom:10}}>Próximo pago acordado</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
+                <div>
+                  <div style={{fontSize:10,fontWeight:700,color:"#5C4033",marginBottom:4,textTransform:"uppercase"}}>Monto</div>
+                  <input type="number" value={ppMonto} onChange={e=>setPpMonto(e.target.value)} placeholder="0"
+                    style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #EDE0D0",fontSize:14,fontFamily:"inherit",boxSizing:"border-box"}} />
+                </div>
+                <div>
+                  <div style={{fontSize:10,fontWeight:700,color:"#5C4033",marginBottom:4,textTransform:"uppercase"}}>Fecha</div>
+                  <input type="date" value={ppFecha} onChange={e=>setPpFecha(e.target.value)}
+                    style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid #EDE0D0",fontSize:14,fontFamily:"inherit",boxSizing:"border-box"}} />
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <Btn variant="ghost" onClick={()=>setShowProximoPago(false)}>Cancelar</Btn>
+                <Btn onClick={()=>{
+                  if(!ppMonto||!ppFecha) return alert("Completá monto y fecha.");
+                  onEditProximoPago(ppFecha, Number(ppMonto));
+                  setShowProximoPago(false);
+                }}>Guardar</Btn>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Payments timeline */}
       <div style={{marginBottom:16}}>
@@ -4649,7 +4706,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
     if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||""});
@@ -4836,8 +4893,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       const totalEvento=res.montoPactado+getTotalExtras(res.id,extrasReserva);
       if(["pendiente","senada","confirmada"].includes(res.estado)){
         const newEstado=tot===0?"pendiente":tot>=totalEvento?"confirmada":"senada";
-        if(newEstado!==res.estado){
-          saveR(reservas.map(r=>r.id===data.reservaId?{...r,estado:newEstado}:r));
+        // Auto-limpiar próximo pago si el cobro cubre el monto acordado
+        const ppLimpiado = res.proximoPagoMonto && tot >= res.proximoPagoMonto;
+        if(newEstado!==res.estado || ppLimpiado){
+          saveR(reservas.map(r=>r.id===data.reservaId?{...r,estado:newEstado,...(ppLimpiado?{proximoPagoFecha:null,proximoPagoMonto:null}:{})}:r));
           if(newEstado==="senada"||newEstado==="confirmada"){
             const cli=clientes.find(c=>c.id===res.clienteId);
             if(cli?.email){
@@ -5161,6 +5220,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         }}
         onNewPago={()=>{setPagoReservaId(detailReserva.id);setDetailReserva(null);setModal("pago");}}
         onNewExtra={()=>{setExtraReservaId(detailReserva.id);setDetailReserva(null);setModal("extra");}}
+        onEditProximoPago={(fecha,monto)=>{
+          const updated={...detailReserva,proximoPagoFecha:fecha,proximoPagoMonto:monto};
+          saveR(reservas.map(r=>r.id===detailReserva.id?updated:r));
+          setDetailReserva(updated);
+        }}
         negocio={negocio}
         plan={currentUser?.plan}
       />}

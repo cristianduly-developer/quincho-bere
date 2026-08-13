@@ -77,6 +77,15 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
 
       {activa && <ProgressBar pct={pct} />}
 
+      {r.proximoPagoMonto && activa && (() => {
+        const vencido = r.proximoPagoFecha && diffDays(r.proximoPagoFecha) < 0;
+        return (
+          <div style={{fontSize:11,color:vencido?"#DC2626":"#C4602B",background:vencido?"#FEE2E2":"#FFF8E1",border:`0.5px solid ${vencido?"#FCA5A5":"#FCD34D"}`,borderRadius:6,padding:"3px 8px",marginBottom:6,display:"inline-block"}}>
+            ⏳ Próx. pago: {fmtCurrency(r.proximoPagoMonto)}{r.proximoPagoFecha ? ` · ${fmtDate(r.proximoPagoFecha)}` : ""}
+          </div>
+        );
+      })()}
+
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:activa?0:8}}>
         <span style={{fontSize:12,fontWeight:700,color:deuda?"#C4602B":saldo===0?"#16A34A":"#8B7355"}}>
           {deuda ? `⚠️ Saldo ${fmtCurrency(saldo)}` : `✅ ${fmtCurrency(total)}`}
@@ -118,6 +127,7 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, extr
     if (filter === "activas")    list = list.filter(r=>ACTIVAS.includes(r.estado));
     else if (filter === "historial") list = list.filter(r=>r.estado==="finalizada"||r.estado==="cancelada");
     else if (filter === "saldo") list = list.filter(r=>ACTIVAS.includes(r.estado)&&getSaldo(r,extrasReserva,pagos)>0);
+    else if (filter === "vencidos") list = list.filter(r=>ACTIVAS.includes(r.estado)&&r.proximoPagoFecha&&diffDays(r.proximoPagoFecha)<0);
     else if (filter !== "all")   list = list.filter(r=>r.estado===filter);
 
     if (search) {
@@ -148,12 +158,13 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, extr
   }, [filtered, filter]);
 
   const FILTERS = [
-    { v:"activas", l:"Activas" },
-    { v:"saldo",   l:"⚠️ Con saldo" },
-    { v:"senada",  l:"Señada" },
-    { v:"confirmada", l:"Confirmada" },
-    { v:"pendiente",  l:"Pendiente" },
-    { v:"all",     l:"Todas" },
+    { v:"activas",  l:"Activas" },
+    { v:"saldo",    l:"⚠️ Con saldo" },
+    { v:"vencidos", l:"⏰ Vencidos" },
+    { v:"senada",   l:"Señada" },
+    { v:"confirmada",l:"Confirmada" },
+    { v:"pendiente", l:"Pendiente" },
+    { v:"all",      l:"Todas" },
     { v:"historial",l:"Historial" },
   ];
 
