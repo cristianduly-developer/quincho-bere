@@ -613,7 +613,7 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
               )}
 
               {!pasado && resDelDia.length < turnos.length && bloqDelDia.length === 0 && (
-                <button onClick={()=>{onNewReserva&&onNewReserva();setDiaModal(null);}} style={{
+                <button onClick={()=>{onNewReserva&&onNewReserva(dayStr);setDiaModal(null);}} style={{
                   width:"100%",marginTop:8,padding:"12px",background:"#C4602B",color:"#FFF",
                   border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",
                 }}>+ Crear reserva</button>
