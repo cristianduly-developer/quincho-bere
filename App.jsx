@@ -5486,7 +5486,33 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       />}
       {currentUser && ratingQueue.length>0 && <RatingModal reserva={ratingQueue[0]} clientes={clientes} onSave={(cal)=>handleSaveRating(ratingQueue[0].id,cal)} onSnooze={()=>{const id=ratingQueue[0]?.id;if(id)setSnoozedRatings(s=>new Set([...s,id]));setRatingQueue(q=>q.filter((_,i)=>i!==0));}} />}
       {bloqueoModal && <BloqueoModal date={bloqueoModal.date} bloqueoExistente={bloqueoModal.bloqueo} onClose={()=>setBloqueoModal(null)} onBloquear={(cfg)=>handleBloquear(bloqueoModal.date,cfg)} onDesbloquear={handleDesbloquear} />}
-      {showBriefing && <DailyBriefing reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} recursos={recursos} servicios={serviciosExtras} turnosRecurso={turnosRecurso} negocio={negocio} recordatorios={recordatorios} tareas={tareas} onClose={()=>{markBriefingShown();setShowBriefing(false);}} />}
+      {showBriefing && <DailyBriefing reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} recursos={recursos} servicios={serviciosExtras} turnosRecurso={turnosRecurso} negocio={negocio} recordatorios={recordatorios} tareas={tareas} onClose={()=>{markBriefingShown();setShowBriefing(false);}}
+        onConfirmVisita={(r)=>{
+          const cli=clientes.find(c=>c.id===r.clienteId);
+          const updated={...r,estado:"pendiente",fechaVisita:null,horaVisita:null};
+          saveR(reservas.map(x=>x.id===r.id?updated:x));
+          if(cli&&cli.estadoCrm==="Potencial") saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
+          showToast("Visita confirmada — reserva activa","ok");
+        }}
+        onPosponerVisita={(r,horas)=>{
+          const ahora=new Date();
+          ahora.setHours(ahora.getHours()+horas);
+          const nuevaFecha=`${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,"0")}-${String(ahora.getDate()).padStart(2,"0")}`;
+          const nuevaHora=`${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+          const updated={...r,fechaVisita:nuevaFecha,horaVisita:nuevaHora};
+          saveR(reservas.map(x=>x.id===r.id?updated:x));
+          showToast(`Visita pospuesta ${horas}hs — ${nuevaFecha} ${nuevaHora}`,"info");
+        }}
+        onReprogramarVisita={(r,fecha,hora)=>{
+          const updated={...r,fechaVisita:fecha,horaVisita:hora||r.horaVisita};
+          saveR(reservas.map(x=>x.id===r.id?updated:x));
+          showToast("Visita reprogramada","ok");
+        }}
+        onNoConcreto={(r)=>{
+          saveR(reservas.map(x=>x.id===r.id?{...r,estado:"cancelada"}:x));
+          showToast("Visita no concretada — fecha liberada","info");
+        }}
+      />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}
       {inactivityWarning && (
         <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>

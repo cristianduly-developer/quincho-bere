@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { clientName, fmtDate, fmtCurrency, getSaldo } from "../lib/utils.js";
 import { TURNOS } from "../lib/constants.js";
 
@@ -186,7 +186,80 @@ function AlertaItem({ icon, texto, urgente }) {
   );
 }
 
-export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso, negocio, recordatorios, tareas, onClose }) {
+function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, onNoConcreto }) {
+  const [open, setOpen] = useState(false);
+  const [showRepro, setShowRepro] = useState(false);
+  const [reproFecha, setReproFecha] = useState(reserva.fechaVisita || "");
+  const [reproHora, setReproHora] = useState(reserva.horaVisita || "");
+  const [showPosponer, setShowPosponer] = useState(false);
+
+  return (
+    <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
+      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+        <span style={{fontSize:20,flexShrink:0}}>👁️</span>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(cliente)}</div>
+          <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
+            {reserva.horaVisita ? `${reserva.horaVisita} hs` : ""}{reserva.tipoEvento ? ` · ${reserva.tipoEvento}` : ""}{reserva.cantInvitados>0 ? ` · ${reserva.cantInvitados} personas` : ""}
+          </div>
+          <div style={{fontSize:12,color:"#7C3AED",fontWeight:600,marginTop:2}}>
+            Evento: {fmtDate(reserva.fecha)}{reserva.montoPactado ? ` · ${fmtCurrency(reserva.montoPactado)}` : ""}
+          </div>
+        </div>
+        <button onClick={()=>{setOpen(v=>!v);setShowRepro(false);setShowPosponer(false);}} style={{background:open?"#7C3AED":"#EDE0D0",border:"none",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:open?"#FFF":"#8B7355",flexShrink:0,transition:"all 0.15s"}}>
+          {open ? "✕" : "···"}
+        </button>
+      </div>
+
+      {open && !showRepro && !showPosponer && (
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}}>
+          <button onClick={()=>onConfirm(reserva)} style={{flex:1,padding:"8px 10px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+            ✅ Confirmar
+          </button>
+          <button onClick={()=>setShowPosponer(true)} style={{flex:1,padding:"8px 10px",background:"#FFF8E1",color:"#92680A",border:"1px solid #FFD54F",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+            ⏳ Posponer
+          </button>
+          <button onClick={()=>setShowRepro(true)} style={{flex:1,padding:"8px 10px",background:"#EFF6FF",color:"#2563EB",border:"1px solid #93C5FD",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+            📅 Reprogramar
+          </button>
+          <button onClick={()=>onNoConcreto(reserva)} style={{flex:1,padding:"8px 10px",background:"#FEF2F2",color:"#DC2626",border:"1px solid #FECACA",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+            ❌ No concretó
+          </button>
+        </div>
+      )}
+
+      {open && showPosponer && (
+        <div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#92680A",marginBottom:8}}>¿Cuánto posponer?</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[{label:"6 horas",h:6},{label:"12 horas",h:12},{label:"Mañana",h:24}].map(opt=>(
+              <button key={opt.h} onClick={()=>{onPosponer(reserva,opt.h);setOpen(false);setShowPosponer(false);}} style={{flex:1,padding:"8px",background:"#FFF",border:"1px solid #FFD54F",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",color:"#92680A",minWidth:70}}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>setShowPosponer(false)} style={{width:"100%",marginTop:6,padding:"6px",background:"none",border:"none",fontSize:11,color:"#8B7355",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+        </div>
+      )}
+
+      {open && showRepro && (
+        <div style={{background:"#EFF6FF",border:"1px solid #93C5FD",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#2563EB",marginBottom:8}}>Nueva fecha y hora de visita</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+            <input type="date" value={reproFecha} onChange={e=>setReproFecha(e.target.value)} style={{padding:"8px",borderRadius:6,border:"1px solid #93C5FD",fontSize:13,fontFamily:"inherit"}} />
+            <input type="time" value={reproHora} onChange={e=>setReproHora(e.target.value)} style={{padding:"8px",borderRadius:6,border:"1px solid #93C5FD",fontSize:13,fontFamily:"inherit"}} />
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>{if(!reproFecha){alert("Elegí una fecha.");return;} onReprogramar(reserva,reproFecha,reproHora);setOpen(false);setShowRepro(false);}} style={{flex:1,padding:"8px",background:"#2563EB",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Guardar</button>
+            <button onClick={()=>setShowRepro(false)} style={{padding:"8px 12px",background:"none",border:"1px solid #93C5FD",borderRadius:6,fontSize:12,color:"#2563EB",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso, negocio, recordatorios, tareas, onClose, onConfirmVisita, onPosponerVisita, onReprogramarVisita, onNoConcreto }) {
   const hoy = new Date();
   const diaLabel = `${DIAS[hoy.getDay()]} ${hoy.getDate()}/${hoy.getMonth()+1}`;
   const hora = hoy.getHours();
@@ -255,12 +328,7 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>👁️ Visitas de hoy</div>
               {visitasHoy.map(({ reserva: v, cliente: vc }) => (
-                <div key={v.id} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"10px 12px",background:"#F5F3FF",borderRadius:10,marginBottom:6,border:"1px solid #DDD6FE"}}>
-                  <span style={{fontSize:18,flexShrink:0,marginTop:1}}>👁️</span>
-                  <span style={{fontSize:13,color:"#1C1C1E",lineHeight:1.5}}>
-                    <strong>{clientName(vc)}</strong>{v.horaVisita ? ` · ${v.horaVisita} hs` : ""}{v.tipoEvento ? ` · ${v.tipoEvento}` : ""}{v.cantInvitados>0 ? ` · ${v.cantInvitados} personas` : ""}{v.fecha ? ` · Evento: ${fmtDate(v.fecha)}` : ""}
-                  </span>
-                </div>
+                <VisitaCard key={v.id} reserva={v} cliente={vc} onConfirm={onConfirmVisita} onPosponer={onPosponerVisita} onReprogramar={onReprogramarVisita} onNoConcreto={onNoConcreto} />
               ))}
             </div>
           )}
