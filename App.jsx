@@ -1069,6 +1069,10 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
   const totalMonto = cr.reduce((s,r)=>s+r.montoPactado,0);
   const avg = getClientAvg(cliente.id, reservas);
   const notas = cr.filter(r=>r.calificacion?.nota).map(r=>({...r.calificacion,fecha:r.fecha}));
+  const todayStr = toDateStr(new Date());
+  const ultimoEvento = cr.find(r=>r.fecha<=todayStr && r.estado==="finalizada");
+  const proximoEvento = [...cr].reverse().find(r=>r.fecha>=todayStr && ["pendiente","senada","confirmada"].includes(r.estado));
+  const [verTodas, setVerTodas] = useState(false);
   return (
     <BottomModal title="Ficha de Cliente" onClose={onClose}>
       <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
@@ -1116,7 +1120,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
           ))}
         </div>
       )}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
         <div style={{...card,padding:"12px 14px",textAlign:"center"}}>
           <div style={{fontSize:24,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display', serif"}}>{cr.length}</div>
           <div style={{fontSize:11,color:"#8B7355"}}>Reservas totales</div>
@@ -1126,7 +1130,28 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
           <div style={{fontSize:11,color:"#8B7355"}}>Monto acumulado</div>
         </div>
       </div>
-      {cr.slice(0,4).map(r=>(
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        <div style={{...card,padding:"12px 14px"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>Último evento</div>
+          {ultimoEvento ? (
+            <>
+              <div style={{fontSize:14,fontWeight:700,color:"#1C1C1E"}}>{fmtDate(ultimoEvento.fecha)}</div>
+              {ultimoEvento.tipoEvento && <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{ultimoEvento.tipoEvento}</div>}
+            </>
+          ) : <div style={{fontSize:12,color:"#C4B49A"}}>Sin eventos pasados</div>}
+        </div>
+        <div style={{...card,padding:"12px 14px"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>Próximo evento</div>
+          {proximoEvento ? (
+            <>
+              <div style={{fontSize:14,fontWeight:700,color:"#16A34A"}}>{fmtDate(proximoEvento.fecha)}</div>
+              {proximoEvento.tipoEvento && <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{proximoEvento.tipoEvento}</div>}
+            </>
+          ) : <div style={{fontSize:12,color:"#C4B49A"}}>Sin reserva futura</div>}
+        </div>
+      </div>
+      <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Historial de reservas</div>
+      {(verTodas ? cr : cr.slice(0,4)).map(r=>(
         <div key={r.id} style={{...card,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{fmtDate(r.fecha)}</div>
@@ -1138,6 +1163,11 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
           <StatusBadge estado={r.estado} />
         </div>
       ))}
+      {cr.length>4 && !verTodas && (
+        <button onClick={()=>setVerTodas(true)} style={{width:"100%",padding:"8px",background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,fontSize:12,fontWeight:600,color:"#C4602B",cursor:"pointer",fontFamily:"inherit",marginBottom:4}}>
+          Ver todas ({cr.length} reservas)
+        </button>
+      )}
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}>
         <Btn small variant="secondary" onClick={onEdit}>✏️ Editar</Btn>
         <Btn small variant="ghost" onClick={onClose}>Cerrar</Btn>
