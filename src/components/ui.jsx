@@ -80,9 +80,9 @@ export function StatusBadge({ estado }) {
   const s = STATUS[estado]||STATUS.pendiente;
   return <span style={{display:"inline-block",padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:s.color,background:s.bg,border:`1px solid ${s.border}`}}>{s.label}</span>;
 }
-export function TurnoBadge({ turno }) {
+export function TurnoBadge({ turno, label }) {
   const t = TURNOS[turno]||TURNOS.dia;
-  return <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:t.color,background:t.bg}}>{t.icon} {t.label}</span>;
+  return <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:t.color,background:t.bg}}>{t.icon} {label||t.label}</span>;
 }
 export function Avatar({ nombre }) {
   return (

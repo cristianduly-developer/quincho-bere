@@ -891,7 +891,7 @@ function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
   );
 }
 
-function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto }) {
+function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto, turnosRecurso }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -914,7 +914,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
     <BottomModal title="Detalle de Reserva" onClose={onClose}>
       {/* Badges */}
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
-        <TurnoBadge turno={reserva.turno} />
+        <TurnoBadge turno={reserva.turno} label={reserva.turnoId&&(turnosRecurso||[]).find(t=>t.id===reserva.turnoId)?.nombre} />
         <StatusBadge estado={reserva.estado} />
         {reserva.tipoEvento && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#7C3AED",background:"#F5F3FF",border:"1px solid #DDD6FE"}}>{reserva.tipoEvento}</span>}
         {saldo>0 && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA"}}>⚠️ Saldo pendiente</span>}
@@ -1176,7 +1176,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   );
 }
 
-function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar }) {
+function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnosRecurso }) {
   const allRes = reservas.filter(r=>r.clienteId===cliente.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const esVisitaNoConcreto = r => r.estado==="cancelada" && r.fechaVisita;
   const cr = allRes.filter(r=>!esVisitaNoConcreto(r));
@@ -1273,7 +1273,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar }) {
           <div>
             <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{fmtDate(r.fecha)}</div>
             <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
-              <TurnoBadge turno={r.turno} />
+              <TurnoBadge turno={r.turno} label={r.turnoId&&(turnosRecurso||[]).find(t=>t.id===r.turnoId)?.nombre} />
               {r.tipoEvento && <span style={{fontSize:10,fontWeight:600,color:"#7C3AED",background:"#F5F3FF",borderRadius:4,padding:"1px 6px",border:"1px solid #DDD6FE"}}>{r.tipoEvento}</span>}
             </div>
             {esVisitaNoConcreto && <div style={{fontSize:11,color:"#7C3AED",marginTop:3,fontWeight:600}}>🟣 Visitó el {fmtDate(r.fechaVisita)} — no concretó</div>}
@@ -1396,7 +1396,7 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
                   display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
                   <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>{clientName(c)}</div>
-                  <TurnoBadge turno={r.turno} />
+                  <TurnoBadge turno={r.turno} label={r.turnoId&&(turnosRecurso||[]).find(t=>t.id===r.turnoId)?.nombre} />
                 </div>
                 <StatusBadge estado={r.estado} />
               </div>
@@ -2608,7 +2608,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
             return (
               <div key={r.id} onClick={()=>onReservaClick(r)} style={{...card,padding:"12px 14px",marginBottom:8,cursor:"pointer",background:st?.bg||"#FFF",border:`1px solid ${st?.border||"#EDE0D0"}`,borderLeft:`3px solid ${st?.color||"#C4602B"}`,borderRadius:"0 12px 12px 0"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div><div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(c)}</div><div style={{fontSize:12,color:"#8B7355",marginTop:2}}>{fmtDate(r.fecha)} · {TURNOS[r.turno]?.icon} {TURNOS[r.turno]?.label}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div></div>
+                  <div><div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(c)}</div><div style={{fontSize:12,color:"#8B7355",marginTop:2}}>{fmtDate(r.fecha)} · {TURNOS[r.turno]?.icon||"📌"} {(r.turnoId&&turnosRecurso?.find(t=>t.id===r.turnoId)?.nombre)||TURNOS[r.turno]?.label||r.turno}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div></div>
                   <div style={{textAlign:"right"}}><StatusBadge estado={r.estado} />{saldo>0&&<div style={{fontSize:11,color:"#DC2626",fontWeight:700,marginTop:4}}>⚠️ {fmtCurrency(saldo)}</div>}</div>
                 </div>
               </div>
@@ -5488,6 +5488,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         pagos={pagos}
         extrasReserva={extrasReserva}
         serviciosExtras={serviciosExtras}
+        turnosRecurso={turnosRecurso}
         canModifyCaja={isAdmin || currentUser?.modificarCaja === true}
         onShowPDF={setPrintData}
         onClose={()=>setDetailReserva(null)}
@@ -5563,7 +5564,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           showToast("Visita no concretada — fecha liberada","info");
         }}
       />}
-      {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas}
+      {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas} turnosRecurso={turnosRecurso}
         onClose={()=>setDetailCliente(null)}
         onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}}
         onReactivar={(r)=>{
