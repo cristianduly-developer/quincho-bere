@@ -847,6 +847,7 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
 
 function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
   const [confirmAction, setConfirmAction] = useState(null);
+  const [motivo, setMotivo] = useState("");
   return (
     <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
       <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>👁️ Visita programada</div>
@@ -878,10 +879,11 @@ function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
       {confirmAction==="noconcreto" && (
         <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px"}}>
           <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:6}}>¿Marcar como no concretada?</div>
-          <div style={{fontSize:12,color:"#991B1B",marginBottom:10}}>La fecha se liberará y la reserva se cancelará.</div>
+          <div style={{fontSize:12,color:"#991B1B",marginBottom:8}}>La fecha se liberará y la reserva se cancelará.</div>
+          <input value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo (opcional): ej. muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #FECACA",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"#FFF"}} />
           <div style={{display:"flex",gap:6}}>
-            <button onClick={onNoConcreto} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
-            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+            <button onClick={()=>onNoConcreto(motivo.trim())} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
+            <button onClick={()=>{setConfirmAction(null);setMotivo("");}} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
           </div>
         </div>
       )}
@@ -1275,6 +1277,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar }) {
               {r.tipoEvento && <span style={{fontSize:10,fontWeight:600,color:"#7C3AED",background:"#F5F3FF",borderRadius:4,padding:"1px 6px",border:"1px solid #DDD6FE"}}>{r.tipoEvento}</span>}
             </div>
             {esVisitaNoConcreto && <div style={{fontSize:11,color:"#7C3AED",marginTop:3,fontWeight:600}}>🟣 Visitó el {fmtDate(r.fechaVisita)} — no concretó</div>}
+            {esVisitaNoConcreto && r.motivoNoConcreto && <div style={{fontSize:11,color:"#6B7280",marginTop:2,fontStyle:"italic"}}>Motivo: {r.motivoNoConcreto}</div>}
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
             {esVisitaNoConcreto
@@ -4991,7 +4994,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",estadoCrm:x.estado_crm||null,origen:x.origen||null,creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
     if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||""});
@@ -5553,8 +5556,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           setDetailReserva(updatedRes);
           showToast("Visita confirmada — reserva activa","ok");
         }}
-        onNoConcreto={()=>{
-          const updatedRes = {...detailReserva, estado:"cancelada"};
+        onNoConcreto={(motivo)=>{
+          const updatedRes = {...detailReserva, estado:"cancelada", motivoNoConcreto:motivo||null};
           saveR(reservas.map(r=>r.id===detailReserva.id?updatedRes:r));
           setDetailReserva(null);
           showToast("Visita no concretada — fecha liberada","info");
@@ -5564,7 +5567,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         onClose={()=>setDetailCliente(null)}
         onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}}
         onReactivar={(r)=>{
-          const updated={...r,estado:"pendiente"};
+          const updated={...r,estado:"pendiente",fechaVisita:null,horaVisita:null,seguimientoDescartado:false};
           saveR(reservas.map(x=>x.id===r.id?updated:x));
           const cli=clientes.find(c=>c.id===r.clienteId);
           if(cli&&cli.estadoCrm==="Potencial") saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
@@ -5613,8 +5616,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           saveR(reservas.map(x=>x.id===r.id?updated:x));
           showToast("Visita reprogramada","ok");
         }}
-        onNoConcreto={(r)=>{
-          saveR(reservas.map(x=>x.id===r.id?{...r,estado:"cancelada"}:x));
+        onNoConcreto={(r,motivo)=>{
+          saveR(reservas.map(x=>x.id===r.id?{...r,estado:"cancelada",motivoNoConcreto:motivo||null}:x));
           showToast("Visita no concretada — fecha liberada","info");
         }}
         onEditVisita={(r)=>{

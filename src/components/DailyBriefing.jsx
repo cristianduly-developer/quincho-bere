@@ -193,6 +193,7 @@ function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, on
   const [reproHora, setReproHora] = useState(reserva.horaVisita || "");
   const [showPosponer, setShowPosponer] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [motivo, setMotivo] = useState("");
 
   return (
     <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
@@ -246,10 +247,11 @@ function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, on
       {open && confirmAction === "noconcreto" && (
         <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px",marginTop:10}}>
           <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:8}}>¿Marcar como no concretada?</div>
-          <div style={{fontSize:12,color:"#991B1B",marginBottom:10}}>La fecha se liberará y la reserva se cancelará.</div>
+          <div style={{fontSize:12,color:"#991B1B",marginBottom:8}}>La fecha se liberará y la reserva se cancelará.</div>
+          <input value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo (opcional): ej. muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #FECACA",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"#FFF"}} />
           <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>{onNoConcreto(reserva);setOpen(false);setConfirmAction(null);}} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
-            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+            <button onClick={()=>{onNoConcreto(reserva,motivo.trim());setOpen(false);setConfirmAction(null);setMotivo("");}} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
+            <button onClick={()=>{setConfirmAction(null);setMotivo("");}} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
           </div>
         </div>
       )}
