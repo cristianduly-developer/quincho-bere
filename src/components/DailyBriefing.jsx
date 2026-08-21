@@ -186,12 +186,13 @@ function AlertaItem({ icon, texto, urgente }) {
   );
 }
 
-function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, onNoConcreto }) {
+function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, onNoConcreto, onEditVisita }) {
   const [open, setOpen] = useState(false);
   const [showRepro, setShowRepro] = useState(false);
   const [reproFecha, setReproFecha] = useState(reserva.fechaVisita || "");
   const [reproHora, setReproHora] = useState(reserva.horaVisita || "");
   const [showPosponer, setShowPosponer] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   return (
     <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
@@ -206,14 +207,14 @@ function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, on
             Evento: {fmtDate(reserva.fecha)}{reserva.montoPactado ? ` · ${fmtCurrency(reserva.montoPactado)}` : ""}
           </div>
         </div>
-        <button onClick={()=>{setOpen(v=>!v);setShowRepro(false);setShowPosponer(false);}} style={{background:open?"#7C3AED":"#EDE0D0",border:"none",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:open?"#FFF":"#8B7355",flexShrink:0,transition:"all 0.15s"}}>
+        <button onClick={()=>{setOpen(v=>!v);setShowRepro(false);setShowPosponer(false);setConfirmAction(null);}} style={{background:open?"#7C3AED":"#EDE0D0",border:"none",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:open?"#FFF":"#8B7355",flexShrink:0,transition:"all 0.15s"}}>
           {open ? "✕" : "···"}
         </button>
       </div>
 
-      {open && !showRepro && !showPosponer && (
+      {open && !showRepro && !showPosponer && !confirmAction && (
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}}>
-          <button onClick={()=>onConfirm(reserva)} style={{flex:1,padding:"8px 10px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+          <button onClick={()=>setConfirmAction("confirmar")} style={{flex:1,padding:"8px 10px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             ✅ Confirmar
           </button>
           <button onClick={()=>setShowPosponer(true)} style={{flex:1,padding:"8px 10px",background:"#FFF8E1",color:"#92680A",border:"1px solid #FFD54F",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
@@ -222,9 +223,34 @@ function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, on
           <button onClick={()=>setShowRepro(true)} style={{flex:1,padding:"8px 10px",background:"#EFF6FF",color:"#2563EB",border:"1px solid #93C5FD",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             📅 Reprogramar
           </button>
-          <button onClick={()=>onNoConcreto(reserva)} style={{flex:1,padding:"8px 10px",background:"#FEF2F2",color:"#DC2626",border:"1px solid #FECACA",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+          <button onClick={()=>onEditVisita(reserva)} style={{flex:1,padding:"8px 10px",background:"#FDF8F3",color:"#8B7355",border:"1px solid #EDE0D0",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+            ✏️ Editar
+          </button>
+          <button onClick={()=>setConfirmAction("noconcreto")} style={{flex:1,padding:"8px 10px",background:"#FEF2F2",color:"#DC2626",border:"1px solid #FECACA",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             ❌ No concretó
           </button>
+        </div>
+      )}
+
+      {open && confirmAction === "confirmar" && (
+        <div style={{background:"#DCFCE7",border:"1px solid #86EFAC",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#166534",marginBottom:8}}>¿Confirmar la reserva de {clientName(cliente)}?</div>
+          <div style={{fontSize:12,color:"#166534",marginBottom:10}}>La reserva pasará a Pendiente y el cliente a Cliente.</div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>{onConfirm(reserva);setOpen(false);setConfirmAction(null);}} style={{flex:1,padding:"8px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, confirmar</button>
+            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid #86EFAC",borderRadius:6,fontSize:12,color:"#166534",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+          </div>
+        </div>
+      )}
+
+      {open && confirmAction === "noconcreto" && (
+        <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:8}}>¿Marcar como no concretada?</div>
+          <div style={{fontSize:12,color:"#991B1B",marginBottom:10}}>La fecha se liberará y la reserva se cancelará.</div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>{onNoConcreto(reserva);setOpen(false);setConfirmAction(null);}} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
+            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+          </div>
         </div>
       )}
 
@@ -259,7 +285,7 @@ function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, on
   );
 }
 
-export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso, negocio, recordatorios, tareas, onClose, onConfirmVisita, onPosponerVisita, onReprogramarVisita, onNoConcreto }) {
+export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso, negocio, recordatorios, tareas, onClose, onConfirmVisita, onPosponerVisita, onReprogramarVisita, onNoConcreto, onEditVisita }) {
   const hoy = new Date();
   const diaLabel = `${DIAS[hoy.getDay()]} ${hoy.getDate()}/${hoy.getMonth()+1}`;
   const hora = hoy.getHours();
@@ -328,7 +354,7 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>👁️ Visitas de hoy</div>
               {visitasHoy.map(({ reserva: v, cliente: vc }) => (
-                <VisitaCard key={v.id} reserva={v} cliente={vc} onConfirm={onConfirmVisita} onPosponer={onPosponerVisita} onReprogramar={onReprogramarVisita} onNoConcreto={onNoConcreto} />
+                <VisitaCard key={v.id} reserva={v} cliente={vc} onConfirm={onConfirmVisita} onPosponer={onPosponerVisita} onReprogramar={onReprogramarVisita} onNoConcreto={onNoConcreto} onEditVisita={onEditVisita} />
               ))}
             </div>
           )}

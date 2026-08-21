@@ -810,6 +810,50 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
 
 // ─── DETAIL PANELS ────────────────────────────────────────
 
+function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
+  const [confirmAction, setConfirmAction] = useState(null);
+  return (
+    <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+      <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>👁️ Visita programada</div>
+      {(reserva.fechaVisita || reserva.horaVisita) && (
+        <div style={{fontSize:14,fontWeight:700,color:"#1C1C1E",marginBottom:10}}>
+          {reserva.fechaVisita && `📅 ${fmtDate(reserva.fechaVisita)}`}{reserva.horaVisita && ` · ⏰ ${reserva.horaVisita} hs`}
+        </div>
+      )}
+      {!confirmAction && (
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setConfirmAction("confirmar")} style={{flex:1,padding:"10px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+            ✅ Confirmar reserva
+          </button>
+          <button onClick={()=>setConfirmAction("noconcreto")} style={{flex:1,padding:"10px",background:"#FEF2F2",color:"#DC2626",border:"1.5px solid #FECACA",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+            ❌ No concretó
+          </button>
+        </div>
+      )}
+      {confirmAction==="confirmar" && (
+        <div style={{background:"#DCFCE7",border:"1px solid #86EFAC",borderRadius:8,padding:"10px 12px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#166534",marginBottom:6}}>¿Confirmar la reserva de {clientName(cliente)}?</div>
+          <div style={{fontSize:12,color:"#166534",marginBottom:10}}>La reserva pasará a Pendiente y el cliente a Cliente.</div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={onConfirmVisita} style={{flex:1,padding:"8px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, confirmar</button>
+            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid #86EFAC",borderRadius:6,fontSize:12,color:"#166534",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+          </div>
+        </div>
+      )}
+      {confirmAction==="noconcreto" && (
+        <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:6}}>¿Marcar como no concretada?</div>
+          <div style={{fontSize:12,color:"#991B1B",marginBottom:10}}>La fecha se liberará y la reserva se cancelará.</div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={onNoConcreto} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
+            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
@@ -841,22 +885,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
 
       {/* Visita panel */}
       {reserva.estado==="visita" && (
-        <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>👁️ Visita programada</div>
-          {(reserva.fechaVisita || reserva.horaVisita) && (
-            <div style={{fontSize:14,fontWeight:700,color:"#1C1C1E",marginBottom:10}}>
-              {reserva.fechaVisita && `📅 ${fmtDate(reserva.fechaVisita)}`}{reserva.horaVisita && ` · ⏰ ${reserva.horaVisita} hs`}
-            </div>
-          )}
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={onConfirmVisita} style={{flex:1,padding:"10px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
-              ✅ Confirmar reserva
-            </button>
-            <button onClick={onNoConcreto} style={{flex:1,padding:"10px",background:"#FEF2F2",color:"#DC2626",border:"1.5px solid #FECACA",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
-              ❌ No concretó
-            </button>
-          </div>
-        </div>
+        <VisitaPanel reserva={reserva} cliente={cliente} onConfirmVisita={onConfirmVisita} onNoConcreto={onNoConcreto} />
       )}
 
       {/* Info */}
@@ -1130,7 +1159,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
           {cliente.localidad && <div style={{fontSize:13,color:"#8B7355",marginTop:2}}>📍 {cliente.localidad}</div>}
           {cliente.email && <div style={{fontSize:13,color:"#8B7355",marginTop:2}}>✉️ {cliente.email}</div>}
           <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
-            {cliente.estadoCrm && <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99,background:cliente.estadoCrm==="Cliente"?"#DCFCE7":cliente.estadoCrm==="Potencial"?"#FEF9C3":"#F3F4F6",color:cliente.estadoCrm==="Cliente"?"#16A34A":cliente.estadoCrm==="Potencial"?"#A16207":"#6B7280",border:`1px solid ${cliente.estadoCrm==="Cliente"?"#BBF7D0":cliente.estadoCrm==="Potencial"?"#FDE68A":"#E5E7EB"}`}}>{cliente.estadoCrm}</span>}
+            {cliente.estadoCrm && cliente.estadoCrm !== "Cliente" && <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99,background:cliente.estadoCrm==="Potencial"?"#FEF9C3":"#F3F4F6",color:cliente.estadoCrm==="Potencial"?"#A16207":"#6B7280",border:`1px solid ${cliente.estadoCrm==="Potencial"?"#FDE68A":"#E5E7EB"}`}}>{cliente.estadoCrm}</span>}
             {cliente.origen && <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99,background:"#F5F3FF",color:"#7C3AED",border:"1px solid #DDD6FE"}}>{cliente.origen}</span>}
           </div>
         </div>
@@ -5511,6 +5540,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         onNoConcreto={(r)=>{
           saveR(reservas.map(x=>x.id===r.id?{...r,estado:"cancelada"}:x));
           showToast("Visita no concretada — fecha liberada","info");
+        }}
+        onEditVisita={(r)=>{
+          setShowBriefing(false);
+          setEditReserva(r);
+          setModal("reserva");
         }}
       />}
       {printData && <PrintModal data={printData} onClose={()=>setPrintData(null)} />}

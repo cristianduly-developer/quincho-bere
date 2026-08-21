@@ -75,7 +75,7 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
                 <div style={{flex:1}}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
                     <span style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>{clientName(c)}</span>
-                    {badge && <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:99,background:badge.bg,color:badge.color,border:`1px solid ${badge.border}`}}>{c.estadoCrm}</span>}
+                    {badge && c.estadoCrm !== "Cliente" && <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:99,background:badge.bg,color:badge.color,border:`1px solid ${badge.border}`}}>{c.estadoCrm}</span>}
                   </div>
                   <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
                     {c.localidad&&`📍 ${c.localidad}`}{c.localidad&&c.whatsapp&&" · "}{c.whatsapp&&`📱 ${c.whatsapp}`}{c.origen?` · ${c.origen}`:""}
