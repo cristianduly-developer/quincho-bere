@@ -1226,18 +1226,25 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
         </div>
       </div>
       <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Historial de reservas</div>
-      {(verTodas ? cr : cr.slice(0,4)).map(r=>(
-        <div key={r.id} style={{...card,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      {(verTodas ? cr : cr.slice(0,4)).map(r=>{
+        const esVisitaNoConcreto = r.estado==="cancelada" && r.fechaVisita;
+        return (
+        <div key={r.id} style={{...card,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",borderLeft:esVisitaNoConcreto?"3px solid #7C3AED":undefined}}>
           <div>
             <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{fmtDate(r.fecha)}</div>
             <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
               <TurnoBadge turno={r.turno} />
               {r.tipoEvento && <span style={{fontSize:10,fontWeight:600,color:"#7C3AED",background:"#F5F3FF",borderRadius:4,padding:"1px 6px",border:"1px solid #DDD6FE"}}>{r.tipoEvento}</span>}
             </div>
+            {esVisitaNoConcreto && <div style={{fontSize:11,color:"#7C3AED",marginTop:3,fontWeight:600}}>🟣 Visitó el {fmtDate(r.fechaVisita)} — no concretó</div>}
           </div>
-          <StatusBadge estado={r.estado} />
+          {esVisitaNoConcreto
+            ? <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:99,background:"#F5F3FF",color:"#7C3AED",border:"1px solid #DDD6FE"}}>Visita</span>
+            : <StatusBadge estado={r.estado} />
+          }
         </div>
-      ))}
+        );
+      })}
       {cr.length>4 && !verTodas && (
         <button onClick={()=>setVerTodas(true)} style={{width:"100%",padding:"8px",background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,fontSize:12,fontWeight:600,color:"#C4602B",cursor:"pointer",fontFamily:"inherit",marginBottom:4}}>
           Ver todas ({cr.length} reservas)
