@@ -146,7 +146,7 @@ function ProgressBar({ pct }) {
   );
 }
 
-function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaClick, onCobrar, negocio }) {
+function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaClick, onCobrar, negocio, turnosRecurso }) {
   const c = clientes.find(x=>x.id===r.clienteId);
   const rec = recursos.find(x=>x.id===r.recursoId);
   const saldo = getSaldo(r, extrasReserva, pagos);
@@ -155,7 +155,10 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
   const deuda = saldo > 0;
   const ACTIVAS = ["visita","pendiente","senada","confirmada"];
   const activa = ACTIVAS.includes(r.estado);
-  const turnoInfo = TURNOS[r.turno];
+  const customTurno = r.turnoId && turnosRecurso?.find(t=>t.id===r.turnoId);
+  const turnoLabel = customTurno ? customTurno.nombre : (TURNOS[r.turno]?.label || r.turno);
+  const turnoIcon = customTurno ? "🕐" : (TURNOS[r.turno]?.icon || "");
+  const horarioStr = customTurno ? `${customTurno.horaInicio}–${customTurno.horaFin}` : "";
 
   const waMsg = () => {
     const neg = negocio?.nombreNegocio || "nuestro espacio";
@@ -186,7 +189,7 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
             {urgente && <span style={{marginRight:4}}>🔔</span>}{clientName(c)}
           </div>
           <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
-            {fmtDate(r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{turnoInfo?` · ${turnoInfo.icon} ${turnoInfo.label}`:""}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div>
+            {fmtDate(r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{` · ${turnoIcon} ${turnoLabel}`}{horarioStr?` (${horarioStr})`:""}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div>
           <div style={{fontSize:11,color:"#8B7355"}}>🏠 {rec?.nombre||"Sin espacio"}{r.tipoEvento ? ` · 🎉 ${r.tipoEvento}` : ""}</div>
         </div>
         <StatusBadge estado={r.estado} />
@@ -748,7 +751,7 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
             <WeeklyGrid reservas={reservas} clientes={clientes} recursos={recursos} turnosRecurso={turnosRecurso} onReservaClick={onReservaClick} />
           ) : g.items.map(r=>(
             <ReservaCard key={r.id} r={r} clientes={clientes} recursos={recursos} extrasReserva={extrasReserva} pagos={pagos}
-              onReservaClick={onReservaClick} onCobrar={onCobrar} negocio={negocio} />
+              onReservaClick={onReservaClick} onCobrar={onCobrar} negocio={negocio} turnosRecurso={turnosRecurso} />
           ))}
         </div>
       ))}
