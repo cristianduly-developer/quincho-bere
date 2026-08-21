@@ -4,7 +4,7 @@ import { STATUS, TURNOS } from "../lib/constants.js";
 import { Btn, StatusBadge } from "../components/ui.jsx";
 
 const DIAS_SEMANA = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-const ESTADO_COLOR = { pendiente:"#F59E0B", senada:"#3B82F6", confirmada:"#16A34A", finalizada:"#8B7355", cancelada:"#DC2626" };
+const ESTADO_COLOR = { visita:"#7C3AED", pendiente:"#F59E0B", senada:"#3B82F6", confirmada:"#16A34A", finalizada:"#8B7355", cancelada:"#DC2626" };
 
 function getWeekDays() {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -26,7 +26,7 @@ function WeeklyGrid({ reservas, clientes, recursos, turnosRecurso, onReservaClic
 
   const semanaISO = useMemo(() => days.map(toISO), [days]);
   const reservasSemana = useMemo(() =>
-    reservas.filter(r => semanaISO.includes(r.fecha) && ["pendiente","senada","confirmada"].includes(r.estado)),
+    reservas.filter(r => semanaISO.includes(r.fecha) && ["visita","pendiente","senada","confirmada"].includes(r.estado)),
     [reservas, semanaISO]
   );
 
@@ -153,7 +153,7 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
   const total = r.montoPactado + getTotalExtras(r.id, extrasReserva);
   const pct = total > 0 ? Math.round(((total - saldo) / total) * 100) : 100;
   const deuda = saldo > 0;
-  const ACTIVAS = ["pendiente","senada","confirmada"];
+  const ACTIVAS = ["visita","pendiente","senada","confirmada"];
   const activa = ACTIVAS.includes(r.estado);
   const turnoInfo = TURNOS[r.turno];
 
@@ -211,7 +211,7 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
                 💬 WA
               </button>
             )}
-            {deuda && (
+            {deuda && r.estado!=="visita" && (
               <button onClick={()=>onCobrar(r)} style={{padding:"4px 10px",borderRadius:6,border:"0.5px solid #C4602B",background:"#C4602B",color:"#FFF",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                 💰 Cobrar
               </button>
@@ -234,7 +234,7 @@ function getWeekStart(offsetWeeks = 0) {
 
 function SemanaView({ reservas, clientes, recursos, turnosRecurso, onReservaClick }) {
   const [weekOffset, setWeekOffset] = useState(0);
-  const ACTIVAS = ["pendiente","senada","confirmada"];
+  const ACTIVAS = ["visita","pendiente","senada","confirmada"];
   const hoyStr = toISO(new Date());
 
   const days = useMemo(() => {
@@ -377,7 +377,7 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
   const [mes, setMes] = useState(hoy.getMonth());
   const [anio, setAnio] = useState(hoy.getFullYear());
   const [diaModal, setDiaModal] = useState(null); // { dayStr, dia }
-  const ACTIVAS = ["pendiente","senada","confirmada"];
+  const ACTIVAS = ["visita","pendiente","senada","confirmada"];
 
   const toMin = s => { const [h,m] = (s+":0").split(":"); return Number(h)*60+Number(m||0); };
   const solapan = (a, b) => toMin(a.horaInicio) < toMin(b.horaFin) && toMin(b.horaInicio) < toMin(a.horaFin);
@@ -629,7 +629,7 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
 }
 
 export default function ReservasView({ reservas, clientes, pagos, recursos, turnosRecurso, extrasReserva, bloqueos, onReservaClick, onNewReserva, onCobrar, negocio }) {
-  const ACTIVAS = ["pendiente","senada","confirmada"];
+  const ACTIVAS = ["visita","pendiente","senada","confirmada"];
   const [filter, setFilter] = useState("activas");
   const [search, setSearch]  = useState("");
   const [vista, setVista] = useState("lista");

@@ -7,7 +7,6 @@ import RecontactosView from "./RecontactosView.jsx";
 const CRM_BADGE = {
   Potencial: { bg:"#FEF9C3", color:"#A16207", border:"#FDE68A", icon:"🟡" },
   Cliente:   { bg:"#DCFCE7", color:"#16A34A", border:"#BBF7D0", icon:"🟢" },
-  Inactivo:  { bg:"#F3F4F6", color:"#6B7280", border:"#E5E7EB", icon:"⚪" },
 };
 
 export default function ClientesView({ clientes, reservas, onClienteClick, onNewCliente, recursos, negocio }) {
@@ -16,12 +15,11 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
   const [search, setSearch] = useState("");
 
   const today = toDateStr(new Date());
-  const activeIds = new Set(reservas.filter(r => r.fecha >= today && (r.estado === "senada" || r.estado === "confirmada")).map(r => r.clienteId));
+  const activeIds = new Set(reservas.filter(r => r.fecha >= today && ["visita","pendiente","senada","confirmada"].includes(r.estado)).map(r => r.clienteId));
 
   const scopedClientes = (() => {
     if (scope === "activos") return clientes.filter(c => activeIds.has(c.id));
     if (scope === "potenciales") return clientes.filter(c => c.estadoCrm === "Potencial");
-    if (scope === "inactivos") return clientes.filter(c => c.estadoCrm === "Inactivo");
     return clientes;
   })();
 
@@ -51,7 +49,6 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
               {v:"all",l:"Todos"},
               {v:"activos",l:"Activos"},
               {v:"potenciales",l:`🟡 Potenciales${countPotenciales?` (${countPotenciales})`:""}`},
-              {v:"inactivos",l:"Inactivos"},
             ].map(o=>(
               <button key={o.v} onClick={()=>setScope(o.v)} style={{
                 padding:"7px 14px",borderRadius:20,fontSize:12,fontWeight:600,flexShrink:0,whiteSpace:"nowrap",fontFamily:"inherit",cursor:"pointer",
@@ -64,7 +61,7 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
           {filtered.length === 0 ? (
             <div style={{textAlign:"center",padding:"48px 0",color:"#8B7355"}}>
               <div style={{fontSize:44,marginBottom:10}}>👥</div>
-              <div style={{fontWeight:600}}>{scope==="potenciales"?"No hay potenciales registrados":scope==="inactivos"?"No hay clientes inactivos":"Aún no hay clientes"}</div>
+              <div style={{fontWeight:600}}>{scope==="potenciales"?"No hay potenciales registrados":"Aún no hay clientes"}</div>
               <div style={{marginTop:14}}><Btn small onClick={onNewCliente}>+ Nuevo cliente</Btn></div>
             </div>
           ) : filtered.map(c => {

@@ -19,7 +19,7 @@ export function markBriefingShown() {
 }
 
 function generarAlertas({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso }) {
-  const ACTIVAS = ["pendiente","senada","confirmada"];
+  const ACTIVAS = ["visita","pendiente","senada","confirmada"];
   const hoy = toISO(new Date());
 
   // Próximos 7 días
@@ -164,7 +164,12 @@ function generarAlertas({ reservas, clientes, pagos, extrasReserva, recursos, se
     oportunidades.push({ icon:"📊", texto:`Semana cargada: ${eventosSemana.length} eventos. Confirmá logística de pileta y limpieza.` });
   }
 
-  return { alertasHoy, alertasSemana, oportunidades, totalEventos: eventosSemana.length };
+  const visitasHoy = reservas.filter(r => r.estado === "visita" && r.fechaVisita === hoy).map(r => {
+    const c = clientes.find(x=>x.id===r.clienteId);
+    return { reserva: r, cliente: c };
+  });
+
+  return { alertasHoy, alertasSemana, oportunidades, totalEventos: eventosSemana.length, visitasHoy };
 }
 
 function AlertaItem({ icon, texto, urgente }) {
@@ -187,7 +192,7 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
   const hora = hoy.getHours();
   const saludo = hora < 13 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
 
-  const { alertasHoy, alertasSemana, oportunidades, totalEventos } = useMemo(() =>
+  const { alertasHoy, alertasSemana, oportunidades, totalEventos, visitasHoy } = useMemo(() =>
     generarAlertas({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso }),
     [reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso]
   );
@@ -200,7 +205,7 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
   // Tareas pendientes del quincho
   const tareasPendientes = (tareas||[]).filter(t => t.estado === "pendiente");
 
-  const hayAlgo = alertasHoy.length || alertasSemana.length || oportunidades.length;
+  const hayAlgo = alertasHoy.length || alertasSemana.length || oportunidades.length || visitasHoy.length;
 
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.55)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:3000}}>
@@ -242,6 +247,20 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
               <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>📌 Tus recordatorios de hoy</div>
               {recHoy.map(r => (
                 <AlertaItem key={r.id} icon="📌" texto={`${r.horaAlerta ? r.horaAlerta+"hs · " : ""}${r.tipo}${r.nota ? ": "+r.nota : ""}`} urgente />
+              ))}
+            </div>
+          )}
+
+          {visitasHoy.length > 0 && (
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>👁️ Visitas de hoy</div>
+              {visitasHoy.map(({ reserva: v, cliente: vc }) => (
+                <div key={v.id} style={{display:"flex",gap:10,alignItems:"flex-start",padding:"10px 12px",background:"#F5F3FF",borderRadius:10,marginBottom:6,border:"1px solid #DDD6FE"}}>
+                  <span style={{fontSize:18,flexShrink:0,marginTop:1}}>👁️</span>
+                  <span style={{fontSize:13,color:"#1C1C1E",lineHeight:1.5}}>
+                    <strong>{clientName(vc)}</strong>{v.horaVisita ? ` · ${v.horaVisita} hs` : ""}{v.tipoEvento ? ` · ${v.tipoEvento}` : ""}{v.cantInvitados>0 ? ` · ${v.cantInvitados} personas` : ""}{v.fecha ? ` · Evento: ${fmtDate(v.fecha)}` : ""}
+                  </span>
+                </div>
               ))}
             </div>
           )}

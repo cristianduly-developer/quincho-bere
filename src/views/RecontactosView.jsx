@@ -42,7 +42,7 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio 
     const anioActual = new Date().getFullYear();
     const yaReservados = new Set(
       reservas.filter(r => {
-        if (!["pendiente","senada","confirmada"].includes(r.estado)) return false;
+        if (!["visita","pendiente","senada","confirmada"].includes(r.estado)) return false;
         const [anio, mes] = r.fecha.split("-").map(Number);
         return anio === anioActual && mesesSel.includes(mes - 1);
       }).map(r => r.clienteId)

@@ -3,6 +3,7 @@ export const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Se
 export const DAYS_SHORT = ["L","M","X","J","V","S","D"];
 
 export const STATUS = {
+  visita:     { label:"Visita",     color:"#7C3AED", bg:"#F5F3FF", border:"#DDD6FE" },
   pendiente:  { label:"Pendiente",  color:"#6B7280", bg:"#F3F4F6", border:"#D1D5DB" },
   senada:     { label:"Señada",     color:"#0284C7", bg:"#E0F2FE", border:"#7DD3FC" },
   confirmada: { label:"Confirmada", color:"#16A34A", bg:"#DCFCE7", border:"#86EFAC" },

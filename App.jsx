@@ -417,6 +417,15 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
   };
   const initH = getInitHorario();
 
+  const getInitEstado = () => {
+    if(reserva?.estado) return reserva.estado;
+    if(reserva?.clienteId) {
+      const cli = clientes.find(c=>c.id===reserva.clienteId);
+      if(cli?.estadoCrm === "Potencial") return "visita";
+    }
+    return "pendiente";
+  };
+
   const [f, setF] = useState({
     clienteId:    reserva?.clienteId    || "",
     recursoId:    initRecursoId,
@@ -427,9 +436,11 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     horarioFin:   initH.horarioFin,
     cantInvitados:reserva?.cantInvitados||(recursos.find(r=>r.id===initRecursoId)?.capacidadMax)||1,
     montoPactado: getInitMonto(),
-    estado:       reserva?.estado       || "pendiente",
+    estado:       getInitEstado(),
     tipoEvento:   reserva?.tipoEvento   || "",
     notas:        reserva?.notas        || "",
+    fechaVisita:  reserva?.fechaVisita  || "",
+    horaVisita:   reserva?.horaVisita   || "",
   });
 
   // Si initialTurno llega después del primer render (batching), sincronizar
@@ -451,6 +462,11 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
   const fechaSinTemporada = tieneTemporadas(f.recursoId) && turnosDelEspacio.length===0;
 
   const set = k => v => setF(p => {
+    if(k==="clienteId") {
+      const cli = clientes.find(c=>c.id===v);
+      const esVisita = cli?.estadoCrm === "Potencial";
+      return {...p, clienteId:v, estado: isEdit ? p.estado : (esVisita ? "visita" : "pendiente")};
+    }
     if(k==="recursoId") {
       const { turnos } = getTurnosConPrecio(v, p.fecha);
       const primerTurno = turnos[0];
@@ -552,9 +568,18 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
           <div style={{padding:"8px 12px",background:"#FFF8EC",border:"1px solid #F5C842",borderRadius:8,marginBottom:8,fontSize:12,color:"#92680A"}}>🌡️ Precios de <strong>{turnosInfo.temporada.nombre}</strong> aplicados ({esFinde(f.fecha)?"fin de semana":"semana"})</div>
         )}
       </>}
-      <div style={{padding:"8px 12px",background:"#F3F4F6",borderRadius:8,marginBottom:14,fontSize:12,color:"#6B7280"}}>
-        🔒 Estado: <strong>{STATUS[f.estado]?.label||"Pendiente"}</strong> — cambia automáticamente con los cobros
+      <div style={{padding:"8px 12px",background:f.estado==="visita"?"#F5F3FF":"#F3F4F6",borderRadius:8,marginBottom:14,fontSize:12,color:f.estado==="visita"?"#7C3AED":"#6B7280"}}>
+        {f.estado==="visita" ? "👁️ Estado: Visita — el cliente viene a conocer el espacio" : `🔒 Estado: ${STATUS[f.estado]?.label||"Pendiente"} — cambia automáticamente con los cobros`}
       </div>
+      {f.estado==="visita" && (
+        <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>📅 Fecha y hora de la visita</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <Input label="Fecha visita" type="date" value={f.fechaVisita} onChange={set("fechaVisita")} />
+            <Input label="Hora visita" type="time" value={f.horaVisita} onChange={set("horaVisita")} />
+          </div>
+        </div>
+      )}
       <TextArea label="Notas" value={f.notas} onChange={set("notas")} placeholder="Detalles del evento, requerimientos especiales..." />
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
@@ -565,7 +590,8 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
           if(!f.fecha||!f.montoPactado) return alert("Completá fecha y monto pactado.");
           if(Number(f.montoPactado)<=0) return alert("El monto pactado debe ser mayor a cero.");
           if(!isEdit&&f.fecha < toDateStr(new Date())) return alert("No podés registrar una reserva en una fecha pasada.");
-          onSave({...f, turnoId:f.turnoId||null, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||1, tipoEvento:f.tipoEvento||null});
+          if(f.estado==="visita"&&!f.fechaVisita) return alert("Indicá la fecha de la visita.");
+          onSave({...f, turnoId:f.turnoId||null, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||1, tipoEvento:f.tipoEvento||null, fechaVisita:f.fechaVisita||null, horaVisita:f.horaVisita||null});
         }}>{saving?"Guardando...":(isEdit?"Guardar cambios":"Crear reserva")}</Btn>
       </div>
     </BottomModal>
@@ -593,7 +619,7 @@ function ClienteModal({ onClose, onSave, cliente }) {
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         <Select label="Estado" value={f.estadoCrm} onChange={set("estadoCrm")}
-          options={[{value:"",label:"— Sin definir —"},{value:"Potencial",label:"🟡 Potencial"},{value:"Cliente",label:"🟢 Cliente"},{value:"Inactivo",label:"⚪ Inactivo"}]} />
+          options={[{value:"",label:"— Sin definir —"},{value:"Potencial",label:"🟡 Potencial"},{value:"Cliente",label:"🟢 Cliente"}]} />
         <Select label="Origen" value={f.origen} onChange={set("origen")}
           options={[{value:"",label:"— Sin definir —"},{value:"Instagram",label:"📸 Instagram"},{value:"Marketplace",label:"🛒 Marketplace"},{value:"Meta",label:"📣 Meta"},{value:"Recomendación",label:"🤝 Recomendación"},{value:"Otro",label:"📌 Otro"}]} />
       </div>
@@ -656,7 +682,7 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
 
   const resOpts = [{value:"",label:"— Seleccionar reserva —"},
     ...reservas.filter(r=>{
-      if(r.estado==="cancelada"||r.estado==="finalizada") return false;
+      if(r.estado==="cancelada"||r.estado==="finalizada"||r.estado==="visita") return false;
       return getSaldo(r, extrasReserva, pagos) > 0;
     }).map(r=>{
       const c=clientes.find(x=>x.id===r.clienteId);
@@ -784,7 +810,7 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
 
 // ─── DETAIL PANELS ────────────────────────────────────────
 
-function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan }) {
+function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -812,6 +838,26 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
         {reserva.tipoEvento && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#7C3AED",background:"#F5F3FF",border:"1px solid #DDD6FE"}}>{reserva.tipoEvento}</span>}
         {saldo>0 && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA"}}>⚠️ Saldo pendiente</span>}
       </div>
+
+      {/* Visita panel */}
+      {reserva.estado==="visita" && (
+        <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>👁️ Visita programada</div>
+          {(reserva.fechaVisita || reserva.horaVisita) && (
+            <div style={{fontSize:14,fontWeight:700,color:"#1C1C1E",marginBottom:10}}>
+              {reserva.fechaVisita && `📅 ${fmtDate(reserva.fechaVisita)}`}{reserva.horaVisita && ` · ⏰ ${reserva.horaVisita} hs`}
+            </div>
+          )}
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={onConfirmVisita} style={{flex:1,padding:"10px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+              ✅ Confirmar reserva
+            </button>
+            <button onClick={onNoConcreto} style={{flex:1,padding:"10px",background:"#FEF2F2",color:"#DC2626",border:"1.5px solid #FECACA",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+              ❌ No concretó
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Info */}
       <div style={{...card,padding:16,marginBottom:12}}>
@@ -1071,7 +1117,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
   const notas = cr.filter(r=>r.calificacion?.nota).map(r=>({...r.calificacion,fecha:r.fecha}));
   const todayStr = toDateStr(new Date());
   const ultimoEvento = cr.find(r=>r.fecha<=todayStr && r.estado==="finalizada");
-  const proximoEvento = [...cr].reverse().find(r=>r.fecha>=todayStr && ["pendiente","senada","confirmada"].includes(r.estado));
+  const proximoEvento = [...cr].reverse().find(r=>r.fecha>=todayStr && ["visita","pendiente","senada","confirmada"].includes(r.estado));
   const [verTodas, setVerTodas] = useState(false);
   return (
     <BottomModal title="Ficha de Cliente" onClose={onClose}>
@@ -2008,6 +2054,7 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
                   const toMinCal=s=>{if(!s)return 0;const[h,m]=(s+":0").split(":");return Number(h)*60+Number(m||0);};
                   const getTurnoColor=(r,tc)=>{
                     if(isPast||r.estado==="finalizada") return "#9CA3AF";
+                    if(r.estado==="visita") return "#7C3AED";
                     if(r.estado==="pendiente") return "#6B7280";
                     if(!tc) return TURNOS[r.turno]?.color||"#C4602B";
                     const dur=(toMinCal(tc.horaFin)||1440)-toMinCal(tc.horaInicio);
@@ -4858,7 +4905,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",estadoCrm:x.estado_crm||null,origen:x.origen||null,creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
     if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||""});
@@ -5034,7 +5081,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const handleSavePago=async(data,shouldPrint)=>{
     if(savingPago) return;
     const resCheck=reservas.find(r=>r.id===data.reservaId);
-    if(resCheck&&['cancelada','finalizada'].includes(resCheck.estado)){alert("No se puede registrar un pago en una reserva "+resCheck.estado+".");return;}
+    if(resCheck&&['cancelada','finalizada','visita'].includes(resCheck.estado)){alert("No se puede registrar un pago en una reserva "+resCheck.estado+".");return;}
     if(resCheck){
       const yaP=pagos.filter(p=>p.reservaId===data.reservaId).reduce((s,p)=>s+p.monto,0);
       const totalEvCheck=resCheck.montoPactado+getTotalExtras(resCheck.id,extrasReserva);
@@ -5109,7 +5156,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const handleSaveExtra=async(data)=>{
     if(savingExtra) return;
     const res=reservas.find(r=>r.id===data.reservaId);
-    if(res&&['cancelada','finalizada'].includes(res.estado)){alert("No se puede agregar un extra a una reserva "+res.estado+".");return;}
+    if(res&&['cancelada','finalizada','visita'].includes(res.estado)){alert("No se puede agregar un extra a una reserva en estado "+res.estado+".");return;}
     setSavingExtra(true);
     try{ await saveER([...extrasReserva,{id:genId(),...data,creadoEn:new Date().toISOString()}]); setModal(null); setExtraReservaId(null); }
     finally{ setSavingExtra(false); }
@@ -5398,6 +5445,22 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         }}
         negocio={negocio}
         plan={currentUser?.plan}
+        onConfirmVisita={()=>{
+          const cli = clientes.find(c=>c.id===detailReserva.clienteId);
+          const updatedRes = {...detailReserva, estado:"pendiente", fechaVisita:null, horaVisita:null};
+          saveR(reservas.map(r=>r.id===detailReserva.id?updatedRes:r));
+          if(cli && cli.estadoCrm === "Potencial"){
+            saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
+          }
+          setDetailReserva(updatedRes);
+          showToast("Visita confirmada — reserva activa","ok");
+        }}
+        onNoConcreto={()=>{
+          const updatedRes = {...detailReserva, estado:"cancelada"};
+          saveR(reservas.map(r=>r.id===detailReserva.id?updatedRes:r));
+          setDetailReserva(null);
+          showToast("Visita no concretada — fecha liberada","info");
+        }}
       />}
       {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas}
         onClose={()=>setDetailCliente(null)}
