@@ -83,8 +83,35 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
     return `https://wa.me/${tel}?text=${encodeURIComponent(texto)}`;
   };
 
+  const stats = useMemo(() => {
+    const visitaronIds = new Set(reservas.filter(r => r.fechaVisita && r.estado === "cancelada").map(r => r.clienteId));
+    const convirtieron = clientes.filter(c => c.estadoCrm === "Cliente" && visitaronIds.has(c.id)).length;
+    const descartados = reservas.filter(r => r.estado === "cancelada" && r.seguimientoDescartado && r.fechaVisita).length;
+    const pendientes = potenciales.length;
+    const totalVisitas = visitaronIds.size;
+    return { convirtieron, descartados, pendientes, totalVisitas };
+  }, [reservas, clientes, potenciales]);
+
   return (
     <div style={{padding:"16px 16px 100px"}}>
+      {/* Stats de conversión */}
+      {stats.totalVisitas > 0 && (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+          <div style={{background:"#DCFCE7",borderRadius:10,padding:"10px 8px",textAlign:"center",border:"1px solid #BBF7D0"}}>
+            <div style={{fontSize:20,fontWeight:800,color:"#16A34A"}}>{stats.convirtieron}</div>
+            <div style={{fontSize:10,color:"#16A34A",fontWeight:600}}>Convirtieron</div>
+          </div>
+          <div style={{background:"#FEF9C3",borderRadius:10,padding:"10px 8px",textAlign:"center",border:"1px solid #FDE68A"}}>
+            <div style={{fontSize:20,fontWeight:800,color:"#A16207"}}>{stats.pendientes}</div>
+            <div style={{fontSize:10,color:"#A16207",fontWeight:600}}>Pendientes</div>
+          </div>
+          <div style={{background:"#F3F4F6",borderRadius:10,padding:"10px 8px",textAlign:"center",border:"1px solid #D1D5DB"}}>
+            <div style={{fontSize:20,fontWeight:800,color:"#6B7280"}}>{stats.descartados}</div>
+            <div style={{fontSize:10,color:"#6B7280",fontWeight:600}}>Descartados</div>
+          </div>
+        </div>
+      )}
+
       {/* Mensaje editable */}
       <div style={{background:"#FFF",border:"0.5px solid #EDE0D0",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>

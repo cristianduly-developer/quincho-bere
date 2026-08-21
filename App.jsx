@@ -2552,8 +2552,9 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           {upcoming.slice(1,5).map(r=>{
             const c=clientes.find(x=>x.id===r.clienteId);
             const saldo=getSaldo(r,extrasReserva,pagos);
+            const st=STATUS[r.estado];
             return (
-              <div key={r.id} onClick={()=>onReservaClick(r)} style={{...card,padding:"12px 14px",marginBottom:8,cursor:"pointer",borderLeft:`3px solid ${TURNOS[r.turno]?.color||"#C4602B"}`,borderRadius:"0 12px 12px 0"}}>
+              <div key={r.id} onClick={()=>onReservaClick(r)} style={{...card,padding:"12px 14px",marginBottom:8,cursor:"pointer",background:st?.bg||"#FFF",border:`1px solid ${st?.border||"#EDE0D0"}`,borderLeft:`3px solid ${st?.color||"#C4602B"}`,borderRadius:"0 12px 12px 0"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div><div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(c)}</div><div style={{fontSize:12,color:"#8B7355",marginTop:2}}>{fmtDate(r.fecha)} · {TURNOS[r.turno]?.icon} {TURNOS[r.turno]?.label}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div></div>
                   <div style={{textAlign:"right"}}><StatusBadge estado={r.estado} />{saldo>0&&<div style={{fontSize:11,color:"#DC2626",fontWeight:700,marginTop:4}}>⚠️ {fmtCurrency(saldo)}</div>}</div>
