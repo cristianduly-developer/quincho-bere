@@ -577,6 +577,7 @@ function ClienteModal({ onClose, onSave, cliente }) {
     nombre: cliente?.nombre||"", apellido: cliente?.apellido||"",
     whatsapp: cliente?.whatsapp||"", localidad: cliente?.localidad||"Mar del Plata",
     email: cliente?.email||"", notasInternas: cliente?.notasInternas||"",
+    estadoCrm: cliente?.estadoCrm||"", origen: cliente?.origen||"",
   });
   const set = k=>v=>setF(p=>({...p,[k]:v}));
   return (
@@ -590,13 +591,19 @@ function ClienteModal({ onClose, onSave, cliente }) {
         <Input label="Email (opcional)" type="email" value={f.email} onChange={set("email")} placeholder="email@ejemplo.com" />
         <Input label="Localidad" value={f.localidad} onChange={set("localidad")} placeholder="Ciudad / Barrio" />
       </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Select label="Estado" value={f.estadoCrm} onChange={set("estadoCrm")}
+          options={[{value:"",label:"— Sin definir —"},{value:"Potencial",label:"🟡 Potencial"},{value:"Cliente",label:"🟢 Cliente"},{value:"Inactivo",label:"⚪ Inactivo"}]} />
+        <Select label="Origen" value={f.origen} onChange={set("origen")}
+          options={[{value:"",label:"— Sin definir —"},{value:"Instagram",label:"📸 Instagram"},{value:"Marketplace",label:"🛒 Marketplace"},{value:"Meta",label:"📣 Meta"},{value:"Recomendación",label:"🤝 Recomendación"},{value:"Otro",label:"📌 Otro"}]} />
+      </div>
       <TextArea label="Notas internas" value={f.notasInternas} onChange={set("notasInternas")} placeholder="Comportamiento, preferencias..." rows={2} />
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn onClick={()=>{
           if(!f.nombre)return alert("El nombre es obligatorio.");
           if(f.whatsapp&&(!/^[\d\s+\-().]{7,20}$/.test(f.whatsapp)||f.whatsapp.replace(/\D/g,'').length<7))return alert("El WhatsApp ingresado no parece válido. Ejemplo: +54 223 1234567");
-          onSave(f);
+          onSave({...f, estadoCrm:f.estadoCrm||null, origen:f.origen||null});
         }}>
           {cliente?"Guardar":"Agregar cliente"}
         </Btn>
@@ -1072,6 +1079,10 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
           <div style={{fontWeight:800,fontSize:20,color:"#1C1C1E",fontFamily:"'Playfair Display', serif"}}>{clientName(cliente)}</div>
           {cliente.localidad && <div style={{fontSize:13,color:"#8B7355",marginTop:2}}>📍 {cliente.localidad}</div>}
           {cliente.email && <div style={{fontSize:13,color:"#8B7355",marginTop:2}}>✉️ {cliente.email}</div>}
+          <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
+            {cliente.estadoCrm && <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99,background:cliente.estadoCrm==="Cliente"?"#DCFCE7":cliente.estadoCrm==="Potencial"?"#FEF9C3":"#F3F4F6",color:cliente.estadoCrm==="Cliente"?"#16A34A":cliente.estadoCrm==="Potencial"?"#A16207":"#6B7280",border:`1px solid ${cliente.estadoCrm==="Cliente"?"#BBF7D0":cliente.estadoCrm==="Potencial"?"#FDE68A":"#E5E7EB"}`}}>{cliente.estadoCrm}</span>}
+            {cliente.origen && <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99,background:"#F5F3FF",color:"#7C3AED",border:"1px solid #DDD6FE"}}>{cliente.origen}</span>}
+          </div>
         </div>
       </div>
       {cliente.whatsapp && (
@@ -4818,7 +4829,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
     if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null})));
-    if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
+    if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",estadoCrm:x.estado_crm||null,origen:x.origen||null,creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
     if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||""});
     if(!rc?.length && orgId) setOnboarding(true);

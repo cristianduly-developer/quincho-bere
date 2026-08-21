@@ -6,7 +6,7 @@ export function mapReserva(r){
 }
 export function mapCliente(c){
   const org = c.orgId || getCurrentOrgId();
-  return {id:c.id,org_id:org,nombre:c.nombre||"",apellido:c.apellido||"",whatsapp:c.whatsapp||"",email:c.email||"",localidad:c.localidad||"",notas_internas:c.notasInternas||"",creado_en:c.creadoEn||new Date().toISOString()};
+  return {id:c.id,org_id:org,nombre:c.nombre||"",apellido:c.apellido||"",whatsapp:c.whatsapp||"",email:c.email||"",localidad:c.localidad||"",notas_internas:c.notasInternas||"",estado_crm:c.estadoCrm||null,origen:c.origen||null,creado_en:c.creadoEn||new Date().toISOString()};
 }
 export function mapPago(p){
   const org = p.orgId || getCurrentOrgId();
