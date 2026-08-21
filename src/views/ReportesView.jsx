@@ -26,6 +26,10 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
     reservasMes.forEach(r=>{ const k=getTurnoNombre(r); porTurno[k]=(porTurno[k]||0)+1; });
     const turnoRows = Object.entries(porTurno).map(([t,n])=>"<tr><td>"+escHtml(t)+"</td><td style=\"text-align:center\">"+n+"</td></tr>").join("") || "<tr><td colspan=\"2\" style=\"color:#8B7355\">Sin datos</td></tr>";
 
+    const porTipoEvento = {};
+    reservasMes.forEach(r=>{ const k=r.tipoEvento||"Sin especificar"; porTipoEvento[k]=(porTipoEvento[k]||0)+1; });
+    const tipoEventoRows = Object.entries(porTipoEvento).sort((a,b)=>b[1]-a[1]).map(([t,n])=>"<tr><td>"+escHtml(t)+"</td><td style=\"text-align:center\">"+n+"</td></tr>").join("");
+
     const extrasMap = {};
     reservasMes.forEach(r=>{ extrasReserva.filter(e=>e.reservaId===r.id).forEach(e=>{ extrasMap[e.descripcion]=(extrasMap[e.descripcion]||0)+(e.cantidad||1); }); });
     const extrasRows = Object.entries(extrasMap).map(([d,n])=>"<tr><td>"+d+"</td><td style=\"text-align:center\">"+n+"</td></tr>").join("") || "<tr><td colspan=\"2\" style=\"color:#8B7355\">Sin extras</td></tr>";
@@ -78,7 +82,11 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
       +"</div>"
       +"<div class=\"two\">"
         +"<div class=\"sec\"><div class=\"stitle\">📊 Alquileres por turno</div><table><tr><th>Turno</th><th style=\"text-align:center\">Cant.</th></tr>"+turnoRows+"</table></div>"
+        +"<div class=\"sec\"><div class=\"stitle\">🎉 Por tipo de evento</div><table><tr><th>Tipo</th><th style=\"text-align:center\">Cant.</th></tr>"+tipoEventoRows+"</table></div>"
+      +"</div>"
+      +"<div class=\"two\">"
         +"<div class=\"sec\"><div class=\"stitle\">✨ Extras contratados</div><table><tr><th>Servicio</th><th style=\"text-align:center\">Cant.</th></tr>"+extrasRows+"</table></div>"
+        +"<div class=\"sec\"></div>"
       +"</div>"
       +(reservasMes.length>0
         ?"<div class=\"sec\"><div class=\"stitle\">📅 Detalle de reservas</div><table><tr><th>Fecha</th><th>Cliente / Tel.</th><th>Turno</th><th>Extras</th><th>Pactado</th><th>Cobrado</th><th>Saldo</th></tr>"+rowsRes+"</table></div>"
@@ -289,6 +297,25 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           )}
         </div>
       </div>
+
+      {/* Reservas por tipo de evento */}
+      {(()=>{
+        const porTipo={};
+        monthRes.forEach(r=>{ const k=r.tipoEvento||"Sin especificar"; porTipo[k]=(porTipo[k]||0)+1; });
+        const items=Object.entries(porTipo).sort((a,b)=>b[1]-a[1]);
+        if(items.length===0 || (items.length===1 && items[0][0]==="Sin especificar")) return null;
+        return (
+          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:8}}>🎉 Por tipo de evento</div>
+            {items.map(([tipo,cant])=>(
+              <div key={tipo} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <span style={{fontSize:12,color:"#1C1C1E"}}>{tipo}</span>
+                <span style={{fontWeight:700,fontSize:14,color:"#7C3AED"}}>{cant}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {topCats.length>0&&(
         <div style={{...card,padding:"14px 16px",marginBottom:10}}>

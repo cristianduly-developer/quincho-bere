@@ -160,7 +160,7 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio 
                       {yaContactado && <span style={{marginRight:4}}>✅</span>}{clientName(cliente)}
                     </div>
                     <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
-                      {recurso?.nombre||"—"} · {fmtDate(reserva.fecha)}
+                      {recurso?.nombre||"—"} · {fmtDate(reserva.fecha)}{reserva.tipoEvento ? ` · ${reserva.tipoEvento}` : ""}
                     </div>
                     <div style={{marginTop:4}}><Estrellas n={reserva.calificacion} /></div>
                   </div>

@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     clienteEmail, clienteNombre,
     negocioNombre, negocioLogo, negocioTelefono,
     espacioNombre, fecha, turnoNombre, horaInicio, horaFin,
-    cantInvitados, montoPactado, sena, saldo, metodoPago, notas,
+    cantInvitados, tipoEvento, montoPactado, sena, saldo, metodoPago, notas,
     condiciones,
   } = req.body;
 
@@ -95,6 +95,7 @@ export default async function handler(req, res) {
             ${row('📅 Fecha', fmtFecha(fecha))}
             ${row('🕐 Horario', horario)}
             ${row('🏟️ Espacio', safeEspacio)}
+            ${row('🎉 Tipo de evento', tipoEvento ? esc(tipoEvento) : null)}
             ${row('👥 Participantes', cantInvitados ? `Hasta ${esc(cantInvitados)} personas` : null)}
             ${row('💰 Total del evento', fmtMonto(montoPactado))}
             ${row('✅ Seña abonada', sena > 0 ? fmtMonto(sena) + (metodoPago ? ` <span style="color:#8B7355;font-weight:400;font-size:12px;">(${esc(metodoPago)})</span>` : '') : null)}

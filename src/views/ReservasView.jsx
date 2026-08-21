@@ -183,7 +183,7 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
           </div>
           <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
             {fmtDate(r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{turnoInfo?` · ${turnoInfo.icon} ${turnoInfo.label}`:""}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div>
-          <div style={{fontSize:11,color:"#8B7355"}}>🏠 {rec?.nombre||"Sin espacio"}</div>
+          <div style={{fontSize:11,color:"#8B7355"}}>🏠 {rec?.nombre||"Sin espacio"}{r.tipoEvento ? ` · 🎉 ${r.tipoEvento}` : ""}</div>
         </div>
         <StatusBadge estado={r.estado} />
       </div>

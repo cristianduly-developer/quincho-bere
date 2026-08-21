@@ -247,6 +247,7 @@ function printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio){
   if(reserva.horarioFin)body+=pRow('Fin',escHtml(reserva.horarioFin)+' hs');
   if(reserva.cantInvitados>0)body+=pRow('Invitados',reserva.cantInvitados+' personas');
   if(recurso)body+=pRow('Espacio',escHtml(recurso.nombre));
+  if(reserva.tipoEvento)body+=pRow('Tipo de evento',escHtml(reserva.tipoEvento));
   if(reserva.notas)body+=pRow('Notas',escHtml(reserva.notas));
   if(resExtras.length>0){body+=pH2('Extras');resExtras.forEach(function(e){body+=pRow(escHtml(e.descripcion)+' x'+e.cantidad,fmtCurrency(e.cantidad*e.precioHistorico));});}
   body+=pH2('Resumen')+pRow('Monto pactado',fmtCurrency(reserva.montoPactado));
@@ -290,6 +291,7 @@ function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
   // Objeto del contrato
   var evento=pH2('OBJETO DEL CONTRATO')+
     pRow('Espacio alquilado',escHtml(recurso?recurso.nombre:'—'))+
+    (reserva.tipoEvento?pRow('Tipo de evento',escHtml(reserva.tipoEvento)):'')+
     pRow('Fecha del evento',fmtDate(reserva.fecha))+
     (TURNOS[reserva.turno]?pRow('Turno',escHtml(TURNOS[reserva.turno].label)):'')+
     (reserva.horario?pRow('Horario de inicio',escHtml(reserva.horario)+' hs'):'')+
@@ -426,6 +428,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     cantInvitados:reserva?.cantInvitados||(recursos.find(r=>r.id===initRecursoId)?.capacidadMax)||1,
     montoPactado: getInitMonto(),
     estado:       reserva?.estado       || "pendiente",
+    tipoEvento:   reserva?.tipoEvento   || "",
     notas:        reserva?.notas        || "",
   });
 
@@ -487,6 +490,8 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
         );
         return null;
       })()}
+      <Select label="Tipo de evento" value={f.tipoEvento} onChange={set("tipoEvento")}
+        options={[{value:"",label:"— Seleccionar (opcional) —"},{value:"Cumpleaños",label:"🎂 Cumpleaños"},{value:"Cumpleaños de 15",label:"👑 Cumpleaños de 15"},{value:"Casamiento",label:"💍 Casamiento"},{value:"Bautismo / Comunión",label:"⛪ Bautismo / Comunión"},{value:"Baby Shower",label:"🍼 Baby Shower"},{value:"Despedida",label:"🥳 Despedida"},{value:"Evento corporativo",label:"🏢 Evento corporativo"},{value:"Reunión familiar",label:"👨‍👩‍👧‍👦 Reunión familiar"},{value:"Otro",label:"📌 Otro"}]} />
       <Select label="Espacio" value={f.recursoId} onChange={set("recursoId")}
         options={recursos.map(r=>({value:r.id,label:r.nombre}))} />
       <Input label="Fecha del evento" type="date" value={f.fecha} onChange={set("fecha")} required />
@@ -560,7 +565,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
           if(!f.fecha||!f.montoPactado) return alert("Completá fecha y monto pactado.");
           if(Number(f.montoPactado)<=0) return alert("El monto pactado debe ser mayor a cero.");
           if(!isEdit&&f.fecha < toDateStr(new Date())) return alert("No podés registrar una reserva en una fecha pasada.");
-          onSave({...f, turnoId:f.turnoId||null, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||1});
+          onSave({...f, turnoId:f.turnoId||null, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||1, tipoEvento:f.tipoEvento||null});
         }}>{saving?"Guardando...":(isEdit?"Guardar cambios":"Crear reserva")}</Btn>
       </div>
     </BottomModal>
@@ -797,6 +802,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
         <TurnoBadge turno={reserva.turno} />
         <StatusBadge estado={reserva.estado} />
+        {reserva.tipoEvento && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#7C3AED",background:"#F5F3FF",border:"1px solid #DDD6FE"}}>{reserva.tipoEvento}</span>}
         {saldo>0 && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA"}}>⚠️ Saldo pendiente</span>}
       </div>
 
@@ -820,6 +826,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
             {(reserva.horario||reserva.horarioFin) && <div style={{fontSize:13,color:"#8B7355",marginTop:4}}>⏰ {reserva.horario||"—"} → {reserva.horarioFin||"—"}</div>}
           </div>
           {recurso && <div><div style={labelStyle}>Espacio</div><div style={{fontSize:14,color:"#1C1C1E"}}>🏠 {recurso.nombre}</div></div>}
+          {reserva.tipoEvento && <div><div style={labelStyle}>Tipo de evento</div><div style={{fontSize:14,color:"#1C1C1E"}}>🎉 {reserva.tipoEvento}</div></div>}
           {reserva.cantInvitados>0 && <div><div style={labelStyle}>Invitados</div><div style={{fontSize:14,color:"#1C1C1E"}}>👥 {reserva.cantInvitados} personas</div></div>}
         </div>
         {reserva.notas && <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #EDE0D0",fontSize:13,color:"#5C4033"}}>📝 {reserva.notas}</div>}
@@ -1112,7 +1119,10 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
         <div key={r.id} style={{...card,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{fmtDate(r.fecha)}</div>
-            <TurnoBadge turno={r.turno} />
+            <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
+              <TurnoBadge turno={r.turno} />
+              {r.tipoEvento && <span style={{fontSize:10,fontWeight:600,color:"#7C3AED",background:"#F5F3FF",borderRadius:4,padding:"1px 6px",border:"1px solid #DDD6FE"}}>{r.tipoEvento}</span>}
+            </div>
           </div>
           <StatusBadge estado={r.estado} />
         </div>
@@ -4807,7 +4817,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
     if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||""});
@@ -4959,6 +4969,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 horaInicio:     turno?.horaInicio || "",
                 horaFin:        turno?.horaFin || "",
                 cantInvitados:  data.cantInvitados || "",
+                tipoEvento:     data.tipoEvento || "",
                 montoPactado:   data.montoPactado,
                 sena:           totalPagos,
                 saldo:          data.montoPactado - totalPagos,
