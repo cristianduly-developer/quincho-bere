@@ -1175,7 +1175,9 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
 }
 
 function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
-  const cr = reservas.filter(r=>r.clienteId===cliente.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const allRes = reservas.filter(r=>r.clienteId===cliente.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const esVisitaNoConcreto = r => r.estado==="cancelada" && r.fechaVisita;
+  const cr = allRes.filter(r=>!esVisitaNoConcreto(r));
   const totalMonto = cr.reduce((s,r)=>s+r.montoPactado,0);
   const avg = getClientAvg(cliente.id, reservas);
   const notas = cr.filter(r=>r.calificacion?.nota).map(r=>({...r.calificacion,fecha:r.fecha}));
@@ -1261,7 +1263,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
         </div>
       </div>
       <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Historial de reservas</div>
-      {(verTodas ? cr : cr.slice(0,4)).map(r=>{
+      {(verTodas ? allRes : allRes.slice(0,4)).map(r=>{
         const esVisitaNoConcreto = r.estado==="cancelada" && r.fechaVisita;
         return (
         <div key={r.id} style={{...card,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",borderLeft:esVisitaNoConcreto?"3px solid #7C3AED":undefined}}>
@@ -1280,9 +1282,9 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
         </div>
         );
       })}
-      {cr.length>4 && !verTodas && (
+      {allRes.length>4 && !verTodas && (
         <button onClick={()=>setVerTodas(true)} style={{width:"100%",padding:"8px",background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,fontSize:12,fontWeight:600,color:"#C4602B",cursor:"pointer",fontFamily:"inherit",marginBottom:4}}>
-          Ver todas ({cr.length} reservas)
+          Ver todas ({allRes.length})
         </button>
       )}
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}>
