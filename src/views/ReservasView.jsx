@@ -168,14 +168,18 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
   const diff = diffDays(r.fecha);
   const urgente = activa && diff >= 0 && diff <= 3;
 
+  const st = STATUS[r.estado];
+  const cardBg = st?.bg || "#FFF";
+  const cardBorder = st?.border || "#EDE0D0";
+
   return (
     <div onClick={()=>onReservaClick(r)} style={{
-      background:"#FFF", borderRadius:12, border:"0.5px solid #EDE0D0",
-      borderLeft:`3px solid ${urgente?"#C4602B":deuda?"#FCD34D":r.estado==="confirmada"?"#16A34A":"#EDE0D0"}`,
+      background:cardBg, borderRadius:12, border:`1px solid ${cardBorder}`,
+      borderLeft:`3px solid ${st?.color || "#EDE0D0"}`,
       marginBottom:8, padding:"13px 14px", cursor:"pointer",
     }}
-    onMouseEnter={e=>e.currentTarget.style.background="#FDF8F3"}
-    onMouseLeave={e=>e.currentTarget.style.background="#FFF"}>
+    onMouseEnter={e=>e.currentTarget.style.background=cardBg}
+    onMouseLeave={e=>e.currentTarget.style.background=cardBg}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
