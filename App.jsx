@@ -1181,6 +1181,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar }) {
   const totalMonto = cr.reduce((s,r)=>s+r.montoPactado,0);
   const avg = getClientAvg(cliente.id, reservas);
   const notas = cr.filter(r=>r.calificacion?.nota).map(r=>({...r.calificacion,fecha:r.fecha}));
+  const [confirmReactivar, setConfirmReactivar] = useState(null);
   const todayStr = toDateStr(new Date());
   const ultimoEvento = cr.find(r=>r.fecha<=todayStr && r.estado==="finalizada");
   const proximoEvento = [...cr].reverse().find(r=>r.fecha>=todayStr && ["visita","pendiente","senada","confirmada"].includes(r.estado));
@@ -1279,7 +1280,13 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar }) {
             {esVisitaNoConcreto
               ? <>
                   <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:99,background:"#F5F3FF",color:"#7C3AED",border:"1px solid #DDD6FE"}}>Visita</span>
-                  {r.fecha>=todayStr && <button onClick={(e)=>{e.stopPropagation();onReactivar(r);}} style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:99,background:"#DCFCE7",color:"#16A34A",border:"1px solid #BBF7D0",cursor:"pointer",fontFamily:"inherit"}}>🔄 Reactivar</button>}
+                  {r.fecha>=todayStr && confirmReactivar!==r.id && <button onClick={(e)=>{e.stopPropagation();setConfirmReactivar(r.id);}} style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:99,background:"#DCFCE7",color:"#16A34A",border:"1px solid #BBF7D0",cursor:"pointer",fontFamily:"inherit"}}>🔄 Reactivar</button>}
+                  {confirmReactivar===r.id && (
+                    <div style={{display:"flex",gap:4,marginTop:2}}>
+                      <button onClick={(e)=>{e.stopPropagation();onReactivar(r);setConfirmReactivar(null);}} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:6,background:"#16A34A",color:"#FFF",border:"none",cursor:"pointer",fontFamily:"inherit"}}>Sí, reactivar</button>
+                      <button onClick={(e)=>{e.stopPropagation();setConfirmReactivar(null);}} style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:6,background:"#F3F4F6",color:"#6B7280",border:"none",cursor:"pointer",fontFamily:"inherit"}}>No</button>
+                    </div>
+                  )}
                 </>
               : <StatusBadge estado={r.estado} />
             }
