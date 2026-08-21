@@ -3,7 +3,7 @@ import { MONTHS, EXPENSE_CATS, TURNOS } from "../lib/constants.js";
 import { fmtCurrency, fmtDate, escHtml, toDateStr, getSaldo } from "../lib/utils.js";
 import { card } from "../lib/styles.js";
 
-export default function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio, turnosRecurso }) {
+export default function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio, turnosRecurso, recursos, bloqueos }) {
   const getTurnoNombre = (r) => {
     if(r.turnoId) {
       const t=(turnosRecurso||[]).find(x=>x.id===r.turnoId);
@@ -267,6 +267,88 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           <div style={{fontSize:24,fontWeight:800,color:"#D97706",fontFamily:"'Playfair Display',serif"}}>{fmtCurrency(porCobrar)}</div>
         </div>
       )}
+
+      {/* Dashboard de ocupación */}
+      {modo==="mes"&&(()=>{
+        const tr=turnosRecurso||[];
+        const recs=recursos||[];
+        const bloqs=bloqueos||[];
+        const activeTurnos=tr.filter(t=>t.activo!==false);
+        const slotsPerDay=activeTurnos.length||1;
+        const year=selYear, month=selMonth;
+        const daysInMonth=new Date(year,month+1,0).getDate();
+        const totalSlots=daysInMonth*slotsPerDay;
+        const prefix=selKey;
+        const occupied=new Set();
+        reservas.filter(r=>r.fecha?.startsWith(prefix)&&r.estado!=="cancelada").forEach(r=>{
+          const key=r.turnoId?`${r.fecha}-${r.turnoId}`:`${r.fecha}-${r.turno}`;
+          occupied.add(key);
+        });
+        bloqs.filter(b=>b.fecha?.startsWith(prefix)).forEach(b=>{
+          const matching=b.turno?activeTurnos.filter(t=>t.nombre===b.turno||t.id===b.turno):activeTurnos;
+          matching.forEach(t=>{occupied.add(`${b.fecha}-${t.id}`);});
+        });
+        const occupiedCount=occupied.size;
+        const pct=totalSlots>0?Math.round((occupiedCount/totalSlots)*100):0;
+        const libre=totalSlots-occupiedCount;
+        const prevYear=month===0?year-1:year;
+        const prevMonth=month===0?11:month-1;
+        const prevPrefix=`${prevYear}-${String(prevMonth+1).padStart(2,"0")}`;
+        const prevDays=new Date(prevYear,prevMonth+1,0).getDate();
+        const prevTotal=prevDays*slotsPerDay;
+        const prevOcc=new Set();
+        reservas.filter(r=>r.fecha?.startsWith(prevPrefix)&&r.estado!=="cancelada").forEach(r=>{
+          const key=r.turnoId?`${r.fecha}-${r.turnoId}`:`${r.fecha}-${r.turno}`;
+          prevOcc.add(key);
+        });
+        bloqs.filter(b=>b.fecha?.startsWith(prevPrefix)).forEach(b=>{
+          const matching=b.turno?activeTurnos.filter(t=>t.nombre===b.turno||t.id===b.turno):activeTurnos;
+          matching.forEach(t=>{prevOcc.add(`${b.fecha}-${t.id}`);});
+        });
+        const prevPct=prevTotal>0?Math.round((prevOcc.size/prevTotal)*100):0;
+        const diff=pct-prevPct;
+        const prevYearSameMonth=`${year-1}-${String(month+1).padStart(2,"0")}`;
+        const yoyDays=new Date(year-1,month+1,0).getDate();
+        const yoyTotal=yoyDays*slotsPerDay;
+        const yoyOcc=new Set();
+        reservas.filter(r=>r.fecha?.startsWith(prevYearSameMonth)&&r.estado!=="cancelada").forEach(r=>{
+          const key=r.turnoId?`${r.fecha}-${r.turnoId}`:`${r.fecha}-${r.turno}`;
+          yoyOcc.add(key);
+        });
+        const yoyPct=yoyTotal>0?Math.round((yoyOcc.size/yoyTotal)*100):0;
+        const hasYoy=yoyOcc.size>0;
+        return (
+          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>📊 Ocupación del mes</div>
+            <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:12}}>
+              <div style={{position:"relative",width:72,height:72,flexShrink:0}}>
+                <svg viewBox="0 0 36 36" style={{width:72,height:72,transform:"rotate(-90deg)"}}>
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#EDE0D0" strokeWidth="3"/>
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke={pct>=70?"#16A34A":pct>=40?"#D97706":"#DC2626"} strokeWidth="3"
+                    strokeDasharray={`${pct*0.974} 100`} strokeLinecap="round"/>
+                </svg>
+                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:18,color:"#1C1C1E"}}>{pct}%</div>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>{occupiedCount} de {totalSlots} turnos</div>
+                <div style={{fontSize:12,color:"#16A34A",fontWeight:600}}>{libre} turnos libres</div>
+                {diff!==0&&<div style={{fontSize:11,color:diff>0?"#16A34A":"#DC2626",marginTop:4,fontWeight:600}}>
+                  {diff>0?"▲":"▼"} {Math.abs(diff)}% vs mes anterior ({prevPct}%)
+                </div>}
+                {hasYoy&&<div style={{fontSize:11,color:"#7C3AED",marginTop:2,fontWeight:600}}>
+                  📅 {MONTHS[month]} {year-1}: {yoyPct}% {pct>yoyPct?`(+${pct-yoyPct}%)`:`(${pct-yoyPct}%)`}
+                </div>}
+              </div>
+            </div>
+            <div style={{height:8,background:"#EDE0D0",borderRadius:4,overflow:"hidden"}}>
+              <div style={{height:"100%",width:pct+"%",background:pct>=70?"#16A34A":pct>=40?"#D97706":"#DC2626",borderRadius:4,transition:"width .3s"}}/>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"#8B7355"}}>
+              <span>0%</span><span>50%</span><span>100%</span>
+            </div>
+          </div>
+        );
+      })()}
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
         {avgLead!==null&&(

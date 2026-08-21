@@ -598,14 +598,36 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
   );
 }
 
-function ClienteModal({ onClose, onSave, cliente }) {
+function ClienteModal({ onClose, onSave, cliente, clientes }) {
   const [f, setF] = useState({
     nombre: cliente?.nombre||"", apellido: cliente?.apellido||"",
     whatsapp: cliente?.whatsapp||"", localidad: cliente?.localidad||"Mar del Plata",
     email: cliente?.email||"", notasInternas: cliente?.notasInternas||"",
     estadoCrm: cliente?.estadoCrm||"", origen: cliente?.origen||"",
   });
-  const set = k=>v=>setF(p=>({...p,[k]:v}));
+  const [dupes, setDupes] = useState(null);
+  const set = k=>v=>{setF(p=>({...p,[k]:v}));setDupes(null);};
+  const isNew = !cliente;
+  const findDupes = (data) => {
+    if(!isNew||!clientes) return [];
+    const inputWa = data.whatsapp?.replace(/\D/g,"")||"";
+    const inputEmail = (data.email||"").trim().toLowerCase();
+    return clientes.filter(c=>{
+      if(inputWa.length>=7 && (c.whatsapp||"").replace(/\D/g,"")===inputWa) return true;
+      if(inputEmail && (c.email||"").trim().toLowerCase()===inputEmail) return true;
+      return false;
+    });
+  };
+  const doSave = () => onSave({...f, estadoCrm:f.estadoCrm||null, origen:f.origen||null});
+  const handleSubmit = () => {
+    if(!f.nombre) return alert("El nombre es obligatorio.");
+    if(f.whatsapp&&(!/^[\d\s+\-().]{7,20}$/.test(f.whatsapp)||f.whatsapp.replace(/\D/g,'').length<7)) return alert("El WhatsApp ingresado no parece válido. Ejemplo: +54 223 1234567");
+    if(isNew) {
+      const found = findDupes(f);
+      if(found.length>0) { setDupes(found); return; }
+    }
+    doSave();
+  };
   return (
     <BottomModal title={cliente?"Editar Cliente":"Nuevo Cliente"} onClose={onClose}>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -624,16 +646,28 @@ function ClienteModal({ onClose, onSave, cliente }) {
           options={[{value:"",label:"— Sin definir —"},{value:"Instagram",label:"📸 Instagram"},{value:"Marketplace",label:"🛒 Marketplace"},{value:"Meta",label:"📣 Meta"},{value:"Recomendación",label:"🤝 Recomendación"},{value:"Otro",label:"📌 Otro"}]} />
       </div>
       <TextArea label="Notas internas" value={f.notasInternas} onChange={set("notasInternas")} placeholder="Comportamiento, preferencias..." rows={2} />
-      <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
-        <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-        <Btn onClick={()=>{
-          if(!f.nombre)return alert("El nombre es obligatorio.");
-          if(f.whatsapp&&(!/^[\d\s+\-().]{7,20}$/.test(f.whatsapp)||f.whatsapp.replace(/\D/g,'').length<7))return alert("El WhatsApp ingresado no parece válido. Ejemplo: +54 223 1234567");
-          onSave({...f, estadoCrm:f.estadoCrm||null, origen:f.origen||null});
-        }}>
-          {cliente?"Guardar":"Agregar cliente"}
-        </Btn>
-      </div>
+      {dupes && dupes.length>0 && (
+        <div style={{background:"#FEF3C7",border:"1px solid #F59E0B",borderRadius:10,padding:"12px 14px",marginTop:8}}>
+          <div style={{fontWeight:700,fontSize:13,color:"#92400E",marginBottom:6}}>⚠️ Ya existe un cliente similar</div>
+          {dupes.map(d=>(
+            <div key={d.id} style={{fontSize:12,color:"#78350F",marginBottom:4,padding:"6px 8px",background:"#FFFBEB",borderRadius:6}}>
+              <span style={{fontWeight:600}}>{d.nombre} {d.apellido||""}</span>
+              {d.whatsapp && <span style={{color:"#92400E"}}> · {d.whatsapp}</span>}
+              {d.estadoCrm && <span style={{color:"#92400E"}}> · {d.estadoCrm}</span>}
+            </div>
+          ))}
+          <div style={{display:"flex",gap:8,marginTop:8}}>
+            <Btn small variant="ghost" onClick={()=>{setDupes(null);onClose();}}>Cancelar</Btn>
+            <Btn small onClick={()=>{setDupes(null);doSave();}}>Crear igual</Btn>
+          </div>
+        </div>
+      )}
+      {!dupes && (
+        <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
+          <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
+          <Btn onClick={handleSubmit}>{cliente?"Guardar":"Agregar cliente"}</Btn>
+        </div>
+      )}
     </BottomModal>
   );
 }
@@ -5403,7 +5437,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {tab==="miplan" && <MiPlanView currentUser={currentUser} onBack={()=>setTab("config")} />}
       {tab==="recordatorios" && <Suspense fallback={<ViewLoader/>}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
-      {tab==="reportes" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} /></Suspense></ErrorBoundary>}
+      {tab==="reportes" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} recursos={recursos} bloqueos={bloqueos} /></Suspense></ErrorBoundary>}
 
       {/* Bottom Tab Bar — oculto en desktop, la nav está en el sidebar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:isDesktop?"none":"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
@@ -5424,7 +5458,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
       {/* Modals */}
       {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} turnosRecurso={turnosRecurso} temporadasPrecio={temporadasPrecio} preciosTemporada={preciosTemporada} />}
-      {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} />}
+      {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} clientes={clientes} />}
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} recursos={recursos} turnosRecurso={turnosRecurso} />}
       {modal==="gasto" && <GastoModal onClose={()=>{setModal(null);setEditGasto(null);}} onSave={handleSaveGasto} gasto={editGasto} />}
       {modal==="extra" && <ExtrasModal onClose={()=>{setModal(null);setExtraReservaId(null);}} onSave={handleSaveExtra} servicios={serviciosExtras} reservaId={extraReservaId} />}
