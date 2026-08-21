@@ -21,9 +21,8 @@ function Estrellas({ n }) {
   return <span style={{fontSize:12}}>{Array.from({length:5},(_,i)=><span key={i} style={{color:i<n?"#F59E0B":"#E5E7EB"}}>★</span>)}</span>;
 }
 
-function SeguimientoTab({ reservas, clientes, recursos }) {
+function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }) {
   const [contactados, setContactados] = useState(new Set());
-  const [descartados, setDescartados] = useState(new Set());
   const [msgLibre, setMsgLibre] = useState(MSG_SEGUIMIENTO_LIBRE);
   const [msgOcupada, setMsgOcupada] = useState(MSG_SEGUIMIENTO_OCUPADA);
   const [editandoMsg, setEditandoMsg] = useState(false);
@@ -42,6 +41,7 @@ function SeguimientoTab({ reservas, clientes, recursos }) {
 
     const canceladasPotenciales = reservas.filter(r => {
       if (r.estado !== "cancelada") return false;
+      if (r.seguimientoDescartado) return false;
       if (!potencialesMap[r.clienteId]) return false;
       if (yaConReservaActiva.has(r.clienteId)) return false;
       if (!r.fechaVisita) return false;
@@ -116,10 +116,7 @@ function SeguimientoTab({ reservas, clientes, recursos }) {
       </div>
 
       {/* Resultados */}
-      {(() => {
-        const visibles = potenciales.filter(p => !descartados.has(p.cliente.id));
-        const countDescartados = potenciales.length - visibles.length;
-        return visibles.length === 0 && countDescartados === 0 ? (
+      {potenciales.length === 0 ? (
         <div style={{textAlign:"center",padding:"40px 0",color:"#8B7355"}}>
           <div style={{fontSize:36,marginBottom:8}}>🟡</div>
           <div style={{fontWeight:600}}>No hay potenciales para seguimiento</div>
@@ -127,17 +124,10 @@ function SeguimientoTab({ reservas, clientes, recursos }) {
         </div>
       ) : (
         <>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <span style={{fontSize:12,color:"#8B7355"}}>
-              {visibles.length} potencial{visibles.length!==1?"es":""} para seguimiento
-            </span>
-            {countDescartados > 0 && (
-              <button onClick={()=>setDescartados(new Set())} style={{fontSize:11,color:"#C4602B",background:"none",border:"none",cursor:"pointer",padding:0,fontWeight:600}}>
-                Restaurar {countDescartados} descartado{countDescartados!==1?"s":""}
-              </button>
-            )}
+          <div style={{fontSize:12,color:"#8B7355",marginBottom:10}}>
+            {potenciales.length} potencial{potenciales.length!==1?"es":""} para seguimiento
           </div>
-          {visibles.map(({ reserva, cliente, recurso, fechaLibre, diasDesdeVisita }) => {
+          {potenciales.map(({ reserva, cliente, recurso, fechaLibre, diasDesdeVisita }) => {
             const waUrl = buildWA({ cliente, reserva, fechaLibre });
             const yaContactado = contactados.has(cliente.id);
             return (
@@ -177,13 +167,14 @@ function SeguimientoTab({ reservas, clientes, recursos }) {
                     ) : (
                       <span style={{fontSize:11,color:"#9CA3AF"}}>Sin WA</span>
                     )}
-                    {yaContactado ? (
+                    {yaContactado && (
                       <button onClick={()=>setContactados(p=>{const n=new Set(p);n.delete(cliente.id);return n;})}
                         style={{fontSize:10,color:"#8B7355",background:"none",border:"none",cursor:"pointer",padding:0}}>
                         deshacer
                       </button>
-                    ) : (
-                      <button onClick={()=>setDescartados(p=>new Set([...p,cliente.id]))}
+                    )}
+                    {!yaContactado && onDescartarSeguimiento && (
+                      <button onClick={()=>onDescartarSeguimiento(reserva)}
                         style={{fontSize:10,color:"#9CA3AF",background:"none",border:"none",cursor:"pointer",padding:0}}>
                         descartar
                       </button>
@@ -194,13 +185,12 @@ function SeguimientoTab({ reservas, clientes, recursos }) {
             );
           })}
         </>
-      );
-      })()}
+      )}
     </div>
   );
 }
 
-export default function RecontactosView({ reservas, clientes, recursos, negocio }) {
+export default function RecontactosView({ reservas, clientes, recursos, negocio, onDescartarSeguimiento }) {
   const [subtab, setSubtab] = useState("recontactos");
   const [mesesSel, setMesesSel] = useState([8, 9]);
   const [calMinima, setCalMinima] = useState(4);
@@ -218,7 +208,7 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio 
     const activos = new Set(reservas.filter(r => ["visita","pendiente","senada","confirmada"].includes(r.estado)).map(r => r.clienteId));
     const seen = new Set();
     return reservas.filter(r => {
-      if (r.estado !== "cancelada" || !potIds.has(r.clienteId) || activos.has(r.clienteId) || !r.fechaVisita || seen.has(r.clienteId)) return false;
+      if (r.estado !== "cancelada" || r.seguimientoDescartado || !potIds.has(r.clienteId) || activos.has(r.clienteId) || !r.fechaVisita || seen.has(r.clienteId)) return false;
       const diff = Math.floor((today - new Date(r.fechaVisita + "T00:00:00")) / (1000*60*60*24));
       if (diff < 7) return false;
       seen.add(r.clienteId);
@@ -291,7 +281,7 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio 
       </div>
 
       {subtab === "seguimiento" && (
-        <SeguimientoTab reservas={reservas} clientes={clientes} recursos={recursos} />
+        <SeguimientoTab reservas={reservas} clientes={clientes} recursos={recursos} onDescartarSeguimiento={onDescartarSeguimiento} />
       )}
 
       {subtab === "recontactos" && (

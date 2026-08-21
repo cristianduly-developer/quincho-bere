@@ -9,7 +9,7 @@ const CRM_BADGE = {
   Cliente:   { bg:"#DCFCE7", color:"#16A34A", border:"#BBF7D0", icon:"🟢" },
 };
 
-export default function ClientesView({ clientes, reservas, onClienteClick, onNewCliente, recursos, negocio }) {
+export default function ClientesView({ clientes, reservas, onClienteClick, onNewCliente, recursos, negocio, onDescartarSeguimiento }) {
   const [tab, setTab] = useState("clientes");
   const [scope, setScope] = useState("all");
   const [search, setSearch] = useState("");
@@ -96,7 +96,7 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
       )}
 
       {tab === "recontactos" && (
-        <RecontactosView reservas={reservas} clientes={clientes} recursos={recursos} negocio={negocio} />
+        <RecontactosView reservas={reservas} clientes={clientes} recursos={recursos} negocio={negocio} onDescartarSeguimiento={onDescartarSeguimiento} />
       )}
     </div>
   );
