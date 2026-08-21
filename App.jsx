@@ -736,11 +736,12 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
   );
 }
 
-function GastoModal({ onClose, onSave }) {
-  const [f,setF] = useState({fecha:toDateStr(new Date()),concepto:"",monto:"",categoria:"Insumos",metodo:"Efectivo"});
+function GastoModal({ onClose, onSave, gasto }) {
+  const isEdit = !!gasto;
+  const [f,setF] = useState(isEdit ? {fecha:gasto.fecha,concepto:gasto.concepto,monto:String(gasto.monto),categoria:gasto.categoria,metodo:gasto.metodo} : {fecha:toDateStr(new Date()),concepto:"",monto:"",categoria:"Insumos",metodo:"Efectivo"});
   const set=k=>v=>setF(p=>({...p,[k]:v}));
   return (
-    <BottomModal title="Registrar Gasto" onClose={onClose}>
+    <BottomModal title={isEdit?"Editar Gasto":"Registrar Gasto"} onClose={onClose}>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         <Input label="Fecha" type="date" value={f.fecha} onChange={set("fecha")} required />
         <Select label="Categoría" value={f.categoria} onChange={set("categoria")}
@@ -748,7 +749,7 @@ function GastoModal({ onClose, onSave }) {
       </div>
       <Input label="Concepto / descripción" value={f.concepto} onChange={set("concepto")} placeholder="Limpieza post-evento, repuestos..." required />
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-        <Input label="Monto ($)" type="number" value={f.monto} onChange={set("monto")} required placeholder="0" />
+        <Input label="Monto ($)" type="number" value={f.monto} onChange={set("monto")} required placeholder="0" onFocus={e=>e.target.select()} />
         <Select label="Método de pago" value={f.metodo} onChange={set("metodo")}
           options={[{value:"Efectivo",label:"💵 Efectivo"},{value:"Transferencia",label:"🏦 Transferencia"}]} />
       </div>
@@ -758,7 +759,7 @@ function GastoModal({ onClose, onSave }) {
           if(!f.concepto||!f.monto)return alert("Completá concepto y monto.");
           if(Number(f.monto)<=0)return alert("El monto debe ser mayor a cero.");
           onSave({...f,monto:Number(f.monto)});
-        }}>Registrar gasto</Btn>
+        }}>{isEdit?"Guardar cambios":"Registrar gasto"}</Btn>
       </div>
     </BottomModal>
   );
@@ -5026,6 +5027,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const [savingReserva,setSavingReserva]=useState(false);
   const [savingPago,setSavingPago]=useState(false);
   const [savingGasto,setSavingGasto]=useState(false);
+  const [editGasto,setEditGasto]=useState(null);
   const [savingExtra,setSavingExtra]=useState(false);
   const handleSaveReserva=async(data)=>{
     if(savingReserva) return;
@@ -5187,8 +5189,19 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const handleSaveGasto=async(data)=>{
     if(savingGasto) return;
     setSavingGasto(true);
-    try{ await saveG([...gastos,{id:genId(),...data,creadoEn:new Date().toISOString()}]); setModal(null); }
-    finally{ setSavingGasto(false); }
+    try{
+      if(editGasto){
+        await saveG(gastos.map(g=>g.id===editGasto.id?{...editGasto,...data}:g));
+        setEditGasto(null);
+      } else {
+        await saveG([...gastos,{id:genId(),...data,creadoEn:new Date().toISOString()}]);
+      }
+      setModal(null);
+    } finally{ setSavingGasto(false); }
+  };
+  const handleDeleteGasto=async(gasto)=>{
+    await saveG(gastos.filter(g=>g.id!==gasto.id));
+    showToast("Gasto eliminado","info");
   };
   const handleSaveExtra=async(data)=>{
     if(savingExtra) return;
@@ -5384,7 +5397,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 }} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} isDesktop={isDesktop} />}
       {tab==="reservas" && <Suspense fallback={<ViewLoader/>}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} turnosRecurso={turnosRecurso} extrasReserva={extrasReserva} bloqueos={bloqueos} onReservaClick={r=>setDetailReserva(r)} onNewReserva={(fecha)=>{setEditReserva(null);if(fecha)setInitDate(fecha);setModal("reserva");}} onCobrar={r=>{setPagoReservaId(r.id);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="clientes" && <Suspense fallback={<ViewLoader/>}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} recursos={recursos} negocio={negocio} onDescartarSeguimiento={(r)=>{const updated={...r,seguimientoDescartado:true};saveR(reservas.map(x=>x.id===r.id?updated:x));showToast("Potencial descartado del seguimiento","info");}} /></Suspense>}
-      {tab==="gastos" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><GastosViewLazy gastos={gastos} onNewGasto={()=>setModal("gasto")} /></Suspense></ErrorBoundary>}
+      {tab==="gastos" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><GastosViewLazy gastos={gastos} onNewGasto={()=>{setEditGasto(null);setModal("gasto");}} onEditGasto={(g)=>{setEditGasto(g);setModal("gasto");}} onDeleteGasto={handleDeleteGasto} /></Suspense></ErrorBoundary>}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} />}
       {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} setTemporadasPrecio={setTemporadasPrecio} setPreciosTemporada={setPreciosTemporada} onGoMiPlan={()=>setTab("miplan")} />}
       {tab==="miplan" && <MiPlanView currentUser={currentUser} onBack={()=>setTab("config")} />}
@@ -5413,7 +5426,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} turnosRecurso={turnosRecurso} temporadasPrecio={temporadasPrecio} preciosTemporada={preciosTemporada} />}
       {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} />}
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} recursos={recursos} turnosRecurso={turnosRecurso} />}
-      {modal==="gasto" && <GastoModal onClose={()=>setModal(null)} onSave={handleSaveGasto} />}
+      {modal==="gasto" && <GastoModal onClose={()=>{setModal(null);setEditGasto(null);}} onSave={handleSaveGasto} gasto={editGasto} />}
       {modal==="extra" && <ExtrasModal onClose={()=>{setModal(null);setExtraReservaId(null);}} onSave={handleSaveExtra} servicios={serviciosExtras} reservaId={extraReservaId} />}
 
       {/* Detail Panels */}
