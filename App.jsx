@@ -1174,7 +1174,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   );
 }
 
-function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
+function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar }) {
   const allRes = reservas.filter(r=>r.clienteId===cliente.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const esVisitaNoConcreto = r => r.estado==="cancelada" && r.fechaVisita;
   const cr = allRes.filter(r=>!esVisitaNoConcreto(r));
@@ -1275,10 +1275,15 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit }) {
             </div>
             {esVisitaNoConcreto && <div style={{fontSize:11,color:"#7C3AED",marginTop:3,fontWeight:600}}>🟣 Visitó el {fmtDate(r.fechaVisita)} — no concretó</div>}
           </div>
-          {esVisitaNoConcreto
-            ? <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:99,background:"#F5F3FF",color:"#7C3AED",border:"1px solid #DDD6FE"}}>Visita</span>
-            : <StatusBadge estado={r.estado} />
-          }
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+            {esVisitaNoConcreto
+              ? <>
+                  <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:99,background:"#F5F3FF",color:"#7C3AED",border:"1px solid #DDD6FE"}}>Visita</span>
+                  {r.fecha>=todayStr && <button onClick={(e)=>{e.stopPropagation();onReactivar(r);}} style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:99,background:"#DCFCE7",color:"#16A34A",border:"1px solid #BBF7D0",cursor:"pointer",fontFamily:"inherit"}}>🔄 Reactivar</button>}
+                </>
+              : <StatusBadge estado={r.estado} />
+            }
+          </div>
         </div>
         );
       })}
@@ -5550,7 +5555,14 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       />}
       {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas}
         onClose={()=>setDetailCliente(null)}
-        onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}} />}
+        onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}}
+        onReactivar={(r)=>{
+          const updated={...r,estado:"pendiente"};
+          saveR(reservas.map(x=>x.id===r.id?updated:x));
+          const cli=clientes.find(c=>c.id===r.clienteId);
+          if(cli&&cli.estadoCrm==="Potencial") saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
+          showToast("Reserva reactivada","success");
+        }} />}
       {currentUser && alertaActiva && <AlertaRecordatorioModal
         alerta={alertaActiva}
         clientes={clientes}
