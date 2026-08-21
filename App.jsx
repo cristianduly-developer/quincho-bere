@@ -5567,8 +5567,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         onClose={()=>setDetailCliente(null)}
         onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}}
         onReactivar={(r)=>{
-          const updated={...r,estado:"pendiente",fechaVisita:null,horaVisita:null,seguimientoDescartado:false};
-          saveR(reservas.map(x=>x.id===r.id?updated:x));
+          saveR(reservas.map(x=>x.id===r.id?{...x,estado:"pendiente",fechaVisita:null,horaVisita:null,seguimientoDescartado:false,motivoNoConcreto:null}:x));
           const cli=clientes.find(c=>c.id===r.clienteId);
           if(cli&&cli.estadoCrm==="Potencial") saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
           showToast("Reserva reactivada","success");
