@@ -5258,8 +5258,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
         // Mail de confirmación si el cliente tiene email y la reserva es Confirmada
         if(data.estado==="Confirmada" || data.estado==="confirmada"){
-          const cli = clientes.find(c=>c.id===data.clienteId);
-          if(cli?.email){
+          supabase.from("clientes").select("nombre,apellido,email").eq("id",data.clienteId).single().then(({data:freshCli})=>{
+            if(!freshCli?.email) return;
             const recurso = recursos.find(r=>r.id===data.recursoId);
             const turno = turnosRecurso.find(t=>t.id===data.turnoId);
             const totalPagos = data.sena ? Number(data.sena) : 0;
@@ -5268,8 +5268,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
               method:"POST",
               headers:{"Content-Type":"application/json",Authorization:`Bearer ${session?.access_token}`},
               body: JSON.stringify({
-                clienteEmail:   cli.email,
-                clienteNombre:  clientName(cli),
+                clienteEmail:   freshCli.email,
+                clienteNombre:  [freshCli.nombre,freshCli.apellido].filter(Boolean).join(" "),
                 negocioNombre:  negocio?.nombreNegocio || "",
                 negocioLogo:    negocio?.logoUrl || "",
                 negocioTelefono:negocio?.telefono || "",
@@ -5288,9 +5288,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 condiciones:    negocio?.condicionesEmail || "",
                 eventoUrl:      nuevaReserva.shareToken ? (window.location.origin + "/evento/" + nuevaReserva.shareToken) : "",
               }),
-            }).catch(()=>{}); // silencioso — no bloquea el flujo
             }).catch(()=>{});
-          }
+            }).catch(()=>{});
+          }).catch(()=>{});
         }
       }
       setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);
@@ -5326,13 +5326,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         if(newEstado!==res.estado || ppLimpiado){
           saveR(reservas.map(r=>r.id===data.reservaId?{...r,estado:newEstado,...(ppLimpiado?{proximoPagoFecha:null,proximoPagoMonto:null}:{})}:r));
           if(newEstado==="senada"||newEstado==="confirmada"){
-            const cli=clientes.find(c=>c.id===res.clienteId);
-            if(cli?.email){
+            supabase.from("clientes").select("nombre,apellido,email").eq("id",res.clienteId).single().then(({data:freshCli})=>{
+              if(!freshCli?.email){ showToast("⚠️ Reserva "+newEstado+", pero el cliente no tiene mail registrado","warn"); return; }
               const recurso=recursos.find(r=>r.id===res.recursoId);
               const turno=turnosRecurso.find(t=>t.id===res.turnoId);
               supabase.auth.getSession().then(({data:{session:s}})=>{
               fetch("/api/mail-reserva",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${s?.access_token}`},body:JSON.stringify({
-                clienteEmail:cli.email,clienteNombre:clientName(cli),
+                clienteEmail:freshCli.email,clienteNombre:[freshCli.nombre,freshCli.apellido].filter(Boolean).join(" "),
                 negocioNombre:negocio?.nombreNegocio||"",negocioLogo:negocio?.logoUrl||"",negocioTelefono:negocio?.telefono||"",
                 espacioNombre:recurso?.nombre||res.turno||"",fecha:res.fecha,
                 turnoNombre:turno?.nombre||res.turno||"",horaInicio:turno?.horaInicio||"",horaFin:turno?.horaFin||"",
@@ -5342,11 +5342,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 condiciones:negocio?.condicionesEmail||"",
                 estado:newEstado,
                 eventoUrl:res.shareToken?(window.location.origin+"/evento/"+res.shareToken):"",
-              })}).then(()=>showToast("📧 Mail enviado a "+cli.email,"ok")).catch(()=>showToast("📧 Mail no se pudo enviar","error"));
+              })}).then(()=>showToast("📧 Mail enviado a "+freshCli.email,"ok")).catch(()=>showToast("📧 Mail no se pudo enviar","error"));
               }).catch(()=>{});
-            } else {
-              showToast("⚠️ Reserva "+newEstado+", pero el cliente no tiene mail registrado","warn");
-            }
+            }).catch(()=>{ showToast("⚠️ Reserva "+newEstado+", pero no se pudo verificar el mail","warn"); });
           }
         }
       }

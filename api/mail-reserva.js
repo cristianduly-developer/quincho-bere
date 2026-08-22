@@ -107,10 +107,15 @@ export default async function handler(req, res) {
         <!-- Portal del cliente -->
         ${eventoUrl ? `
         <div style="background:#EBF5ED;border:1px solid rgba(61,122,74,0.2);border-radius:12px;padding:18px 20px;margin-bottom:24px;text-align:center;">
-          <div style="font-size:28px;margin-bottom:6px;">🔗</div>
-          <div style="font-size:15px;font-weight:800;color:#1C1C1E;margin-bottom:4px;">Portal de tu evento</div>
-          <p style="font-size:13px;color:#5C4033;margin:0 0 14px;">Desde aca podes armar la invitacion para tus invitados, ver pagos, pedir extras y mas.</p>
-          <a href="${esc(eventoUrl.replace('/evento/', '/mi-evento/'))}" target="_blank" style="display:inline-block;padding:12px 28px;background:#C4602B;color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">Abrir portal de mi evento</a>
+          <div style="font-size:28px;margin-bottom:6px;">🎉</div>
+          <div style="font-size:15px;font-weight:800;color:#1C1C1E;margin-bottom:4px;">Tu portal para organizar el evento</div>
+          <p style="font-size:13px;color:#5C4033;margin:0 0 6px;">Tenemos un espacio exclusivo para que organices todo:</p>
+          <div style="text-align:left;max-width:320px;margin:0 auto 14px;">
+            <p style="font-size:13px;color:#3D2B1F;margin:4px 0;">📋 Revisa los datos de tu reserva y pagos</p>
+            <p style="font-size:13px;color:#3D2B1F;margin:4px 0;">🔗 Arma la invitacion y compartila con tus invitados</p>
+            <p style="font-size:13px;color:#3D2B1F;margin:4px 0;">✨ Consulta extras disponibles (DJ, inflables, etc.)</p>
+          </div>
+          <a href="${esc(eventoUrl.replace('/evento/', '/mi-evento/'))}" target="_blank" style="display:inline-block;padding:12px 28px;background:#C4602B;color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">Abrir mi portal</a>
         </div>` : ''}
 
         <!-- Aviso saldo -->
