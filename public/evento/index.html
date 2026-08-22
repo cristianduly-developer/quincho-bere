@@ -562,7 +562,21 @@
 
       // VENUE PHOTOS
       if (sec.fotos_lugar !== false) {
-        html += '<div class="section"><div class="section-head">Conoce el lugar</div><div class="gallery" id="venue-gallery"></div></div>';
+        var venuePhotos = [
+          { src: "/img/lugar/pileta-principal.jpg", alt: "Pileta" },
+          { src: "/img/lugar/pileta-deck.jpg", alt: "Pileta con deck" },
+          { src: "/img/lugar/quincho-interior.jpg", alt: "Quincho interior" },
+          { src: "/img/lugar/exterior-frente.jpg", alt: "Exterior" },
+          { src: "/img/lugar/nocturna-pergola.jpg", alt: "Pergola nocturna" },
+          { src: "/img/lugar/parque-hamacas.jpg", alt: "Parque con juegos" },
+          { src: "/img/lugar/fogon-en-familia.jpg", alt: "Fogon" },
+          { src: "/img/lugar/cumple-pileta.jpg", alt: "Evento en pileta" }
+        ];
+        html += '<div class="section"><div class="section-head">Conoce el lugar</div><div class="event-photos">';
+        venuePhotos.forEach(function(p) {
+          html += '<div class="event-photo"><img src="' + p.src + '" alt="' + p.alt + '" loading="lazy"></div>';
+        });
+        html += '</div></div>';
       }
 
       // EVENT PHOTOS (locked)
