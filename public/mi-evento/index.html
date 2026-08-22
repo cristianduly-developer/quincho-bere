@@ -526,15 +526,6 @@
       html += '</a>';
     }
 
-    // Instagram
-    if (neg.instagram_url) {
-      html += '<a class="card" href="' + esc(neg.instagram_url) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;background:linear-gradient(135deg,#fdf2f8,#fef3e6);border:1.5px solid #e8c9d4">';
-      html += '<span style="font-size:24px">📸</span>';
-      html += '<div style="flex:1"><div style="font-size:14px;font-weight:600;color:#1C1C1E">Seguinos en Instagram</div><div style="font-size:12px;color:#C4602B">No te pierdas las novedades del quincho</div></div>';
-      html += '<span style="font-size:13px;font-weight:700;color:#FFF;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);padding:6px 14px;border-radius:8px;white-space:nowrap">Seguir</span>';
-      html += '</a>';
-    }
-
     // RSVP resumen en Mi Reserva
     html += renderRsvpSection(d);
 
