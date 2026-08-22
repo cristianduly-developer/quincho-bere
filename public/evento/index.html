@@ -361,6 +361,8 @@
   }
 
   function getEventState(fecha) {
+    var preview = new URLSearchParams(window.location.search).get("preview");
+    if (preview === "pre" || preview === "live" || preview === "post") return preview;
     var ev = parseDate(fecha);
     var now = new Date();
     now.setHours(0, 0, 0, 0);
