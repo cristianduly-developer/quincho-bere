@@ -2732,14 +2732,18 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           <button onClick={addTarea} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,padding:"8px 14px",fontWeight:600,cursor:"pointer",fontSize:13,fontFamily:"inherit",whiteSpace:"nowrap"}}>+ Agregar</button>
         </div>
         {tareas.length===0&&<div style={{textAlign:"center",color:"#8B7355",fontSize:13,padding:"12px 0"}}>Sin tareas pendientes ✅</div>}
-        {tareas.filter(t=>t.estado==="pendiente").map(t=>(
+        {tareas.filter(t=>t.estado==="pendiente").map(t=>{
+          const waMatch=t.descripcion.match(/📱(\+?\d[\d\s-]+)/);
+          const displayDesc=waMatch?t.descripcion.replace(/ 📱\+?\d[\d\s-]+/,""):t.descripcion;
+          return (
           <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #EDE0D0"}}>
             <input type="checkbox" checked={false} onChange={()=>toggleTarea(t.id)} style={{width:16,height:16,cursor:"pointer",accentColor:"#C4602B"}} />
-            <span style={{flex:1,fontSize:13,color:"#1C1C1E"}}>{t.descripcion}</span>
+            <span style={{flex:1,fontSize:13,color:"#1C1C1E"}}>{displayDesc}</span>
+            {waMatch&&<a href={"https://wa.me/"+waMatch[1].replace(/[\s-]/g,"")} target="_blank" rel="noopener" style={{padding:"4px 10px",background:"#25D366",color:"#FFF",borderRadius:8,fontSize:11,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>💬 WhatsApp</a>}
             <span style={{fontSize:11,color:"#8B7355"}}>{fmtDate(t.fechaRegistro)}</span>
             <button onClick={()=>deleteTarea(t.id)} style={{background:"none",border:"none",color:"#DC2626",cursor:"pointer",fontSize:14,padding:"0 4px"}}>✕</button>
-          </div>
-        ))}
+          </div>);
+        })}
         {tareas.filter(t=>t.estado==="completada").length>0&&(
           <div style={{marginTop:10}}>
             <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Completadas</div>

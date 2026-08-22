@@ -115,18 +115,20 @@ export default async function handler(req, res) {
 
       const [srvRes, cliRes] = await Promise.all([
         supa.from('servicios_extras').select('descripcion').eq('id', servicio_id).single(),
-        supa.from('clientes').select('nombre, apellido').eq('id', reserva.cliente_id).single(),
+        supa.from('clientes').select('nombre, apellido, whatsapp').eq('id', reserva.cliente_id).single(),
       ])
 
       const cliNombre = [cliRes.data?.nombre, cliRes.data?.apellido].filter(Boolean).join(' ') || 'Cliente'
+      const cliWhatsapp = cliRes.data?.whatsapp || ''
       const srvNombre = srvRes.data?.descripcion || 'Servicio'
       const regaloTag = reserva.regalo_descuento ? ` 🎁 ${reserva.regalo_descuento}` : ''
+      const waTag = cliWhatsapp ? ` 📱${cliWhatsapp}` : ''
       const taskId = Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
 
       await supa.from('tareas').insert({
         id: taskId,
         org_id: reserva.org_id,
-        descripcion: `📦 Solicitud: ${srvNombre} — ${cliNombre} (${reserva.fecha})${regaloTag}${notas ? ' · ' + notas : ''}`,
+        descripcion: `📦 Solicitud: ${srvNombre} — ${cliNombre} (${reserva.fecha})${regaloTag}${waTag}${notas ? ' · ' + notas : ''}`,
         estado: 'pendiente',
         fecha_registro: new Date().toISOString().slice(0, 10),
         creado_en: new Date().toISOString()
