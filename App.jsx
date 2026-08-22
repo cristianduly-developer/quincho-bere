@@ -908,6 +908,14 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   const [shareSaving, setShareSaving] = useState(false);
   const [shareHeroUrl, setShareHeroUrl] = useState(reserva.shareHeroUrl || "");
   const [heroUploading, setHeroUploading] = useState(false);
+  const [showRegaloPicker, setShowRegaloPicker] = useState(false);
+  const REGALO_OPTIONS = [
+    {value:"15% OFF en un servicio extra",emoji:"🎉"},
+    {value:"20% OFF en un servicio extra",emoji:"🔥"},
+    {value:"1 hora extra de regalo",emoji:"⏰"},
+    {value:"10% descuento en tu próximo evento",emoji:"🎟️"},
+    {value:"Con el alquiler del gazebo, 2 livings bonificados",emoji:"🪑"},
+  ];
   const [ppFecha, setPpFecha] = useState(reserva.proximoPagoFecha||"");
   const [ppMonto, setPpMonto] = useState(reserva.proximoPagoMonto||"");
   const cliente = clientes.find(c=>c.id===reserva.clienteId);
@@ -1179,7 +1187,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
               <Btn small variant="ghost" onClick={()=>setConfirmDelete(false)}>No</Btn>
             </div>
         }
-        {reserva.estado!=="cancelada"&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir evento</Btn>}
+        {reserva.estado!=="cancelada"&&negocio?.portalActivo!==false&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir evento</Btn>}
         <Btn small variant="ghost" onClick={onClose}>Cerrar</Btn>
       </div>
 
@@ -1221,6 +1229,50 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                   </div>
                   <div style={{fontSize:11,color:"#A8A29E",marginTop:4}}>Este es el link que el cliente comparte con sus invitados desde su portal.</div>
                 </details>
+
+                {/* Regalito */}
+                <div style={{marginTop:16,padding:14,background:"#FFF8E6",borderRadius:12,border:"1px solid #FFD54F"}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",marginBottom:4}}>🎁 Regalito para el cliente</div>
+                  {reserva.regaloDescuento ? (
+                    <div>
+                      <div style={{fontSize:13,color:"#5C4033",marginBottom:8,lineHeight:1.5}}>
+                        Regalo activo: <strong>{reserva.regaloDescuento}</strong>
+                      </div>
+                      <button onClick={async()=>{
+                        await onSaveShareConfig({regaloDescuento:null,regaloEnviadoEn:null});
+                        showToast("Regalito eliminado","ok");
+                      }} style={{padding:"6px 14px",background:"#EDE0D0",color:"#5C4033",border:"none",borderRadius:8,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                        Quitar regalito
+                      </button>
+                    </div>
+                  ) : !showRegaloPicker ? (
+                    <div>
+                      <div style={{fontSize:12,color:"#8B7355",marginBottom:8,lineHeight:1.5}}>Enviale un descuento sorpresa que aparece como una raspadita en su portal. Ideal para clientes que consultan extras pero no se deciden.</div>
+                      <button onClick={()=>setShowRegaloPicker(true)} style={{padding:"8px 16px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                        🎁 Enviar regalito
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{fontSize:12,color:"#5C4033",marginBottom:10}}>Elegí el regalo (válido por 72 hs):</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        {REGALO_OPTIONS.map(opt=>(
+                          <button key={opt.value} onClick={async()=>{
+                            await onSaveShareConfig({regaloDescuento:opt.value,regaloEnviadoEn:new Date().toISOString()});
+                            setShowRegaloPicker(false);
+                            showToast("🎁 Regalito enviado","ok");
+                          }} style={{padding:"10px 14px",background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:10,cursor:"pointer",fontFamily:"inherit",fontSize:13,textAlign:"left",display:"flex",alignItems:"center",gap:8,transition:"border-color 0.15s"}}>
+                            <span style={{fontSize:18}}>{opt.emoji}</span>
+                            <span style={{fontWeight:600,color:"#1C1C1E"}}>{opt.value}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <button onClick={()=>setShowRegaloPicker(false)} style={{marginTop:8,padding:"6px 14px",background:"none",border:"none",color:"#8B7355",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
@@ -3560,7 +3612,7 @@ function MiPlanView({ currentUser, onBack }) {
 }
 
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio, setPreciosTemporada, onGoMiPlan }) {
-  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"", googleReviewUrl: negocio?.googleReviewUrl||"", wifiPassword: negocio?.wifiPassword||"" });
+  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"", googleReviewUrl: negocio?.googleReviewUrl||"", wifiPassword: negocio?.wifiPassword||"", portalActivo: negocio?.portalActivo!==false });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
   const [open, setOpen] = useState("negocio");
@@ -3569,10 +3621,10 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const toggle = s => setOpen(o => o===s ? null : s);
 
   const handleSaveNegocio = async () => {
-    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail, google_review_url: negForm.googleReviewUrl, wifi_password: negForm.wifiPassword };
+    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail, google_review_url: negForm.googleReviewUrl, wifi_password: negForm.wifiPassword, portal_activo: negForm.portalActivo };
     const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
     if (error) { alert("Error al guardar: " + error.message); return; }
-    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail, googleReviewUrl: negForm.googleReviewUrl, wifiPassword: negForm.wifiPassword });
+    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail, googleReviewUrl: negForm.googleReviewUrl, wifiPassword: negForm.wifiPassword, portalActivo: negForm.portalActivo });
     setNegSaved(true);
     setTimeout(()=>setNegSaved(false), 2000);
   };
@@ -3735,7 +3787,28 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
         )}
       </div>
 
-      {/* 5 ── SERVICIOS EXTRAS ── */}
+      {/* 5 ── PORTAL DEL EVENTO ── */}
+      <div style={{...card, padding:16}}>
+        <SectionHeader id="portal" icon="🔗" title="Portal del Evento" subtitle={negForm.portalActivo?"✅ Activo":"⏸ Inactivo"} />
+        {open==="portal" && (
+          <div style={{marginTop:16}}>
+            <div style={{fontSize:12,color:"#8B7355",marginBottom:14,lineHeight:1.5}}>Cuando está activo, cada reserva puede generar un link exclusivo para el cliente. Desde ahí configura su invitación, recibe confirmaciones de asistencia, y consulta extras.</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>🔗 Portal del evento</div>
+                <div style={{fontSize:11,color:"#8B7355"}}>Permite compartir el evento con clientes</div>
+              </div>
+              <button onClick={()=>setNegForm(p=>({...p,portalActivo:!p.portalActivo}))}
+                style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.portalActivo?"#16A34A":"#EDE0D0",color:negForm.portalActivo?"#FFF":"#8B7355",flexShrink:0,marginLeft:8}}>
+                {negForm.portalActivo?"✅ Activo":"Inactivo"}
+              </button>
+            </div>
+            <SaveBtn />
+          </div>
+        )}
+      </div>
+
+      {/* 6 ── SERVICIOS EXTRAS ── */}
       <div style={{...card, padding:16, opacity:planLimits.serviciosExtras===false?0.7:1}}>
         <SectionHeader id="extras" icon="✨" title="Servicios Extras" subtitle={planLimits.serviciosExtras===false?"No disponible en tu plan":`${serviciosExtras.length} servicio${serviciosExtras.length!==1?"s":""}`} />
         {open==="extras" && (
@@ -5126,10 +5199,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null,regaloDescuento:x.regalo_descuento||null,regaloEnviadoEn:x.regalo_enviado_en||null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",estadoCrm:x.estado_crm||null,origen:x.origen||null,creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
-    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||"",wifiPassword:cfgData.wifi_password||""});
+    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||"",wifiPassword:cfgData.wifi_password||"",portalActivo:cfgData.portal_activo!==false});
     if(!rc?.length && orgId) setOnboarding(true);
 
     // ── TIER 2: diferido — carga en background sin bloquear el render ─
@@ -5187,7 +5260,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     setRecursos([]); setTurnosRecurso([]); setExtrasReserva([]);
     setServiciosExtras(DEFAULT_SERVICIOS); setTareas([]); setBloqueos([]);
     setRecordatorios([]); setTemporadasPrecio([]); setPreciosTemporada([]);
-    setNegocio({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true });
+    setNegocio({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true, portalActivo:true });
     lsRemove("qb_user");
     lsRemove("qb_access_token");
     lsRemove(`sb-${SUPA_URL.split("//")[1].split(".")[0]}-auth-token`);
@@ -5286,7 +5359,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 metodoPago:     data.metodoPago || "",
                 notas:          data.notas || "",
                 condiciones:    negocio?.condicionesEmail || "",
-                eventoUrl:      nuevaReserva.shareToken ? (window.location.origin + "/evento/" + nuevaReserva.shareToken) : "",
+                eventoUrl:      negocio?.portalActivo!==false && nuevaReserva.shareToken ? (window.location.origin + "/evento/" + nuevaReserva.shareToken) : "",
               }),
             }).catch(()=>{});
             }).catch(()=>{});
@@ -5341,7 +5414,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 metodoPago:data.metodo||"",notas:res.notas||"",
                 condiciones:negocio?.condicionesEmail||"",
                 estado:newEstado,
-                eventoUrl:res.shareToken?(window.location.origin+"/evento/"+res.shareToken):"",
+                eventoUrl:negocio?.portalActivo!==false&&res.shareToken?(window.location.origin+"/evento/"+res.shareToken):"",
               })}).then(()=>showToast("📧 Mail enviado a "+freshCli.email,"ok")).catch(()=>showToast("📧 Mail no se pudo enviar","error"));
               }).catch(()=>{});
             }).catch(()=>{ showToast("⚠️ Reserva "+newEstado+", pero no se pudo verificar el mail","warn"); });

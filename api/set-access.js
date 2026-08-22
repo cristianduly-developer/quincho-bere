@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     if (action === 'portal-data') {
       const { data: reserva, error: rErr } = await supa
         .from('reservas')
-        .select('id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, share_sections, share_message, share_theme, share_hero_url')
+        .select('id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, share_sections, share_message, share_theme, share_hero_url, regalo_descuento, regalo_enviado_en')
         .eq('share_token', tkn)
         .single()
 
@@ -65,6 +65,8 @@ export default async function handler(req, res) {
           share_message: reserva.share_message || '',
           share_theme: reserva.share_theme || 'verde',
           share_hero_url: reserva.share_hero_url,
+          regalo_descuento: reserva.regalo_descuento || null,
+          regalo_enviado_en: reserva.regalo_enviado_en || null,
         },
         negocio: configRes.data || {},
         cliente: clienteRes.data || {},
@@ -108,7 +110,7 @@ export default async function handler(req, res) {
       if (!servicio_id) return res.status(400).json({ ok: false, error: 'servicio_id required' })
 
       const { data: reserva } = await supa
-        .from('reservas').select('id, org_id, fecha, cliente_id').eq('share_token', tkn).single()
+        .from('reservas').select('id, org_id, fecha, cliente_id, regalo_descuento').eq('share_token', tkn).single()
       if (!reserva) return res.status(404).json({ ok: false, error: 'not_found' })
 
       const [srvRes, cliRes] = await Promise.all([
@@ -118,12 +120,13 @@ export default async function handler(req, res) {
 
       const cliNombre = [cliRes.data?.nombre, cliRes.data?.apellido].filter(Boolean).join(' ') || 'Cliente'
       const srvNombre = srvRes.data?.descripcion || 'Servicio'
+      const regaloTag = reserva.regalo_descuento ? ` 🎁 ${reserva.regalo_descuento}` : ''
       const taskId = Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
 
       await supa.from('tareas').insert({
         id: taskId,
         org_id: reserva.org_id,
-        descripcion: `📦 Solicitud: ${srvNombre} — ${cliNombre} (${reserva.fecha})${notas ? ' · ' + notas : ''}`,
+        descripcion: `📦 Solicitud: ${srvNombre} — ${cliNombre} (${reserva.fecha})${regaloTag}${notas ? ' · ' + notas : ''}`,
         estado: 'pendiente',
         fecha_registro: new Date().toISOString().slice(0, 10),
         creado_en: new Date().toISOString()
