@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       if (rErr || !reserva) return res.status(404).json({ ok: false, error: 'not_found' })
 
       const [configRes, rsvpRes, fotosRes, pagosRes, serviciosRes, extrasRes, clienteRes] = await Promise.all([
-        supa.from('config').select('nombre_negocio, logo_url, telefono, direccion, wifi_password, google_review_url, condiciones_email').eq('org_id', reserva.org_id).single(),
+        supa.from('config').select('nombre_negocio, logo_url, telefono, direccion, wifi_password, google_review_url, condiciones_email, instagram_url').eq('org_id', reserva.org_id).single(),
         supa.from('evento_rsvp').select('nombre, cantidad, estado, creado_en').eq('reserva_id', reserva.id).order('creado_en'),
         supa.from('evento_fotos').select('url, creado_en').eq('reserva_id', reserva.id).order('creado_en'),
         supa.from('pagos').select('monto, fecha, metodo').eq('reserva_id', reserva.id).order('fecha'),
