@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Evento</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" />
+  <style>
+    :root {
+      --bg: #F6F2EC;
+      --surface: #FFFFFF;
+      --surface-warm: #FBF7F1;
+      --text: #1C1917;
+      --text-sub: #57534E;
+      --text-muted: #A8A29E;
+      --accent: #C4602B;
+      --accent-hover: #B5551F;
+      --green: #3D7A4A;
+      --green-bg: #EBF5ED;
+      --green-border: rgba(61,122,74,0.2);
+      --gold: #A68A3E;
+      --gold-bg: #FAF5E8;
+      --gold-border: rgba(166,138,62,0.2);
+      --border: #E7E0D6;
+      --border-light: #F0EBE3;
+      --hero-ground: #1A3328;
+      --shadow-sm: 0 1px 3px rgba(28,14,8,0.06);
+      --shadow-md: 0 4px 16px rgba(28,14,8,0.08);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #171310; --surface: #211C17; --surface-warm: #281F18;
+        --text: #EDE8E1; --text-sub: #B5AA9A; --text-muted: #6D6560;
+        --accent: #E07A42; --accent-hover: #D06A32;
+        --green: #5FAA6E; --green-bg: #1A2B1E; --green-border: rgba(95,170,110,0.2);
+        --gold: #CCA84E; --gold-bg: #262015; --gold-border: rgba(204,168,78,0.2);
+        --border: #332C24; --border-light: #2A241D; --hero-ground: #0E1F16;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.15); --shadow-md: 0 4px 16px rgba(0,0,0,0.2);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #171310; --surface: #211C17; --surface-warm: #281F18;
+      --text: #EDE8E1; --text-sub: #B5AA9A; --text-muted: #6D6560;
+      --accent: #E07A42; --accent-hover: #D06A32;
+      --green: #5FAA6E; --green-bg: #1A2B1E; --green-border: rgba(95,170,110,0.2);
+      --gold: #CCA84E; --gold-bg: #262015; --gold-border: rgba(204,168,78,0.2);
+      --border: #332C24; --border-light: #2A241D; --hero-ground: #0E1F16;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.15); --shadow-md: 0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;max-width:440px;margin:0 auto;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+    /* LOADING */
+    .loading{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:12px}
+    .loading-spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+    .loading-text{font-size:13px;color:var(--text-muted)}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ERROR */
+    .error-page{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:8px;padding:40px;text-align:center}
+    .error-page h2{font-family:'Playfair Display',Georgia,serif;font-size:22px}
+    .error-page p{font-size:14px;color:var(--text-muted)}
+
+    /* HERO */
+    .hero{position:relative;min-height:400px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 28px 36px}
+    .hero-bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .hero-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.55)}
+    .hero-dots{position:absolute;inset:0;opacity:0.06}
+    .hero-glow{position:absolute;width:300px;height:300px;border-radius:50%;top:-60px;right:-80px;background:radial-gradient(circle,rgba(196,96,43,0.25) 0%,transparent 70%);pointer-events:none}
+    .hero-glow-2{position:absolute;width:250px;height:250px;border-radius:50%;bottom:-40px;left:-60px;background:radial-gradient(circle,rgba(166,138,62,0.15) 0%,transparent 70%);pointer-events:none}
+
+    .hero-logo{position:relative;z-index:2;margin-top:32px;margin-bottom:auto;display:flex;align-items:center;gap:10px}
+    .hero-logo-mark{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .hero-logo-mark img{width:100%;height:100%;object-fit:cover}
+    .hero-logo-text{font-family:'Playfair Display',Georgia,serif;font-size:14px;font-weight:500;color:rgba(255,255,255,0.55);letter-spacing:0.03em}
+
+    .hero-center{position:relative;z-index:2;text-align:center;margin-bottom:8px}
+    .hero-invited{font-size:12px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:20px}
+    .hero-line{width:40px;height:1px;background:rgba(255,255,255,0.15);margin:0 auto 20px}
+    .hero-event-name{font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:42px;color:#FFF;line-height:1.05;text-wrap:balance;margin-bottom:8px}
+    .hero-event-type{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-weight:400;font-size:16px;color:rgba(255,255,255,0.45);margin-bottom:24px}
+    .hero-deco{width:100%;display:flex;align-items:center;gap:12px;margin-bottom:4px}
+    .hero-deco-line{flex:1;height:1px;background:rgba(255,255,255,0.1)}
+    .hero-deco-diamond{width:6px;height:6px;background:rgba(196,96,43,0.6);transform:rotate(45deg);flex-shrink:0}
+
+    .hero-info-strip{position:relative;z-index:2;display:flex;width:100%;gap:1px;margin-top:20px}
+    .hero-info-block{flex:1;text-align:center;padding:14px 8px;background:rgba(255,255,255,0.06);backdrop-filter:blur(8px)}
+    .hero-info-block:first-child{border-radius:12px 0 0 12px}
+    .hero-info-block:last-child{border-radius:0 12px 12px 0}
+    .hero-info-label{font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:4px}
+    .hero-info-value{font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:600;color:#FFF;line-height:1.2}
+    .hero-info-sub{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px}
+
+    /* CONTENT */
+    .content{padding:24px 20px 160px}
+
+    /* RSVP */
+    .rsvp{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px 20px;margin-bottom:20px;box-shadow:var(--shadow-md)}
+    .rsvp-header{text-align:center;margin-bottom:18px}
+    .rsvp-header h3{font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .rsvp-header p{font-size:13px;color:var(--text-muted)}
+    .rsvp-form{display:flex;flex-direction:column;gap:10px}
+    .rsvp-input{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--surface-warm);color:var(--text);outline:none;transition:border-color .2s;box-sizing:border-box}
+    .rsvp-input:focus{border-color:var(--accent)}
+    .rsvp-input::placeholder{color:var(--text-muted)}
+    .rsvp-row{display:flex;gap:8px;align-items:center}
+    .rsvp-row .rsvp-input{flex:1}
+    .rsvp-row-hint{font-size:12px;color:var(--text-muted);white-space:nowrap;padding-right:4px}
+    .rsvp-btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .2s,transform .15s;margin-top:2px}
+    .rsvp-btn:active{transform:scale(.98)}
+    .rsvp-btn-yes{background:var(--accent);color:#FFF}
+    .rsvp-btn-yes:hover{background:var(--accent-hover)}
+    .rsvp-btn-no{background:none;color:var(--text-muted);padding:8px;margin-top:0;font-size:13px;font-weight:400}
+    .rsvp-btn-no:hover{color:var(--text-sub)}
+    .rsvp-divider{height:1px;background:var(--border-light);margin:18px 0 14px}
+    .rsvp-confirmed-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+    .rsvp-guests{display:flex;flex-wrap:wrap;gap:6px}
+    .rsvp-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 5px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:20px;font-size:12px;font-weight:600;color:var(--green)}
+    .rsvp-chip.declined{background:#FEF2F2;border-color:rgba(220,38,38,0.15);color:#DC2626}
+    .rsvp-avatar{width:22px;height:22px;border-radius:50%;background:var(--green);color:#FFF;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+    .rsvp-chip.declined .rsvp-avatar{background:#DC2626}
+    .rsvp-total{font-size:12px;color:var(--text-muted);margin-top:10px}
+    .rsvp-total strong{color:var(--text);font-weight:700}
+    .rsvp-done{text-align:center;padding:24px 0}
+    .rsvp-done-icon{font-size:40px;margin-bottom:8px}
+    .rsvp-done-title{font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:var(--green);margin-bottom:4px}
+    .rsvp-done-sub{font-size:13px;color:var(--text-muted)}
+
+    /* ORG MESSAGE */
+    .org-msg{display:flex;gap:12px;padding:16px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--radius);margin-bottom:20px}
+    .org-msg-ico{width:40px;height:40px;border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:var(--shadow-sm)}
+    .org-msg-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+    .org-msg-text{font-size:14px;color:var(--text);line-height:1.4}
+
+    /* COUNTDOWN */
+    .countdown{display:flex;gap:8px;margin-bottom:20px}
+    .cd-box{flex:1;text-align:center;padding:14px 8px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--radius)}
+    .cd-num{font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;color:var(--text);line-height:1}
+    .cd-label{font-size:10px;font-weight:600;color:var(--gold);margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
+
+    /* SECTION */
+    .section{margin-bottom:20px}
+    .section-head{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:12px}
+
+    /* INCLUDES */
+    .includes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .inc{display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+    .inc-ico{width:34px;height:34px;border-radius:9px;background:var(--surface-warm);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+    .inc span{font-size:12px;font-weight:600;color:var(--text);line-height:1.3}
+
+    /* WIFI */
+    .wifi{display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);margin-bottom:20px;cursor:pointer;transition:transform .15s}
+    .wifi:active{transform:scale(.98)}
+    .wifi.locked{background:var(--surface-warm);border-color:var(--border);cursor:default;opacity:.7}
+    .wifi.locked:active{transform:none}
+    .wifi-ico{width:48px;height:48px;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;box-shadow:var(--shadow-sm)}
+    .wifi-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:2px}
+    .wifi.locked .wifi-lbl{color:var(--text-muted)}
+    .wifi-val{font-size:18px;font-weight:700;color:var(--text);letter-spacing:.04em}
+    .wifi.locked .wifi-val{font-size:14px;color:var(--text-muted);letter-spacing:0}
+    .wifi-hint{font-size:11px;color:var(--text-muted);margin-top:1px}
+
+    /* RULES */
+    .rules{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+    .rule-row{display:flex;align-items:center;gap:12px;padding:12px 16px}
+    .rule-row+.rule-row{border-top:1px solid var(--border-light)}
+    .rule-row span:first-child{font-size:15px;flex-shrink:0}
+    .rule-row span:last-child{font-size:13px;color:var(--text-sub);line-height:1.35}
+
+    /* GALLERY */
+    .gallery{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px}
+    .gallery::-webkit-scrollbar{display:none}
+    .gallery-card{width:180px;height:240px;border-radius:14px;flex-shrink:0;position:relative;overflow:hidden;background:var(--border)}
+    .gallery-card img{width:100%;height:100%;object-fit:cover}
+    .gallery-card-label{position:absolute;bottom:0;left:0;right:0;padding:30px 14px 12px;background:linear-gradient(to top,rgba(0,0,0,.6),transparent);font-size:12px;font-weight:700;color:#FFF}
+
+    /* UPLOAD */
+    .upload-section{margin-top:12px}
+    .upload{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1.5px dashed var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .2s}
+    .upload:hover{border-color:var(--accent)}
+    .upload.locked{opacity:.6;cursor:default;border-style:solid}
+    .upload.locked:hover{border-color:var(--border)}
+    .upload-ico{width:42px;height:42px;border-radius:10px;background:var(--surface-warm);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+    .upload strong{font-size:13px;color:var(--text);display:block}
+    .upload small{font-size:11px;color:var(--text-muted)}
+    .locked-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:var(--surface-warm);border:1px solid var(--border);border-radius:20px;font-size:11px;font-weight:600;color:var(--text-muted)}
+    .section-head-row{display:flex;align-items:center;justify-content:space-between}
+
+    /* EVENT PHOTOS GRID */
+    .event-photos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
+    .event-photo{aspect-ratio:1;border-radius:10px;overflow:hidden;position:relative;background:var(--border)}
+    .event-photo img{width:100%;height:100%;object-fit:cover}
+
+    /* REVIEW */
+    .review{display:flex;align-items:center;gap:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;text-decoration:none;transition:transform .15s,box-shadow .15s;color:inherit}
+    .review:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+    .review:active{transform:scale(.98)}
+    .review-stars{width:44px;height:44px;border-radius:12px;background:#FFF8E1;border:1px solid rgba(255,193,7,.2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+    .review-label{font-size:14px;font-weight:700;color:var(--text);line-height:1.3}
+    .review-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
+    .review-arrow{margin-left:auto;font-size:18px;color:var(--text-muted);flex-shrink:0}
+
+    /* CTA */
+    .cta-book{border-radius:18px;padding:28px 24px;text-align:center;margin-bottom:20px;position:relative;overflow:hidden}
+    .cta-book-glow{position:absolute;width:200px;height:200px;border-radius:50%;top:-60px;right:-40px;background:radial-gradient(circle,rgba(196,96,43,.2) 0%,transparent 70%);pointer-events:none}
+    .cta-book-eyebrow{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:8px;position:relative}
+    .cta-book h3{font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;color:#FFF;line-height:1.2;text-wrap:balance;margin-bottom:6px;position:relative}
+    .cta-book p{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:18px;position:relative}
+    .cta-book-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:var(--accent);color:#FFF;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;position:relative;transition:transform .15s}
+    .cta-book-btn:hover{transform:translateY(-1px)}
+
+    /* FOOTER */
+    .foot{text-align:center;padding:16px 0 4px;border-top:1px solid var(--border-light)}
+    .foot-logo{width:36px;height:36px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;background:linear-gradient(135deg,var(--accent),#9E4A1E)}
+    .foot-logo img{width:100%;height:100%;object-fit:cover}
+    .foot-name{font-family:'Playfair Display',Georgia,serif;font-size:13px;color:var(--text-muted)}
+
+    /* STICKY */
+    .sticky{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;padding:10px 20px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 60%,transparent);z-index:10}
+    .sticky a{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:var(--accent);color:#FFF;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:inherit;text-decoration:none;box-shadow:0 4px 20px rgba(196,96,43,.3);transition:transform .15s}
+    .sticky a:active{transform:scale(.98)}
+
+    /* TOAST */
+    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:10px 20px;background:var(--green);color:#FFF;border-radius:10px;font-size:13px;font-weight:600;z-index:100;opacity:0;transition:opacity .3s;pointer-events:none}
+    .toast.show{opacity:1}
+
+    /* HIDE UTILITY */
+    .hidden{display:none!important}
+
+    /* UPLOADING */
+    .upload-progress{margin-top:8px;padding:10px 14px;background:var(--surface-warm);border-radius:10px;font-size:12px;color:var(--text-sub);display:flex;align-items:center;gap:8px}
+    .upload-progress .loading-spinner{width:16px;height:16px;border-width:2px}
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Cargando evento...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  // ─── CONFIG ───
+  var SUPA_URL = "https://pmohyepcqfvkwijmljee.supabase.co";
+  var SUPA_KEY = "sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
+
+  var THEMES = {
+    verde:   { hero: "#1A3328", heroDark: "#0E1F16" },
+    azul:    { hero: "#1A2840", heroDark: "#0E1828" },
+    rosa:    { hero: "#3D1A2E", heroDark: "#28101E" },
+    dorado:  { hero: "#2E2510", heroDark: "#1E1808" },
+    negro:   { hero: "#1A1A1A", heroDark: "#111111" },
+    borgona: { hero: "#3D1A1A", heroDark: "#281010" }
+  };
+
+  var AMENITIES = [
+    { icon: "🏊", label: "Pileta 8x3m" },
+    { icon: "🏠", label: "Quincho cerrado" },
+    { icon: "🔥", label: "Fogon y asador" },
+    { icon: "🌳", label: "Pergola" },
+    { icon: "🏓", label: "Ping pong" },
+    { icon: "📺", label: "TV y WiFi" },
+    { icon: "🍽️", label: "Vajilla completa" },
+    { icon: "🌿", label: "Parque con juegos" }
+  ];
+
+  var RULES = [
+    { icon: "🔊", text: "Volumen moderado. Sin DJs ni bandas" },
+    { icon: "🚪", text: "Puerta cerrada en todo momento" },
+    { icon: "🚗", text: "No ingresar vehiculos al predio" },
+    { icon: "🐾", text: "Sin pirotecnia ni mascotas" },
+    { icon: "🎊", text: "Prohibido globos con confeti, papel picado, bombuchas o inflables con agua" },
+    { icon: "🏊", text: "Pileta: responsabilidad del contratante — supervisar a los chicos" },
+    { icon: "🕐", text: "Cumplir horarios. Decorar y limpiar dentro del turno. Tolerancia max: 15 min" },
+    { icon: "🧹", text: "Entregar ordenado: recoger residuos, lavar vajilla, reacomodar mobiliario" }
+  ];
+
+  var DAYS = ["Dom","Lun","Mar","Mie","Jue","Vie","Sab"];
+  var MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  // ─── HELPERS ───
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+  function showToast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(function() { t.classList.remove("show"); }, 2500);
+  }
+
+  function parseDate(s) {
+    var p = s.split("-");
+    return new Date(+p[0], +p[1] - 1, +p[2]);
+  }
+
+  function isEventDay(fecha) {
+    var ev = parseDate(fecha);
+    var now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now.getTime() >= ev.getTime();
+  }
+
+  function isExpired(fecha) {
+    var ev = parseDate(fecha);
+    ev.setDate(ev.getDate() + 10);
+    var now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now.getTime() > ev.getTime();
+  }
+
+  function supa(method, path, body) {
+    var h = { "Content-Type": "application/json", "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY };
+    if (method === "POST" && !path.startsWith("rpc/")) h["Prefer"] = "return=minimal";
+    var opts = { method: method, headers: h };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(SUPA_URL + "/rest/v1/" + path, opts).then(function(r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      var ct = r.headers.get("content-type") || "";
+      return ct.indexOf("json") !== -1 ? r.json() : null;
+    });
+  }
+
+  function supaRpc(fn, params) {
+    return supa("POST", "rpc/" + fn, params);
+  }
+
+  // ─── GET TOKEN FROM URL ───
+  var pathParts = window.location.pathname.split("/").filter(Boolean);
+  var token = pathParts.length >= 2 ? pathParts[pathParts.length - 1] : null;
+
+  if (!token) {
+    $("app").innerHTML = '<div class="error-page"><h2>Link invalido</h2><p>Este link no es valido. Verifica que lo hayas copiado completo.</p></div>';
+    return;
+  }
+
+  // ─── LOAD EVENT ───
+  supaRpc("get_evento_compartido", { p_token: token }).then(function(data) {
+    if (!data || !data.id) {
+      $("app").innerHTML = '<div class="error-page"><h2>Evento no encontrado</h2><p>Este evento ya no esta disponible o el link es incorrecto.</p></div>';
+      return;
+    }
+
+    if (isExpired(data.fecha)) {
+      $("app").innerHTML = '<div class="error-page"><h2>Evento finalizado</h2><p>Este link ya no esta disponible.<br>Las fotos y datos se eliminan 10 dias despues del evento.</p></div>';
+      return;
+    }
+
+    document.title = (data.nombre_evento || "Evento") + " — " + ((data.negocio || {}).nombre || "");
+    render(data);
+  }).catch(function() {
+    $("app").innerHTML = '<div class="error-page"><h2>Error de conexion</h2><p>No pudimos cargar el evento. Intenta de nuevo.</p></div>';
+  });
+
+  // ─── RENDER ───
+  function render(ev) {
+    var sec = ev.share_sections || {};
+    var theme = THEMES[ev.share_theme] || THEMES.verde;
+    var heroColor = theme.hero;
+    var eventDay = isEventDay(ev.fecha);
+    var evDate = parseDate(ev.fecha);
+    var neg = ev.negocio || {};
+    var rsvpList = ev.rsvp || [];
+    var confirmed = rsvpList.filter(function(r) { return r.estado === "confirmado"; });
+    var totalConf = confirmed.reduce(function(s, r) { return s + r.cantidad; }, 0);
+
+    var heroStyle = 'background:' + heroColor;
+    var hasHeroImg = !!ev.share_hero_url;
+
+    var html = '';
+
+    // ── HERO ──
+    html += '<div class="hero" style="' + heroStyle + '">';
+    if (hasHeroImg) {
+      html += '<img class="hero-bg-img" src="' + esc(ev.share_hero_url) + '" alt="" />';
+      html += '<div class="hero-overlay"></div>';
+    } else {
+      html += '<svg class="hero-dots" viewBox="0 0 440 420" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.8" fill="white"/></pattern></defs><rect width="440" height="420" fill="url(#dots)"/></svg>';
+      html += '<div class="hero-glow"></div><div class="hero-glow-2"></div>';
+    }
+
+    html += '<div class="hero-logo">';
+    if (neg.logo_url) {
+      html += '<div class="hero-logo-mark"><img src="' + esc(neg.logo_url) + '" alt=""></div>';
+    }
+    html += '<span class="hero-logo-text">' + esc(neg.nombre || "") + '</span></div>';
+
+    html += '<div class="hero-center">';
+    html += '<div class="hero-invited">Te invitaron a</div>';
+    html += '<div class="hero-line"></div>';
+    html += '<div class="hero-event-name">' + esc(ev.nombre_evento || "Evento") + '</div>';
+    if (ev.tipo_evento) html += '<div class="hero-event-type">' + esc(ev.tipo_evento) + '</div>';
+    html += '<div class="hero-deco"><div class="hero-deco-line"></div><div class="hero-deco-diamond"></div><div class="hero-deco-line"></div></div>';
+    html += '</div>';
+
+    var dayName = DAYS[evDate.getDay()];
+    var dayNum = evDate.getDate();
+    var monthName = MONTHS[evDate.getMonth()];
+    var year = evDate.getFullYear();
+
+    html += '<div class="hero-info-strip">';
+    html += '<div class="hero-info-block"><div class="hero-info-label">Fecha</div><div class="hero-info-value">' + dayName + ' ' + dayNum + '</div><div class="hero-info-sub">' + monthName + ' ' + year + '</div></div>';
+    html += '<div class="hero-info-block"><div class="hero-info-label">Horario</div><div class="hero-info-value">' + esc(ev.horario || "") + ' a ' + esc(ev.horario_fin || "") + '</div><div class="hero-info-sub">Turno ' + esc(ev.turno || "") + '</div></div>';
+    html += '<div class="hero-info-block"><div class="hero-info-label">Invitados</div><div class="hero-info-value">' + (ev.cant_invitados || 0) + '</div><div class="hero-info-sub">personas</div></div>';
+    html += '</div></div>';
+
+    // ── CONTENT ──
+    html += '<div class="content">';
+
+    // RSVP
+    if (sec.rsvp !== false) {
+      html += '<div class="rsvp" id="rsvp-card">';
+      html += '<div class="rsvp-header"><h3>Confirma tu asistencia</h3><p>Asi organizamos mejor el evento</p></div>';
+      html += '<div id="rsvp-form"><div class="rsvp-form">';
+      html += '<input class="rsvp-input" type="text" placeholder="Tu nombre" id="rsvp-name">';
+      html += '<div class="rsvp-row"><input class="rsvp-input" type="number" placeholder="Personas" min="1" max="10" value="1" id="rsvp-count" style="text-align:center"><div class="rsvp-row-hint">vos incluido</div></div>';
+      html += '<button class="rsvp-btn rsvp-btn-yes" id="btn-confirm">Confirmo que voy</button>';
+      html += '<button class="rsvp-btn rsvp-btn-no" id="btn-decline">No puedo ir esta vez</button>';
+      html += '</div></div>';
+      html += '<div class="rsvp-divider"></div>';
+      html += '<div class="rsvp-confirmed-label"><span>✅</span> Confirmados</div>';
+      html += '<div class="rsvp-guests" id="guest-list">';
+      rsvpList.forEach(function(g) {
+        var cls = g.estado === "declinado" ? " declined" : "";
+        html += '<div class="rsvp-chip' + cls + '"><div class="rsvp-avatar">' + esc(g.nombre.charAt(0).toUpperCase()) + '</div>' + esc(g.nombre) + ' · ' + g.cantidad + '</div>';
+      });
+      html += '</div>';
+      html += '<div class="rsvp-total" id="rsvp-total"><strong>' + totalConf + '</strong> personas confirmadas de ' + (ev.cant_invitados || 0) + ' invitados</div>';
+      html += '</div>';
+    }
+
+    // COUNTDOWN
+    if (sec.countdown !== false && !eventDay) {
+      html += '<div class="countdown" id="countdown">';
+      html += '<div class="cd-box"><div class="cd-num" id="cd-d">0</div><div class="cd-label">Dias</div></div>';
+      html += '<div class="cd-box"><div class="cd-num" id="cd-h">0</div><div class="cd-label">Horas</div></div>';
+      html += '<div class="cd-box"><div class="cd-num" id="cd-m">0</div><div class="cd-label">Min</div></div>';
+      html += '<div class="cd-box"><div class="cd-num" id="cd-s">0</div><div class="cd-label">Seg</div></div>';
+      html += '</div>';
+    }
+
+    // ORG MESSAGE
+    if (sec.mensaje !== false && ev.share_message) {
+      html += '<div class="org-msg"><div class="org-msg-ico">📢</div><div><div class="org-msg-label">Mensaje del organizador</div><div class="org-msg-text">' + esc(ev.share_message) + '</div></div></div>';
+    }
+
+    // AMENITIES
+    if (sec.amenities !== false) {
+      html += '<div class="section"><div class="section-head">Que incluye el lugar</div><div class="includes">';
+      AMENITIES.forEach(function(a) {
+        html += '<div class="inc"><div class="inc-ico">' + a.icon + '</div><span>' + esc(a.label) + '</span></div>';
+      });
+      html += '</div></div>';
+    }
+
+    // WIFI
+    if (sec.wifi !== false && neg.wifi_password) {
+      if (eventDay) {
+        html += '<div class="wifi" id="wifi-card"><div class="wifi-ico">📶</div><div style="flex:1"><div class="wifi-lbl">WiFi del lugar</div><div class="wifi-val" id="wifi-pass">' + esc(neg.wifi_password) + '</div><div class="wifi-hint" id="wifi-hint">Toca para copiar</div></div><canvas id="wifi-qr" width="64" height="64" style="border-radius:6px;flex-shrink:0"></canvas></div>';
+      } else {
+        var fmtEvt = evDate.getDate() + " de " + MONTHS[evDate.getMonth()].toLowerCase();
+        html += '<div class="wifi locked"><div class="wifi-ico">🔒</div><div><div class="wifi-lbl">WiFi del lugar</div><div class="wifi-val">Disponible el dia del evento</div><div class="wifi-hint">Se desbloquea el ' + fmtEvt + '</div></div></div>';
+      }
+    }
+
+    // RULES (always shown)
+    html += '<div class="section"><div class="section-head">Condiciones del lugar</div><div class="rules">';
+    RULES.forEach(function(r) {
+      html += '<div class="rule-row"><span>' + r.icon + '</span><span>' + esc(r.text) + '</span></div>';
+    });
+    html += '</div></div>';
+
+    // FOTOS DEL LUGAR
+    if (sec.fotos_lugar !== false) {
+      html += '<div class="section"><div class="section-head">Conoce el lugar</div><div class="gallery" id="venue-gallery"></div></div>';
+    }
+
+    // FOTOS DEL EVENTO
+    if (sec.fotos_evento !== false) {
+      if (eventDay) {
+        html += '<div class="section"><div class="section-head">Fotos del evento</div>';
+        html += '<div class="event-photos" id="event-photos">';
+        (ev.fotos || []).forEach(function(f) {
+          html += '<div class="event-photo"><img src="' + esc(f.url) + '" alt="" loading="lazy"></div>';
+        });
+        html += '</div>';
+        html += '<div class="upload-section"><div class="upload" id="upload-btn"><div class="upload-ico">📷</div><div><strong>Subi fotos del evento</strong><small>Compartilas con todos los invitados</small></div></div>';
+        html += '<div class="upload-progress hidden" id="upload-progress"><div class="loading-spinner"></div>Subiendo foto...</div>';
+        html += '<input type="file" accept="image/*" multiple id="file-input" style="display:none">';
+        html += '</div></div>';
+      } else {
+        html += '<div class="section"><div class="section-head-row"><span class="section-head" style="margin-bottom:0">Fotos del evento</span><span class="locked-badge">🔒 Dia del evento</span></div>';
+        html += '<div class="upload locked" style="margin-top:12px"><div class="upload-ico">📷</div><div><strong>Subi y descarga fotos del evento</strong><small>Disponible el dia del evento</small></div></div></div>';
+      }
+    }
+
+    // GOOGLE REVIEW (post-event only)
+    if (eventDay && neg.google_review_url) {
+      html += '<a class="review" href="' + esc(neg.google_review_url) + '" target="_blank" rel="noopener"><div class="review-stars">⭐</div><div><div class="review-label">La pasaste bien?</div><div class="review-sub">Dejanos tu opinion en Google</div></div><div class="review-arrow">›</div></a>';
+    }
+
+    // CTA (always shown)
+    html += '<div class="cta-book" style="background:' + heroColor + '">';
+    html += '<div class="cta-book-glow"></div>';
+    html += '<div class="cta-book-eyebrow">Te gusto el lugar?</div>';
+    html += '<h3>Hacemos tu proximo evento</h3>';
+    html += '<p>Pileta, quincho, parque y todo lo que necesitas para festejar</p>';
+    if (neg.telefono) {
+      html += '<a class="cta-book-btn" href="https://wa.me/' + esc(neg.telefono) + '?text=' + encodeURIComponent("Hola! Estuve en un evento en " + (neg.nombre || "el quincho") + " y me gustaria consultar disponibilidad para hacer uno.") + '" target="_blank" rel="noopener">Consultar disponibilidad</a>';
+    }
+    html += '</div>';
+
+    // COMO LLEGAR (always shown)
+    var addr = neg.direccion || "";
+
+    // FOOTER
+    html += '<div class="foot">';
+    if (neg.logo_url) html += '<div class="foot-logo"><img src="' + esc(neg.logo_url) + '" alt=""></div>';
+    html += '<div class="foot-name">' + esc(neg.nombre || "") + '</div>';
+    html += '</div>';
+
+    html += '</div>'; // end content
+
+    // STICKY
+    if (addr) {
+      html += '<div class="sticky"><a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr) + '" target="_blank" rel="noopener">📍 Como llegar — ' + esc(addr) + '</a></div>';
+    }
+
+    $("app").innerHTML = html;
+
+    // ── POST-RENDER: EVENT HANDLERS ──
+
+    // COUNTDOWN
+    if (sec.countdown !== false && !eventDay) {
+      function updateCountdown() {
+        var now = new Date().getTime();
+        var h0 = ev.horario ? ev.horario.split(":") : [0, 0];
+        var target = new Date(evDate.getFullYear(), evDate.getMonth(), evDate.getDate(), +h0[0] || 0, +h0[1] || 0).getTime();
+        var diff = target - now;
+        if (diff <= 0) { var cd = $("countdown"); if (cd) cd.classList.add("hidden"); return; }
+        var d = Math.floor(diff / 86400000);
+        var h = Math.floor((diff % 86400000) / 3600000);
+        var m = Math.floor((diff % 3600000) / 60000);
+        var s = Math.floor((diff % 60000) / 1000);
+        var de = $("cd-d"), he = $("cd-h"), me = $("cd-m"), se = $("cd-s");
+        if (de) de.textContent = d;
+        if (he) he.textContent = h;
+        if (me) me.textContent = m;
+        if (se) se.textContent = s;
+      }
+      updateCountdown();
+      setInterval(updateCountdown, 1000);
+    }
+
+    // RSVP
+    var btnConfirm = $("btn-confirm");
+    var btnDecline = $("btn-decline");
+    if (btnConfirm) {
+      btnConfirm.addEventListener("click", function() {
+        var name = $("rsvp-name").value.trim();
+        var count = parseInt($("rsvp-count").value) || 1;
+        if (!name) { $("rsvp-name").style.borderColor = "var(--accent)"; $("rsvp-name").focus(); return; }
+        btnConfirm.disabled = true;
+        btnConfirm.textContent = "Enviando...";
+        supa("POST", "evento_rsvp", { org_id: ev.org_id, share_token: token, reserva_id: ev.id, nombre: name, cantidad: count, estado: "confirmado" })
+          .then(function() { finishRsvp(name, count, true); })
+          .catch(function() { showToast("Error al confirmar. Intenta de nuevo."); btnConfirm.disabled = false; btnConfirm.textContent = "Confirmo que voy"; });
+      });
+    }
+    if (btnDecline) {
+      btnDecline.addEventListener("click", function() {
+        var name = $("rsvp-name").value.trim();
+        if (!name) { $("rsvp-name").style.borderColor = "var(--accent)"; $("rsvp-name").focus(); return; }
+        btnDecline.disabled = true;
+        supa("POST", "evento_rsvp", { org_id: ev.org_id, share_token: token, reserva_id: ev.id, nombre: name, cantidad: 1, estado: "declinado" })
+          .then(function() { finishRsvp(name, 1, false); })
+          .catch(function() { showToast("Error. Intenta de nuevo."); btnDecline.disabled = false; });
+      });
+    }
+
+    function finishRsvp(name, count, confirmed) {
+      var form = $("rsvp-form");
+      if (!form) return;
+      if (confirmed) {
+        form.innerHTML = '<div class="rsvp-done"><div class="rsvp-done-icon">🎉</div><div class="rsvp-done-title">Te esperamos!</div><div class="rsvp-done-sub">' + esc(name) + ' · ' + count + ' persona' + (count > 1 ? 's' : '') + '</div></div>';
+        var list = $("guest-list");
+        if (list) {
+          var chip = document.createElement("div");
+          chip.className = "rsvp-chip";
+          chip.innerHTML = '<div class="rsvp-avatar">' + esc(name.charAt(0).toUpperCase()) + '</div>' + esc(name) + ' · ' + count;
+          list.appendChild(chip);
+        }
+        totalConf += count;
+        var tot = $("rsvp-total");
+        if (tot) tot.innerHTML = '<strong>' + totalConf + '</strong> personas confirmadas de ' + (ev.cant_invitados || 0) + ' invitados';
+      } else {
+        form.innerHTML = '<div class="rsvp-done"><div class="rsvp-done-icon">😢</div><div class="rsvp-done-title" style="color:#DC2626">Que lastima</div><div class="rsvp-done-sub">Le avisamos al organizador</div></div>';
+      }
+      showToast(confirmed ? "Asistencia confirmada!" : "Respuesta enviada");
+    }
+
+    // WIFI COPY + QR
+    var wifiCard = $("wifi-card");
+    if (wifiCard) {
+      wifiCard.addEventListener("click", function() {
+        var pass = $("wifi-pass");
+        if (pass && navigator.clipboard) {
+          navigator.clipboard.writeText(pass.textContent).then(function() {
+            $("wifi-hint").textContent = "Copiado!";
+            setTimeout(function() { $("wifi-hint").textContent = "Toca para copiar"; }, 2000);
+          });
+        }
+      });
+      var qrCanvas = $("wifi-qr");
+      if (qrCanvas && neg.wifi_password) {
+        drawWifiQR(qrCanvas, neg.wifi_password);
+      }
+    }
+
+    // PHOTO UPLOAD
+    var uploadBtn = $("upload-btn");
+    var fileInput = $("file-input");
+    if (uploadBtn && fileInput) {
+      uploadBtn.addEventListener("click", function() { fileInput.click(); });
+      fileInput.addEventListener("change", function() {
+        var files = Array.from(fileInput.files);
+        if (!files.length) return;
+        var progress = $("upload-progress");
+        if (progress) progress.classList.remove("hidden");
+
+        var chain = Promise.resolve();
+        files.forEach(function(file) {
+          chain = chain.then(function() { return compressAndUpload(file, ev, token); });
+        });
+        chain.then(function() {
+          if (progress) progress.classList.add("hidden");
+          showToast(files.length + " foto" + (files.length > 1 ? "s subidas" : " subida"));
+          fileInput.value = "";
+        }).catch(function() {
+          if (progress) progress.classList.add("hidden");
+          showToast("Error al subir foto");
+          fileInput.value = "";
+        });
+      });
+    }
+  }
+
+  // Minimal QR Code generator (Mode Byte, ECC L, version auto)
+  // Based on Project Nayuki QR Code generator (MIT)
+  function drawWifiQR(canvas, password) {
+    var text = "WIFI:T:WPA;S:QuinchoWifi;P:" + password + ";;";
+    try {
+      var segs = [{mode:"byte",data:text}];
+      var qr = generateQR(text);
+      var size = qr.length;
+      var scale = Math.floor(canvas.width / (size + 2));
+      var offset = Math.floor((canvas.width - size * scale) / 2);
+      var ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#000000";
+      for (var y = 0; y < size; y++)
+        for (var x = 0; x < size; x++)
+          if (qr[y][x])
+            ctx.fillRect(offset + x * scale, offset + y * scale, scale, scale);
+    } catch(e) { canvas.style.display = "none"; }
+  }
+
+  function generateQR(text) {
+    var data = [];
+    for (var i = 0; i < text.length; i++) data.push(text.charCodeAt(i));
+    var ver = 1;
+    for (; ver <= 10; ver++) { var cap = [0,17,32,53,78,106,134,154,192,230,271][ver]; if (data.length <= cap) break; }
+    if (ver > 10) ver = 10;
+    var size = ver * 4 + 17;
+    var grid = [], reserved = [];
+    for (var y = 0; y < size; y++) { grid[y] = []; reserved[y] = []; for (var x = 0; x < size; x++) { grid[y][x] = false; reserved[y][x] = false; } }
+    function setMod(x, y, v) { grid[y][x] = v; reserved[y][x] = true; }
+    function addFinder(cx, cy) {
+      for (var dy = -4; dy <= 4; dy++) for (var dx = -4; dx <= 4; dx++) {
+        var x = cx + dx, y = cy + dy;
+        if (x < 0 || x >= size || y < 0 || y >= size) continue;
+        var d = Math.max(Math.abs(dx), Math.abs(dy));
+        setMod(x, y, d !== 4 && (d === 0 || d === 2 || d === 3));
+      }
+    }
+    addFinder(3, 3); addFinder(size - 4, 3); addFinder(3, size - 4);
+    for (var i = 8; i < size - 8; i++) { setMod(i, 6, i % 2 === 0); setMod(6, i, i % 2 === 0); }
+    if (ver >= 2) {
+      var pos = [6, size - 7];
+      for (var ay = 0; ay < pos.length; ay++) for (var ax = 0; ax < pos.length; ax++) {
+        if (reserved[pos[ay]][pos[ax]]) continue;
+        for (var dy = -2; dy <= 2; dy++) for (var dx = -2; dx <= 2; dx++)
+          setMod(pos[ax]+dx, pos[ay]+dy, Math.abs(dx)===2||Math.abs(dy)===2||dx===0&&dy===0);
+      }
+    }
+    // Format + version info areas
+    for (var i = 0; i < 9; i++) { if (!reserved[i][8]) { reserved[i][8] = true; } if (!reserved[8][i]) { reserved[8][i] = true; } }
+    for (var i = 0; i < 8; i++) { if (!reserved[size-1-i][8]) reserved[size-1-i][8] = true; if (!reserved[8][size-1-i]) reserved[8][size-1-i] = true; }
+    setMod(8, size - 8, true);
+    // Encode data
+    var bits = [];
+    bits.push(0,1,0,0); // byte mode
+    var lenBits = ver <= 9 ? 8 : 16;
+    for (var b = lenBits - 1; b >= 0; b--) bits.push((data.length >> b) & 1);
+    for (var i = 0; i < data.length; i++)
+      for (var b = 7; b >= 0; b--) bits.push((data[i] >> b) & 1);
+    bits.push(0,0,0,0);
+    while (bits.length % 8 !== 0) bits.push(0);
+    var totalBytes = [0,26,44,70,100,134,172,196,242,292,346][ver];
+    var ecBytes = [0,7,10,15,20,26,18,20,24,30,18][ver];
+    var dataBytes = totalBytes - ecBytes;
+    while (bits.length < dataBytes * 8) {
+      bits.push(1,1,1,0,1,1,0,0);
+      if (bits.length < dataBytes * 8) bits.push(0,0,0,1,0,0,0,1);
+    }
+    var dataArr = [];
+    for (var i = 0; i < dataBytes; i++) {
+      var v = 0; for (var b = 0; b < 8; b++) v = (v << 1) | (bits[i*8+b] || 0); dataArr.push(v);
+    }
+    // RS error correction
+    var gp = rsGenPoly(ecBytes);
+    var ec = rsEncode(dataArr, gp, ecBytes);
+    var allBytes = dataArr.concat(ec);
+    var allBits = [];
+    for (var i = 0; i < allBytes.length; i++)
+      for (var b = 7; b >= 0; b--) allBits.push((allBytes[i] >> b) & 1);
+    // Place data
+    var idx = 0;
+    for (var right = size - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (var vert = 0; vert < size; vert++) {
+        for (var j = 0; j < 2; j++) {
+          var x = right - j;
+          var upward = ((right + 1) & 2) === 0;
+          var y = upward ? size - 1 - vert : vert;
+          if (!reserved[y][x] && idx < allBits.length) {
+            grid[y][x] = !!allBits[idx]; idx++;
+          }
+        }
+      }
+    }
+    // Apply mask (pattern 0: (x+y)%2==0)
+    for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
+      if (!reserved[y][x]) grid[y][x] = grid[y][x] !== ((x + y) % 2 === 0);
+    }
+    // Format info (ECC L = 01, mask 0 = 000 → 01000 → with BCH: 0x77C0 → 111011111000100)
+    var fmtBits = [1,1,1,0,1,1,1,1,1,0,0,0,1,0,0];
+    for (var i = 0; i < 6; i++) grid[8][i] = !!fmtBits[i];
+    grid[8][7] = !!fmtBits[6]; grid[8][8] = !!fmtBits[7]; grid[7][8] = !!fmtBits[8];
+    for (var i = 0; i < 6; i++) grid[5-i][8] = !!fmtBits[9+i];
+    for (var i = 0; i < 7; i++) grid[size-1-i][8] = !!fmtBits[i];
+    for (var i = 0; i < 8; i++) grid[8][size-8+i] = !!fmtBits[7+i];
+    return grid;
+  }
+
+  function rsGenPoly(n) {
+    var p = [1];
+    for (var i = 0; i < n; i++) {
+      var np = new Array(p.length + 1).fill(0);
+      var g = gfPow(2, i);
+      for (var j = 0; j < p.length; j++) { np[j] ^= p[j]; np[j+1] ^= gfMul(p[j], g); }
+      p = np;
+    }
+    return p;
+  }
+  function rsEncode(data, gen, ecLen) {
+    var r = new Array(ecLen).fill(0);
+    for (var i = 0; i < data.length; i++) {
+      var f = r[0] ^ data[i];
+      r.shift(); r.push(0);
+      for (var j = 0; j < ecLen; j++) r[j] ^= gfMul(gen[j+1], f);
+    }
+    return r;
+  }
+  var GF_EXP = [], GF_LOG = []; (function(){ var v=1; for(var i=0;i<255;i++){GF_EXP[i]=v;GF_LOG[v]=i;v<<=1;if(v>=256)v^=0x11D;} })();
+  function gfMul(a,b){return a===0||b===0?0:GF_EXP[(GF_LOG[a]+GF_LOG[b])%255];}
+  function gfPow(b,e){var v=1;for(var i=0;i<e;i++)v=gfMul(v,b);return v;}
+
+  function compressAndUpload(file, ev, tkn) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var maxW = 1920;
+          var w = img.width, h = img.height;
+          if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+          var canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob(function(blob) {
+            var fileName = tkn + "/" + Date.now() + "_" + Math.random().toString(36).substr(2, 6) + ".jpg";
+            fetch(SUPA_URL + "/storage/v1/object/evento-fotos/" + fileName, {
+              method: "POST",
+              headers: { "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY, "Content-Type": "image/jpeg" },
+              body: blob
+            }).then(function(res) {
+              if (!res.ok) throw new Error("Upload failed");
+              var publicUrl = SUPA_URL + "/storage/v1/object/public/evento-fotos/" + fileName;
+              return supa("POST", "evento_fotos", { org_id: ev.org_id, share_token: tkn, reserva_id: ev.id, url: publicUrl, subido_por: "Invitado" });
+            }).then(function() {
+              var grid = document.getElementById("event-photos");
+              if (grid) {
+                var publicUrl = SUPA_URL + "/storage/v1/object/public/evento-fotos/" + fileName;
+                var div = document.createElement("div");
+                div.className = "event-photo";
+                div.innerHTML = '<img src="' + publicUrl + '" alt="" loading="lazy">';
+                grid.appendChild(div);
+              }
+              resolve();
+            }).catch(reject);
+          }, "image/jpeg", 0.85);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+})();
+</script>
+</body>
+</html>

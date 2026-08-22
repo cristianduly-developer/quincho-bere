@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     negocioNombre, negocioLogo, negocioTelefono,
     espacioNombre, fecha, turnoNombre, horaInicio, horaFin,
     cantInvitados, tipoEvento, montoPactado, sena, saldo, metodoPago, notas,
-    condiciones,
+    condiciones, eventoUrl,
   } = req.body;
 
   if (!clienteEmail) return res.status(400).json({ error: 'Sin email' });
@@ -103,6 +103,15 @@ export default async function handler(req, res) {
             ${safeNotas ? row('📝 Notas', `<span style="font-weight:400;color:#5C4033;">${safeNotas}</span>`) : ''}
           </table>
         </div>
+
+        <!-- Link evento compartido -->
+        ${eventoUrl ? `
+        <div style="background:#EBF5ED;border:1px solid rgba(61,122,74,0.2);border-radius:12px;padding:18px 20px;margin-bottom:24px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:6px;">🔗</div>
+          <div style="font-size:15px;font-weight:800;color:#1C1C1E;margin-bottom:4px;">Pagina de tu evento</div>
+          <p style="font-size:13px;color:#5C4033;margin:0 0 14px;">Comparti este link con tus invitados para que confirmen asistencia, vean la info del evento y mas.</p>
+          <a href="${esc(eventoUrl)}" target="_blank" style="display:inline-block;padding:12px 28px;background:#C4602B;color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">Ver pagina del evento</a>
+        </div>` : ''}
 
         <!-- Aviso saldo -->
         ${saldo > 0 ? `

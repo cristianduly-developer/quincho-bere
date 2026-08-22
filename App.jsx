@@ -438,6 +438,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
     montoPactado: getInitMonto(),
     estado:       getInitEstado(),
     tipoEvento:   reserva?.tipoEvento   || "",
+    nombreEvento: reserva?.nombreEvento || "",
     notas:        reserva?.notas        || "",
     fechaVisita:  reserva?.fechaVisita  || "",
     horaVisita:   reserva?.horaVisita   || "",
@@ -508,6 +509,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
       })()}
       <Select label="Tipo de evento" value={f.tipoEvento} onChange={set("tipoEvento")}
         options={[{value:"",label:"— Seleccionar (opcional) —"},{value:"Cumpleaños",label:"🎂 Cumpleaños"},{value:"Cumpleaños de 15",label:"👑 Cumpleaños de 15"},{value:"Casamiento",label:"💍 Casamiento"},{value:"Bautismo / Comunión",label:"⛪ Bautismo / Comunión"},{value:"Baby Shower",label:"🍼 Baby Shower"},{value:"Despedida",label:"🥳 Despedida"},{value:"Evento corporativo",label:"🏢 Evento corporativo"},{value:"Reunión familiar",label:"👨‍👩‍👧‍👦 Reunión familiar"},{value:"Otro",label:"📌 Otro"}]} />
+      {f.tipoEvento && <Input label="Nombre del evento (opcional)" value={f.nombreEvento} onChange={set("nombreEvento")} placeholder={`${f.tipoEvento} de ${clientes.find(c=>c.id===f.clienteId)?.nombre||"..."}`} />}
       <Select label="Espacio" value={f.recursoId} onChange={set("recursoId")}
         options={recursos.map(r=>({value:r.id,label:r.nombre}))} />
       <Input label="Fecha del evento" type="date" value={f.fecha} onChange={set("fecha")} required />
@@ -591,7 +593,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
           if(Number(f.montoPactado)<=0) return alert("El monto pactado debe ser mayor a cero.");
           if(!isEdit&&f.fecha < toDateStr(new Date())) return alert("No podés registrar una reserva en una fecha pasada.");
           if(f.estado==="visita"&&!f.fechaVisita) return alert("Indicá la fecha de la visita.");
-          onSave({...f, turnoId:f.turnoId||null, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||1, tipoEvento:f.tipoEvento||null, fechaVisita:f.fechaVisita||null, horaVisita:f.horaVisita||null});
+          onSave({...f, turnoId:f.turnoId||null, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||1, tipoEvento:f.tipoEvento||null, nombreEvento:f.nombreEvento||null, fechaVisita:f.fechaVisita||null, horaVisita:f.horaVisita||null});
         }}>{saving?"Guardando...":(isEdit?"Guardar cambios":"Crear reserva")}</Btn>
       </div>
     </BottomModal>
@@ -891,7 +893,7 @@ function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
   );
 }
 
-function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto, turnosRecurso }) {
+function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto, turnosRecurso, onSaveShareConfig }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -899,6 +901,13 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [showReschedule, setShowReschedule] = useState(false);
   const [showProximoPago, setShowProximoPago] = useState(false);
+  const [showSharePanel, setShowSharePanel] = useState(false);
+  const [shareSections, setShareSections] = useState(reserva.shareSections || {rsvp:true,countdown:true,mensaje:true,amenities:true,wifi:true,condiciones:true,fotos_lugar:true,fotos_evento:true,como_llegar:true});
+  const [shareMessage, setShareMessage] = useState(reserva.shareMessage || "");
+  const [shareTheme, setShareTheme] = useState(reserva.shareTheme || "verde");
+  const [shareSaving, setShareSaving] = useState(false);
+  const [shareHeroUrl, setShareHeroUrl] = useState(reserva.shareHeroUrl || "");
+  const [heroUploading, setHeroUploading] = useState(false);
   const [ppFecha, setPpFecha] = useState(reserva.proximoPagoFecha||"");
   const [ppMonto, setPpMonto] = useState(reserva.proximoPagoMonto||"");
   const cliente = clientes.find(c=>c.id===reserva.clienteId);
@@ -1170,8 +1179,144 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
               <Btn small variant="ghost" onClick={()=>setConfirmDelete(false)}>No</Btn>
             </div>
         }
+        {reserva.estado!=="cancelada"&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir evento</Btn>}
         <Btn small variant="ghost" onClick={onClose}>Cerrar</Btn>
       </div>
+
+      {/* Panel Evento Compartido */}
+      {showSharePanel && (()=>{
+        const SHARE_THEMES=[{id:"verde",color:"#1A3328",label:"Verde"},{id:"azul",color:"#1A2840",label:"Azul"},{id:"rosa",color:"#3D1A2E",label:"Rosa"},{id:"dorado",color:"#2E2510",label:"Dorado"},{id:"negro",color:"#1A1A1A",label:"Negro"},{id:"borgona",color:"#3D1A1A",label:"Borgoña"}];
+        const TOGGLE_SECTIONS=[
+          {key:"rsvp",label:"Confirmar asistencia",icon:"✅"},
+          {key:"countdown",label:"Cuenta regresiva",icon:"⏳"},
+          {key:"mensaje",label:"Mensaje del organizador",icon:"📢"},
+          {key:"amenities",label:"Qué incluye el lugar",icon:"🏊"},
+          {key:"wifi",label:"WiFi (día del evento)",icon:"📶"},
+          {key:"fotos_lugar",label:"Fotos del lugar",icon:"📷"},
+          {key:"fotos_evento",label:"Fotos del evento",icon:"🎞️"},
+        ];
+        const FIXED_SECTIONS=["Condiciones del lugar","Cómo llegar","CTA del negocio","Reseña Google (post-evento)"];
+        const shareUrl=reserva.shareToken ? (window.location.origin+"/evento/"+reserva.shareToken) : null;
+        const toggleSec=(k)=>setShareSections(s=>({...s,[k]:!s[k]}));
+        const handleSaveShare=async()=>{
+          setShareSaving(true);
+          let token=reserva.shareToken;
+          if(!token){ token=genId(); }
+          await onSaveShareConfig({shareToken:token,shareSections,shareMessage,shareTheme,shareHeroUrl:shareHeroUrl||null});
+          setShareSaving(false);
+        };
+        const copyLink=()=>{
+          if(!shareUrl) return;
+          navigator.clipboard.writeText(shareUrl).then(()=>showToast&&showToast("Link copiado","ok"));
+        };
+        return (
+          <div style={{background:"#F0EBE3",border:"1.5px solid #E7DFD3",borderRadius:14,padding:"16px",marginTop:12}}>
+            <div style={{fontWeight:800,fontSize:15,color:"#1C1C1E",marginBottom:14,display:"flex",alignItems:"center",gap:8}}>🔗 Evento Compartido</div>
+
+            {/* Secciones toggleables */}
+            <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>Secciones visibles</div>
+            {TOGGLE_SECTIONS.map(s=>(
+              <label key={s.key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid #E7DFD3",cursor:"pointer"}}>
+                <input type="checkbox" checked={!!shareSections[s.key]} onChange={()=>toggleSec(s.key)}
+                  style={{width:18,height:18,accentColor:"#C4602B"}} />
+                <span style={{fontSize:14}}>{s.icon}</span>
+                <span style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{s.label}</span>
+              </label>
+            ))}
+            <div style={{padding:"8px 0",marginTop:4}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>Siempre visibles:</div>
+              <div style={{fontSize:12,color:"#8B7355"}}>{FIXED_SECTIONS.join(" · ")}</div>
+            </div>
+
+            {/* Mensaje del organizador */}
+            {shareSections.mensaje && (
+              <div style={{marginTop:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>Mensaje para los invitados</div>
+                <textarea value={shareMessage} onChange={e=>setShareMessage(e.target.value.slice(0,300))}
+                  maxLength={300} placeholder="Ej: Traigan malla y protector solar!"
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E7DFD3",fontSize:13,fontFamily:"inherit",resize:"vertical",minHeight:60,boxSizing:"border-box",background:"#FFF"}} />
+                <div style={{textAlign:"right",fontSize:11,color:"#8B7355",marginTop:2}}>{shareMessage.length}/300</div>
+              </div>
+            )}
+
+            {/* Tema del hero */}
+            <div style={{marginTop:12}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>Color del encabezado</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {SHARE_THEMES.map(t=>(
+                  <button key={t.id} onClick={()=>setShareTheme(t.id)}
+                    style={{width:36,height:36,borderRadius:10,background:t.color,border:shareTheme===t.id?"3px solid #C4602B":"2px solid #E7DFD3",cursor:"pointer",position:"relative"}}>
+                    {shareTheme===t.id && <span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontSize:14,fontWeight:800}}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Imagen de fondo */}
+            <div style={{marginTop:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>Imagen de fondo (opcional)</div>
+              <div style={{fontSize:12,color:"#8B7355",marginBottom:8}}>Subi una imagen tematica que aparece de fondo en el encabezado. Ej: personaje del cumple, foto de la pareja, etc.</div>
+              {shareHeroUrl ? (
+                <div style={{position:"relative",borderRadius:10,overflow:"hidden",marginBottom:8}}>
+                  <img src={shareHeroUrl} alt="" style={{width:"100%",height:100,objectFit:"cover",display:"block"}} />
+                  <button onClick={()=>setShareHeroUrl("")} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.6)",color:"#FFF",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit"}}>✕ Quitar</button>
+                </div>
+              ) : (
+                <label style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",background:"#FFF",border:"1.5px dashed #E7DFD3",borderRadius:10,cursor:heroUploading?"wait":"pointer"}}>
+                  <span style={{fontSize:20}}>{heroUploading?"⏳":"🖼️"}</span>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{heroUploading?"Subiendo...":"Subir imagen"}</div>
+                    <div style={{fontSize:11,color:"#8B7355"}}>JPG, PNG o WEBP · Max 3MB</div>
+                  </div>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} disabled={heroUploading} onChange={async(e)=>{
+                    const file=e.target.files?.[0];
+                    if(!file) return;
+                    e.target.value="";
+                    if(!["image/jpeg","image/png","image/webp"].includes(file.type)){showToast("Solo JPG, PNG o WEBP","error");return;}
+                    if(file.size>3*1024*1024){showToast("La imagen no puede superar 3MB","error");return;}
+                    setHeroUploading(true);
+                    try{
+                      const img=new Image();
+                      const url=URL.createObjectURL(file);
+                      await new Promise((ok,fail)=>{img.onload=ok;img.onerror=fail;img.src=url;});
+                      let w=img.width,h=img.height;
+                      const maxW=1920;
+                      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+                      const canvas=document.createElement("canvas");
+                      canvas.width=w;canvas.height=h;
+                      canvas.getContext("2d").drawImage(img,0,0,w,h);
+                      URL.revokeObjectURL(url);
+                      const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.85));
+                      const fileName=`hero/${reserva.id}_${Date.now()}.jpg`;
+                      const{error:upErr}=await supabase.storage.from("evento-fotos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
+                      if(upErr){showToast("Error al subir: "+upErr.message,"error");return;}
+                      const pubUrl=`${import.meta.env.VITE_SUPA_URL}/storage/v1/object/public/evento-fotos/${fileName}`;
+                      setShareHeroUrl(pubUrl);
+                      showToast("Imagen subida","ok");
+                    }catch(err){showToast("Error al procesar imagen","error");}
+                    finally{setHeroUploading(false);}
+                  }} />
+                </label>
+              )}
+            </div>
+
+            {/* Guardar + Link */}
+            <div style={{marginTop:16,display:"flex",gap:8,flexWrap:"wrap"}}>
+              <Btn onClick={handleSaveShare} disabled={shareSaving}>
+                {shareSaving?"Guardando...":(reserva.shareToken?"Actualizar link":"Generar link")}
+              </Btn>
+              {shareUrl && (
+                <Btn variant="secondary" onClick={copyLink}>📋 Copiar link</Btn>
+              )}
+            </div>
+            {shareUrl && (
+              <div style={{marginTop:10,padding:"10px 12px",background:"#FFF",borderRadius:10,border:"1px solid #E7DFD3",wordBreak:"break-all",fontSize:12,color:"#5C4033"}}>
+                {shareUrl}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </BottomModal>
   );
 }
@@ -3506,7 +3651,7 @@ function MiPlanView({ currentUser, onBack }) {
 }
 
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio, setPreciosTemporada, onGoMiPlan }) {
-  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"", googleReviewUrl: negocio?.googleReviewUrl||"" });
+  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"", googleReviewUrl: negocio?.googleReviewUrl||"", wifiPassword: negocio?.wifiPassword||"" });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
   const [open, setOpen] = useState("negocio");
@@ -3515,10 +3660,10 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const toggle = s => setOpen(o => o===s ? null : s);
 
   const handleSaveNegocio = async () => {
-    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail, google_review_url: negForm.googleReviewUrl };
+    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail, google_review_url: negForm.googleReviewUrl, wifi_password: negForm.wifiPassword };
     const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
     if (error) { alert("Error al guardar: " + error.message); return; }
-    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail, googleReviewUrl: negForm.googleReviewUrl });
+    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail, googleReviewUrl: negForm.googleReviewUrl, wifiPassword: negForm.wifiPassword });
     setNegSaved(true);
     setTimeout(()=>setNegSaved(false), 2000);
   };
@@ -3649,6 +3794,12 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                   <div style={{fontSize:10,color:"#9CA3AF",marginTop:4}}>Variables: {"{nombre}"} {"{nombre_negocio}"}</div>
                 </>
               )}
+            </div>
+            {/* WiFi */}
+            <div style={{padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0",marginBottom:10}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",marginBottom:2}}>📶 Contraseña WiFi</div>
+              <div style={{fontSize:11,color:"#8B7355",marginBottom:8}}>Se muestra en el link compartido del evento el dia del evento.</div>
+              <input style={inpS} value={negForm.wifiPassword} onChange={e=>setNegForm(p=>({...p,wifiPassword:e.target.value}))} placeholder="Contraseña del WiFi" />
             </div>
             {/* Google Reviews */}
             <div style={{padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
@@ -4994,10 +5145,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",estadoCrm:x.estado_crm||null,origen:x.origen||null,creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
-    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||""});
+    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||"",wifiPassword:cfgData.wifi_password||""});
     if(!rc?.length && orgId) setOnboarding(true);
 
     // ── TIER 2: diferido — carga en background sin bloquear el render ─
@@ -5114,7 +5265,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(editReserva){
         await saveR(reservas.map(r=>r.id===editReserva.id?{...r,...data}:r));
       } else {
-        const nuevaReserva={id:genId(),...data,creadoEn:new Date().toISOString(),fechaCreacion:toDateStr(new Date()),creadoPor:currentUser?.nombre||"",recordatorioEnviado:false,postEventoProcesado:false};
+        const nuevaReserva={id:genId(),...data,shareToken:genId(),creadoEn:new Date().toISOString(),fechaCreacion:toDateStr(new Date()),creadoPor:currentUser?.nombre||"",recordatorioEnviado:false,postEventoProcesado:false};
         const {error:insErr}=await supabase.from("reservas").insert(mapReserva(nuevaReserva));
         if(insErr){
           if(insErr.code==="23505") return alert("⚠️ Ya existe una reserva en ese espacio, día y turno. Alguien más acaba de tomarlo.");
@@ -5154,6 +5305,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 metodoPago:     data.metodoPago || "",
                 notas:          data.notas || "",
                 condiciones:    negocio?.condicionesEmail || "",
+                eventoUrl:      nuevaReserva.shareToken ? (window.location.origin + "/evento/" + nuevaReserva.shareToken) : "",
               }),
             }).catch(()=>{}); // silencioso — no bloquea el flujo
             }).catch(()=>{});
@@ -5208,6 +5360,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 metodoPago:data.metodo||"",notas:res.notas||"",
                 condiciones:negocio?.condicionesEmail||"",
                 estado:newEstado,
+                eventoUrl:res.shareToken?(window.location.origin+"/evento/"+res.shareToken):"",
               })}).then(()=>showToast("📧 Mail enviado a "+cli.email,"ok")).catch(()=>showToast("📧 Mail no se pudo enviar","error"));
               }).catch(()=>{});
             } else {
@@ -5547,6 +5700,12 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         }}
         negocio={negocio}
         plan={currentUser?.plan}
+        onSaveShareConfig={async(cfg)=>{
+          const updated={...detailReserva,...cfg};
+          saveR(reservas.map(r=>r.id===detailReserva.id?updated:r));
+          setDetailReserva(updated);
+          showToast("Link de evento actualizado","ok");
+        }}
         onConfirmVisita={()=>{
           const cli = clientes.find(c=>c.id===detailReserva.clienteId);
           const updatedRes = {...detailReserva, estado:"pendiente", fechaVisita:null, horaVisita:null};
