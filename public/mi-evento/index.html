@@ -389,7 +389,7 @@
     html += '<div class="card-title">📅 Tu reserva</div>';
     html += '<div class="card-row"><span class="card-row-label">Fecha</span><span class="card-row-value">' + dayName + ' ' + dayNum + ' de ' + monthName + ' ' + year + '</span></div>';
     html += '<div class="card-row"><span class="card-row-label">Horario</span><span class="card-row-value">' + esc(res.horario || "") + ' a ' + esc(res.horario_fin || "") + '</span></div>';
-    html += '<div class="card-row"><span class="card-row-label">Turno</span><span class="card-row-value">' + esc(res.turno || "") + '</span></div>';
+    if (res.turno && res.turno.length < 20) html += '<div class="card-row"><span class="card-row-label">Turno</span><span class="card-row-value">' + esc(res.turno) + '</span></div>';
     html += '<div class="card-row"><span class="card-row-label">Invitados</span><span class="card-row-value">' + (res.cant_invitados || 0) + ' personas</span></div>';
     if (res.tipo_evento) html += '<div class="card-row"><span class="card-row-label">Tipo</span><span class="card-row-value">' + esc(res.tipo_evento) + '</span></div>';
     html += '<div class="card-row"><span class="card-row-label">Estado</span><span class="card-row-value">' + esc(res.estado || "") + '</span></div>';

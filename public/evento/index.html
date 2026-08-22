@@ -482,7 +482,7 @@
 
     html += '<div class="hero-info-strip">';
     html += '<div class="hero-info-block"><div class="hero-info-label">Fecha</div><div class="hero-info-value">' + dayName + ' ' + dayNum + '</div><div class="hero-info-sub">' + monthName + ' ' + year + '</div></div>';
-    html += '<div class="hero-info-block"><div class="hero-info-label">Horario</div><div class="hero-info-value">' + esc(ev.horario || "") + ' a ' + esc(ev.horario_fin || "") + '</div><div class="hero-info-sub">Turno ' + esc(ev.turno || "") + '</div></div>';
+    html += '<div class="hero-info-block"><div class="hero-info-label">Horario</div><div class="hero-info-value">' + esc(ev.horario || "") + ' a ' + esc(ev.horario_fin || "") + '</div>' + (ev.turno && ev.turno.length < 20 ? '<div class="hero-info-sub">' + esc(ev.turno) + '</div>' : '') + '</div>';
     if (state === "live") {
       html += '<div class="hero-info-block"><div class="hero-info-label">Confirmados</div><div class="hero-info-value">' + totalConf + '</div><div class="hero-info-sub">personas</div></div>';
     } else {
