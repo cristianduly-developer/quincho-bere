@@ -38,7 +38,7 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         cacheId: 'qb-v5',
-        navigateFallbackDenylist: [/^\/ayuda/, /^\/evento/, /^\/mi-evento/],
+        navigateFallbackDenylist: [/^\/api\//, /^\/ayuda/, /^\/evento/, /^\/mi-evento/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
         // Assets con hash → cachear 1 año (inmutables)
         globIgnores: ['sw.js', 'workbox-*.js'],
