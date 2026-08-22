@@ -3937,12 +3937,12 @@ function ServicioExtraRow({ s, onDelete, onUpdate }) {
                 {uploading?"Subiendo...":"📷 Foto"}
                 <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} disabled={uploading} onChange={async(e)=>{
                   const file=e.target.files?.[0]; if(!file)return; e.target.value="";
-                  if(file.size>3*1024*1024){alert("Max 3MB");return;}
+                  if(file.size>15*1024*1024){alert("Max 15MB");return;}
                   setUploading(true);
                   try{
                     const img=new Image();const url=URL.createObjectURL(file);
                     await new Promise((ok,fail)=>{img.onload=ok;img.onerror=fail;img.src=url;});
-                    let w=img.width,h=img.height;if(w>800){h=Math.round(h*800/w);w=800;}
+                    let w=img.width,h=img.height;if(w>1200){h=Math.round(h*1200/w);w=1200;}
                     const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
                     canvas.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
                     const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.82));
@@ -3996,12 +3996,12 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
             {uploading?"Subiendo...":"📷 Agregar foto"}
             <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} disabled={uploading} onChange={async(e)=>{
               const file=e.target.files?.[0]; if(!file)return; e.target.value="";
-              if(file.size>3*1024*1024){alert("Max 3MB");return;}
+              if(file.size>15*1024*1024){alert("Max 15MB");return;}
               setUploading(true);
               try{
                 const img=new Image();const url=URL.createObjectURL(file);
                 await new Promise((ok,fail)=>{img.onload=ok;img.onerror=fail;img.src=url;});
-                let w=img.width,h=img.height;if(w>800){h=Math.round(h*800/w);w=800;}
+                let w=img.width,h=img.height;if(w>1200){h=Math.round(h*1200/w);w=1200;}
                 const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
                 canvas.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
                 const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.82));
