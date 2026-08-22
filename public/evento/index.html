@@ -139,10 +139,15 @@
     .org-msg-text{font-size:14px;color:var(--text);line-height:1.4}
 
     /* COUNTDOWN */
-    .countdown{display:flex;gap:8px;margin-bottom:20px}
-    .cd-box{flex:1;text-align:center;padding:14px 8px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--radius)}
-    .cd-num{font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;color:var(--text);line-height:1}
-    .cd-label{font-size:10px;font-weight:600;color:var(--gold);margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
+    .countdown-wrap{margin-bottom:20px}
+    .countdown-title{text-align:center;margin-bottom:10px}
+    .countdown-emoji{font-size:28px;display:block;margin-bottom:4px}
+    .countdown-label{font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:700;color:var(--text)}
+    .countdown-sublabel{font-size:12px;color:var(--text-muted);margin-top:2px}
+    .countdown{display:flex;gap:8px}
+    .cd-box{flex:1;text-align:center;padding:16px 8px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:var(--radius)}
+    .cd-num{font-family:'Playfair Display',Georgia,serif;font-size:28px;font-weight:700;color:var(--text);line-height:1}
+    .cd-label{font-size:10px;font-weight:600;color:var(--gold);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
 
     /* SECTION */
     .section{margin-bottom:20px}
@@ -508,12 +513,20 @@
 
       // COUNTDOWN
       if (sec.countdown !== false) {
-        html += '<div class="countdown" id="countdown">';
+        var nowCd = new Date(); nowCd.setHours(0,0,0,0);
+        var dLeft = Math.ceil((evDate.getTime() - nowCd.getTime()) / 86400000);
+        html += '<div class="countdown-wrap" id="countdown">';
+        html += '<div class="countdown-title">';
+        html += '<span class="countdown-emoji">⏳</span>';
+        html += '<div class="countdown-label">' + (dLeft <= 1 ? 'El evento es hoy!' : 'Faltan ' + dLeft + ' dias para el evento') + '</div>';
+        html += '<div class="countdown-sublabel">' + dayName + ' ' + dayNum + ' de ' + monthName + '</div>';
+        html += '</div>';
+        html += '<div class="countdown">';
         html += '<div class="cd-box"><div class="cd-num" id="cd-d">0</div><div class="cd-label">Dias</div></div>';
         html += '<div class="cd-box"><div class="cd-num" id="cd-h">0</div><div class="cd-label">Horas</div></div>';
         html += '<div class="cd-box"><div class="cd-num" id="cd-m">0</div><div class="cd-label">Min</div></div>';
         html += '<div class="cd-box"><div class="cd-num" id="cd-s">0</div><div class="cd-label">Seg</div></div>';
-        html += '</div>';
+        html += '</div></div>';
       }
 
       // ORG MESSAGE
