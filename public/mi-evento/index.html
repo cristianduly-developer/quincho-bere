@@ -185,6 +185,20 @@
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1C1C1E; color: #FFF; padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; z-index: 999; transition: transform 0.3s ease; pointer-events: none; white-space: nowrap; }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
+    /* ── WELCOME ── */
+    .welcome { background: linear-gradient(135deg, var(--accent), #9E4A1E); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; color: #FFF; }
+    .welcome-hi { font-size: 13px; opacity: 0.85; margin-bottom: 4px; }
+    .welcome-title { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .welcome-sub { font-size: 13px; opacity: 0.85; line-height: 1.5; }
+
+    /* ── TAB INTRO ── */
+    .tab-intro { background: var(--surface-warm); border: 1px solid var(--border-light); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; }
+    .tab-intro-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+    .tab-intro-text { font-size: 13px; color: var(--text-sub); line-height: 1.5; }
+    .tab-intro-steps { list-style: none; padding: 0; margin: 8px 0 0; }
+    .tab-intro-steps li { font-size: 12px; color: var(--text-sub); padding: 4px 0; display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
+    .step-num { width: 20px; height: 20px; border-radius: 10px; background: var(--accent); color: #FFF; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex-shrink: 0; }
+
     .hidden { display: none !important; }
   </style>
 </head>
@@ -329,6 +343,13 @@
     // Content
     html += '<div class="content">';
 
+    // Welcome (first visit feel)
+    html += '<div class="welcome">';
+    html += '<div class="welcome-hi">Hola ' + esc(clienteName.split(" ")[0]) + ' 👋</div>';
+    html += '<div class="welcome-title">Este es el portal de tu evento</div>';
+    html += '<div class="welcome-sub">Desde aca podes ver los datos de tu reserva, armar la invitacion para tus invitados y solicitar extras.</div>';
+    html += '</div>';
+
     if (activeTab === "reserva") html += renderReservaTab(d);
     if (activeTab === "evento") html += renderEventoTab(d);
     if (activeTab === "extras") html += renderExtrasTab(d);
@@ -352,6 +373,12 @@
     var year = evDate.getFullYear();
 
     var html = '';
+
+    // Intro
+    html += '<div class="tab-intro">';
+    html += '<div class="tab-intro-title">📋 Datos de tu reserva</div>';
+    html += '<div class="tab-intro-text">Aca tenes toda la info de tu evento: fecha, horario, estado de los pagos y las condiciones del lugar. Cualquier duda, contactanos por WhatsApp.</div>';
+    html += '</div>';
 
     // Event info card
     html += '<div class="card">';
@@ -438,6 +465,17 @@
 
     var html = '';
 
+    // Intro
+    html += '<div class="tab-intro">';
+    html += '<div class="tab-intro-title">🔗 Arma la invitacion para tus invitados</div>';
+    html += '<div class="tab-intro-text">Configura como se ve la pagina de tu evento y comparti el link con tus invitados. Ellos van a poder confirmar asistencia, ver la info y subir fotos el dia del evento.</div>';
+    html += '<ul class="tab-intro-steps">';
+    html += '<li><span class="step-num">1</span>Personaliza tu evento: nombre, mensaje, colores y foto</li>';
+    html += '<li><span class="step-num">2</span>Guarda los cambios</li>';
+    html += '<li><span class="step-num">3</span>Copia el link y mandalo por WhatsApp a tus invitados</li>';
+    html += '</ul>';
+    html += '</div>';
+
     // Event name
     html += '<div class="card">';
     html += '<div class="card-title">✏️ Nombre del evento</div>';
@@ -492,8 +530,8 @@
 
     // Generated link
     html += '<div class="card" style="margin-top:16px">';
-    html += '<div class="card-title">🔗 Link para compartir</div>';
-    html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px">Mandales este link a tus invitados</div>';
+    html += '<div class="card-title">🔗 Link para tus invitados</div>';
+    html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;line-height:1.5">Copia este link y mandalo por WhatsApp o redes a tus invitados. Ahi van a poder confirmar si van, ver la info del evento y subir fotos el dia del evento.</div>';
     html += '<div class="link-box"><span class="link-url">' + esc(shareUrl) + '</span><button class="link-copy" id="btn-copy">Copiar</button></div>';
     html += '</div>';
 
@@ -535,6 +573,12 @@
   // ════════════════════════════════════════════
   function renderExtrasTab(d) {
     var html = '';
+
+    // Intro
+    html += '<div class="tab-intro">';
+    html += '<div class="tab-intro-title">✨ Extras para tu evento</div>';
+    html += '<div class="tab-intro-text">Podes agregar servicios adicionales para hacer tu evento todavia mejor. Al solicitar uno, nos llega el pedido y te confirmamos disponibilidad y precio por WhatsApp.</div>';
+    html += '</div>';
 
     // Already contracted
     if (d.extras && d.extras.length) {
