@@ -305,12 +305,23 @@
     setTimeout(function() { t.classList.remove("show"); }, 2500);
   }
 
-  function api(action, body) {
+  function api(action, body, retries) {
+    if (retries === undefined) retries = 2;
     return fetch("/api/set-access?action=" + action, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
-    }).then(function(r) { return r.json(); });
+    }).then(function(r) {
+      if (!r.ok && retries > 0) {
+        return new Promise(function(ok) { setTimeout(ok, 1500); }).then(function() { return api(action, body, retries - 1); });
+      }
+      return r.json();
+    }).catch(function(err) {
+      if (retries > 0) {
+        return new Promise(function(ok) { setTimeout(ok, 1500); }).then(function() { return api(action, body, retries - 1); });
+      }
+      throw err;
+    });
   }
 
   // ── GET TOKEN ──
