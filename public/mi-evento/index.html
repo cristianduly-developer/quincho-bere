@@ -478,6 +478,7 @@
     }
 
     // Regalo banner en Mi Reserva
+    var hasRegalo = d.reserva.regalo_descuento && d.reserva.regalo_enviado_en && (Date.now() < new Date(d.reserva.regalo_enviado_en).getTime() + 72*60*60*1000);
     if (hasRegalo && !localStorage.getItem("regalo_" + token)) {
       html += '<div class="card" data-go-extras style="cursor:pointer;background:linear-gradient(135deg,#FFF8E6,#FFF3D0);border:1.5px solid #FFD54F;text-align:center;padding:20px 16px">';
       html += '<div style="font-size:36px;margin-bottom:6px">🎁</div>';
