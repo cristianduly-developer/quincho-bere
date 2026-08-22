@@ -1197,6 +1197,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
         ];
         const FIXED_SECTIONS=["Condiciones del lugar","Cómo llegar","CTA del negocio","Reseña Google (post-evento)"];
         const shareUrl=reserva.shareToken ? (window.location.origin+"/evento/"+reserva.shareToken) : null;
+        const portalUrl=reserva.shareToken ? (window.location.origin+"/mi-evento/"+reserva.shareToken) : null;
         const toggleSec=(k)=>setShareSections(s=>({...s,[k]:!s[k]}));
         const handleSaveShare=async()=>{
           setShareSaving(true);
@@ -1309,9 +1310,22 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                 <Btn variant="secondary" onClick={copyLink}>📋 Copiar link</Btn>
               )}
             </div>
+            {portalUrl && (
+              <div style={{marginTop:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>Portal del cliente</div>
+                <div style={{display:"flex",gap:6,alignItems:"center",padding:"10px 12px",background:"#FFF",borderRadius:10,border:"1px solid #E7DFD3"}}>
+                  <span style={{flex:1,wordBreak:"break-all",fontSize:12,color:"#5C4033"}}>{portalUrl}</span>
+                  <button onClick={()=>{navigator.clipboard.writeText(portalUrl).then(()=>showToast&&showToast("Link del portal copiado","ok"));}} style={{padding:"6px 12px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Copiar</button>
+                </div>
+                <div style={{fontSize:11,color:"#8B7355",marginTop:4}}>Mandale este link al cliente. Ahi puede configurar su invitacion, ver pagos y pedir extras.</div>
+              </div>
+            )}
             {shareUrl && (
-              <div style={{marginTop:10,padding:"10px 12px",background:"#FFF",borderRadius:10,border:"1px solid #E7DFD3",wordBreak:"break-all",fontSize:12,color:"#5C4033"}}>
-                {shareUrl}
+              <div style={{marginTop:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>Link para invitados</div>
+                <div style={{padding:"10px 12px",background:"#FFF",borderRadius:10,border:"1px solid #E7DFD3",wordBreak:"break-all",fontSize:12,color:"#5C4033"}}>
+                  {shareUrl}
+                </div>
               </div>
             )}
           </div>

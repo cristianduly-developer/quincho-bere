@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mi Evento</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/png" href="/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" />
+  <style>
+    :root {
+      --bg: #F6F2EC;
+      --surface: #FFFFFF;
+      --surface-warm: #FBF7F1;
+      --text: #1C1917;
+      --text-sub: #57534E;
+      --text-muted: #A8A29E;
+      --accent: #C4602B;
+      --accent-hover: #B5551F;
+      --green: #3D7A4A;
+      --green-bg: #EBF5ED;
+      --green-border: rgba(61,122,74,0.2);
+      --gold: #A68A3E;
+      --gold-bg: #FAF5E8;
+      --gold-border: rgba(166,138,62,0.2);
+      --red: #DC2626;
+      --red-bg: #FEF2F2;
+      --border: #E7E0D6;
+      --border-light: #F0EBE3;
+      --shadow-sm: 0 1px 3px rgba(28,14,8,0.06);
+      --shadow-md: 0 4px 16px rgba(28,14,8,0.08);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #171310; --surface: #211C17; --surface-warm: #281F18;
+        --text: #EDE8E1; --text-sub: #B5AA9A; --text-muted: #6D6560;
+        --accent: #E07A42; --accent-hover: #D06A32;
+        --green: #5FAA6E; --green-bg: #1A2B1E; --green-border: rgba(95,170,110,0.2);
+        --gold: #CCA84E; --gold-bg: #262015; --gold-border: rgba(204,168,78,0.2);
+        --red: #F87171; --red-bg: #2A1515;
+        --border: #332C24; --border-light: #2A241D;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,0.15); --shadow-md: 0 4px 16px rgba(0,0,0,0.2);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #171310; --surface: #211C17; --surface-warm: #281F18;
+      --text: #EDE8E1; --text-sub: #B5AA9A; --text-muted: #6D6560;
+      --accent: #E07A42; --accent-hover: #D06A32;
+      --green: #5FAA6E; --green-bg: #1A2B1E; --green-border: rgba(95,170,110,0.2);
+      --gold: #CCA84E; --gold-bg: #262015; --gold-border: rgba(204,168,78,0.2);
+      --red: #F87171; --red-bg: #2A1515;
+      --border: #332C24; --border-light: #2A241D;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.15); --shadow-md: 0 4px 16px rgba(0,0,0,0.2);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; gap: 16px; }
+    .loading-spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 13px; color: var(--text-muted); }
+
+    .error-page { text-align: center; padding: 80px 24px; }
+    .error-page h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 22px; margin-bottom: 8px; }
+    .error-page p { font-size: 14px; color: var(--text-sub); line-height: 1.5; }
+
+    /* ── HEADER ── */
+    .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 20px; position: sticky; top: 0; z-index: 20; }
+    .header-inner { max-width: 520px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+    .header-logo { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+    .header-info { flex: 1; min-width: 0; }
+    .header-biz { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .header-event { font-family: 'Playfair Display', Georgia, serif; font-size: 18px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── TABS ── */
+    .tabs { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 73px; z-index: 19; }
+    .tabs-inner { max-width: 520px; margin: 0 auto; display: flex; }
+    .tab { flex: 1; padding: 12px 8px; text-align: center; font-size: 13px; font-weight: 600; color: var(--text-muted); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; font-family: inherit; }
+    .tab:hover { color: var(--text-sub); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-ico { font-size: 16px; display: block; margin-bottom: 2px; }
+
+    /* ── CONTENT ── */
+    .content { max-width: 520px; margin: 0 auto; padding: 20px 16px 100px; }
+
+    /* ── CARDS ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
+    .card-title { font-family: 'Playfair Display', Georgia, serif; font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .card-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; }
+    .card-row:last-child { border-bottom: none; }
+    .card-row-label { color: var(--text-sub); }
+    .card-row-value { font-weight: 600; }
+
+    /* ── PAYMENT ── */
+    .pay-bar { height: 8px; background: var(--border-light); border-radius: 4px; margin: 12px 0 8px; overflow: hidden; }
+    .pay-bar-fill { height: 100%; background: var(--green); border-radius: 4px; transition: width 0.6s ease; }
+    .pay-summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .pay-box { text-align: center; padding: 10px 8px; background: var(--surface-warm); border-radius: 10px; }
+    .pay-box-label { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+    .pay-box-value { font-family: 'Playfair Display', Georgia, serif; font-size: 17px; font-weight: 700; }
+    .pay-box-value.saldo { color: var(--red); }
+    .pay-box-value.pagado { color: var(--green); }
+    .pay-detail { margin-top: 12px; }
+    .pay-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 12px; color: var(--text-sub); }
+    .pay-item-badge { font-size: 10px; padding: 2px 8px; background: var(--green-bg); color: var(--green); border-radius: 99px; font-weight: 600; border: 1px solid var(--green-border); }
+
+    /* ── CONDITIONS ── */
+    .conditions { background: var(--surface-warm); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+    .conditions-title { font-family: 'Playfair Display', Georgia, serif; font-size: 16px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .rule-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; color: var(--text-sub); line-height: 1.4; }
+    .rule-row:last-child { border-bottom: none; }
+    .conditions-text { font-size: 13px; color: var(--text-sub); line-height: 1.6; white-space: pre-line; }
+
+    /* ── SHARE CONFIG (Mi Evento tab) ── */
+    .section-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+    .toggle-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-light); cursor: pointer; }
+    .toggle-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+    .toggle-ico { font-size: 15px; }
+    .toggle-label { font-size: 13px; font-weight: 600; flex: 1; }
+    .fixed-note { font-size: 12px; color: var(--text-muted); margin-top: 8px; padding: 8px 0; }
+
+    .input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); box-sizing: border-box; }
+    .input:focus { outline: none; border-color: var(--accent); }
+    .textarea { resize: vertical; min-height: 60px; }
+    .char-count { text-align: right; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    .themes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .theme-btn { width: 36px; height: 36px; border-radius: 10px; border: 2px solid var(--border); cursor: pointer; position: relative; transition: transform 0.15s; }
+    .theme-btn:hover { transform: scale(1.08); }
+    .theme-btn.active { border-color: var(--accent); border-width: 3px; }
+    .theme-check { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFF; font-size: 14px; font-weight: 800; }
+
+    .hero-upload { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--surface); border: 1.5px dashed var(--border); border-radius: 10px; cursor: pointer; margin-bottom: 16px; }
+    .hero-upload-ico { font-size: 20px; }
+    .hero-upload-text { font-size: 13px; font-weight: 600; }
+    .hero-upload-sub { font-size: 11px; color: var(--text-muted); }
+    .hero-preview { position: relative; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    .hero-preview img { width: 100%; height: 100px; object-fit: cover; display: block; }
+    .hero-remove { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.6); color: #FFF; border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 11px; font-weight: 700; font-family: inherit; }
+
+    .link-box { padding: 12px; background: var(--surface-warm); border: 1px solid var(--border); border-radius: 10px; margin-top: 12px; display: flex; align-items: center; gap: 8px; }
+    .link-url { flex: 1; font-size: 12px; color: var(--text-sub); word-break: break-all; }
+    .link-copy { padding: 8px 14px; background: var(--accent); color: #FFF; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+
+    /* ── BUTTON ── */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 20px; background: var(--accent); color: #FFF; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.15s, transform 0.15s; }
+    .btn:hover { background: var(--accent-hover); }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1.5px solid var(--border); }
+    .btn-secondary:hover { background: var(--surface-warm); }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+
+    /* ── RSVP LIST ── */
+    .rsvp-section { margin-top: 20px; }
+    .rsvp-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 5px; background: var(--green-bg); border: 1px solid var(--green-border); border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--green); margin: 0 6px 6px 0; }
+    .rsvp-chip.declined { background: var(--red-bg); border-color: rgba(220,38,38,0.15); color: var(--red); text-decoration: line-through; opacity: 0.7; }
+    .rsvp-avatar { width: 22px; height: 22px; border-radius: 11px; background: var(--green); color: #FFF; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; }
+    .rsvp-chip.declined .rsvp-avatar { background: var(--red); }
+    .rsvp-total { font-size: 13px; color: var(--text-sub); margin-top: 8px; }
+
+    /* ── PHOTOS GRID ── */
+    .photos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+    .photos-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+    .photos-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 20px; }
+
+    /* ── EXTRAS ── */
+    .extra-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+    .extra-info { flex: 1; }
+    .extra-name { font-size: 14px; font-weight: 600; }
+    .extra-price { font-size: 13px; color: var(--accent); font-weight: 700; margin-top: 2px; }
+    .extra-btn { padding: 8px 16px; background: var(--accent); color: #FFF; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+    .extra-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .extra-btn.sent { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+    .extras-contracted { margin-top: 16px; }
+    .extras-contracted-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+    .extra-contracted { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; }
+    .extra-contracted:last-child { border-bottom: none; }
+
+    /* ── TOAST ── */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1C1C1E; color: #FFF; padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; z-index: 999; transition: transform 0.3s ease; pointer-events: none; white-space: nowrap; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Cargando tu evento...</div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<input type="file" accept="image/jpeg,image/png,image/webp" id="hero-file" style="display:none" />
+
+<script>
+(function() {
+  var SUPA_URL = "https://pmohyepcqfvkwijmljee.supabase.co";
+  var SUPA_KEY = "sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
+
+  var THEMES = [
+    { id: "verde",  color: "#1A3328", label: "Verde" },
+    { id: "azul",   color: "#1A2840", label: "Azul" },
+    { id: "rosa",   color: "#3D1A2E", label: "Rosa" },
+    { id: "dorado", color: "#2E2510", label: "Dorado" },
+    { id: "negro",  color: "#1A1A1A", label: "Negro" },
+    { id: "borgona",color: "#3D1A1A", label: "Borgoña" }
+  ];
+
+  var TOGGLE_SECTIONS = [
+    { key: "rsvp",        label: "Confirmar asistencia",   icon: "✅" },
+    { key: "countdown",   label: "Cuenta regresiva",       icon: "⏳" },
+    { key: "mensaje",     label: "Mensaje del organizador",icon: "📢" },
+    { key: "amenities",   label: "Que incluye el lugar",   icon: "🏊" },
+    { key: "wifi",        label: "WiFi (dia del evento)",  icon: "📶" },
+    { key: "fotos_lugar", label: "Fotos del lugar",        icon: "📷" },
+    { key: "fotos_evento",label: "Fotos del evento",       icon: "🎞️" }
+  ];
+
+  var FIXED_SECTIONS = ["Condiciones del lugar", "Como llegar", "Reseña Google (post-evento)"];
+
+  var RULES = [
+    { icon: "🔊", text: "Volumen moderado. Sin DJs ni bandas" },
+    { icon: "🚪", text: "Puerta cerrada en todo momento" },
+    { icon: "🚗", text: "No ingresar vehiculos al predio" },
+    { icon: "🐾", text: "Sin pirotecnia ni mascotas" },
+    { icon: "🎊", text: "Prohibido globos con confeti, papel picado, bombuchas o inflables con agua" },
+    { icon: "🏊", text: "Pileta: responsabilidad del contratante — supervisar a los chicos" },
+    { icon: "🕐", text: "Cumplir horarios. Decorar y limpiar dentro del turno. Tolerancia max: 15 min" },
+    { icon: "🧹", text: "Entregar ordenado: recoger residuos, lavar vajilla, reacomodar mobiliario" }
+  ];
+
+  var DAYS = ["Domingo","Lunes","Martes","Miercoles","Jueves","Viernes","Sabado"];
+  var MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { var d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; }
+  function fmtCurrency(n) { return "$" + Math.round(n || 0).toLocaleString("es-AR"); }
+  function fmtDate(s) {
+    if (!s) return "";
+    var p = s.split("-");
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+
+  function showToast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(function() { t.classList.remove("show"); }, 2500);
+  }
+
+  function api(action, body) {
+    return fetch("/api/set-access?action=" + action, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function(r) { return r.json(); });
+  }
+
+  // ── GET TOKEN ──
+  var pathParts = window.location.pathname.split("/").filter(Boolean);
+  var token = pathParts.length >= 2 ? pathParts[pathParts.length - 1] : null;
+
+  if (!token) {
+    $("app").innerHTML = '<div class="error-page"><h2>Link invalido</h2><p>Verifica que hayas copiado el link completo.</p></div>';
+    return;
+  }
+
+  // ── STATE ──
+  var DATA = null;
+  var activeTab = "reserva";
+  var saving = false;
+  var sections = {};
+  var message = "";
+  var theme = "verde";
+  var heroUrl = "";
+  var nombreEvento = "";
+  var heroUploading = false;
+  var requestedExtras = JSON.parse(localStorage.getItem("portal_extras_" + token) || "{}");
+
+  // ── LOAD DATA ──
+  api("portal-data", { token: token }).then(function(data) {
+    if (!data || !data.reserva) {
+      $("app").innerHTML = '<div class="error-page"><h2>Evento no encontrado</h2><p>Este link no es valido o el evento ya no esta disponible.</p></div>';
+      return;
+    }
+    DATA = data;
+    sections = data.reserva.share_sections || {};
+    message = data.reserva.share_message || "";
+    theme = data.reserva.share_theme || "verde";
+    heroUrl = data.reserva.share_hero_url || "";
+    nombreEvento = data.reserva.nombre_evento || "";
+    document.title = (nombreEvento || "Mi Evento") + " — " + (data.negocio.nombre_negocio || "");
+    renderApp();
+  }).catch(function() {
+    $("app").innerHTML = '<div class="error-page"><h2>Error de conexion</h2><p>No pudimos cargar los datos. Intenta de nuevo.</p></div>';
+  });
+
+  // ── RENDER APP ──
+  function renderApp() {
+    var d = DATA;
+    var neg = d.negocio;
+    var res = d.reserva;
+    var cli = d.cliente;
+    var clienteName = [cli.nombre, cli.apellido].filter(Boolean).join(" ") || "Organizador";
+
+    var html = '';
+
+    // Header
+    html += '<div class="header"><div class="header-inner">';
+    if (neg.logo_url) html += '<img class="header-logo" src="' + esc(neg.logo_url) + '" alt="" />';
+    html += '<div class="header-info">';
+    html += '<div class="header-biz">' + esc(neg.nombre_negocio || "") + '</div>';
+    html += '<div class="header-event">' + esc(nombreEvento || "Mi Evento") + '</div>';
+    html += '</div></div></div>';
+
+    // Tabs
+    html += '<div class="tabs"><div class="tabs-inner">';
+    html += '<button class="tab' + (activeTab === "reserva" ? " active" : "") + '" data-tab="reserva"><span class="tab-ico">📋</span>Mi Reserva</button>';
+    html += '<button class="tab' + (activeTab === "evento" ? " active" : "") + '" data-tab="evento"><span class="tab-ico">🔗</span>Mi Evento</button>';
+    html += '<button class="tab' + (activeTab === "extras" ? " active" : "") + '" data-tab="extras"><span class="tab-ico">✨</span>Extras</button>';
+    html += '</div></div>';
+
+    // Content
+    html += '<div class="content">';
+
+    if (activeTab === "reserva") html += renderReservaTab(d);
+    if (activeTab === "evento") html += renderEventoTab(d);
+    if (activeTab === "extras") html += renderExtrasTab(d);
+
+    html += '</div>';
+
+    $("app").innerHTML = html;
+    bindEvents();
+  }
+
+  // ════════════════════════════════════════════
+  // TAB 1: MI RESERVA
+  // ════════════════════════════════════════════
+  function renderReservaTab(d) {
+    var res = d.reserva;
+    var neg = d.negocio;
+    var evDate = new Date(res.fecha + "T12:00:00");
+    var dayName = DAYS[evDate.getDay()];
+    var dayNum = evDate.getDate();
+    var monthName = MONTHS[evDate.getMonth()];
+    var year = evDate.getFullYear();
+
+    var html = '';
+
+    // Event info card
+    html += '<div class="card">';
+    html += '<div class="card-title">📅 Tu reserva</div>';
+    html += '<div class="card-row"><span class="card-row-label">Fecha</span><span class="card-row-value">' + dayName + ' ' + dayNum + ' de ' + monthName + ' ' + year + '</span></div>';
+    html += '<div class="card-row"><span class="card-row-label">Horario</span><span class="card-row-value">' + esc(res.horario || "") + ' a ' + esc(res.horario_fin || "") + '</span></div>';
+    html += '<div class="card-row"><span class="card-row-label">Turno</span><span class="card-row-value">' + esc(res.turno || "") + '</span></div>';
+    html += '<div class="card-row"><span class="card-row-label">Invitados</span><span class="card-row-value">' + (res.cant_invitados || 0) + ' personas</span></div>';
+    if (res.tipo_evento) html += '<div class="card-row"><span class="card-row-label">Tipo</span><span class="card-row-value">' + esc(res.tipo_evento) + '</span></div>';
+    html += '<div class="card-row"><span class="card-row-label">Estado</span><span class="card-row-value">' + esc(res.estado || "") + '</span></div>';
+    html += '</div>';
+
+    // Payment card
+    var pay = d.pagos;
+    if (pay.total > 0) {
+      var pct = pay.total > 0 ? Math.min(100, Math.round(pay.pagado / pay.total * 100)) : 0;
+      html += '<div class="card">';
+      html += '<div class="card-title">💰 Estado de pago</div>';
+      html += '<div class="pay-summary">';
+      html += '<div class="pay-box"><div class="pay-box-label">Total</div><div class="pay-box-value">' + fmtCurrency(pay.total) + '</div></div>';
+      html += '<div class="pay-box"><div class="pay-box-label">Pagado</div><div class="pay-box-value pagado">' + fmtCurrency(pay.pagado) + '</div></div>';
+      html += '<div class="pay-box"><div class="pay-box-label">Saldo</div><div class="pay-box-value' + (pay.saldo > 0 ? ' saldo' : '') + '">' + fmtCurrency(pay.saldo) + '</div></div>';
+      html += '</div>';
+      html += '<div class="pay-bar"><div class="pay-bar-fill" style="width:' + pct + '%"></div></div>';
+      html += '<div style="text-align:center;font-size:11px;color:var(--text-muted)">' + pct + '% abonado</div>';
+
+      if (pay.detalle && pay.detalle.length) {
+        html += '<div class="pay-detail">';
+        pay.detalle.forEach(function(p) {
+          html += '<div class="pay-item"><span>' + fmtDate(p.fecha) + ' · ' + esc(p.metodo) + '</span><span class="pay-item-badge">' + fmtCurrency(p.monto) + '</span></div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    // Extras contratados (si hay)
+    if (d.extras && d.extras.length) {
+      html += '<div class="card">';
+      html += '<div class="card-title">🎉 Extras contratados</div>';
+      d.extras.forEach(function(e) {
+        html += '<div class="card-row"><span class="card-row-label">' + esc(e.descripcion) + (e.cantidad > 1 ? ' x' + e.cantidad : '') + '</span><span class="card-row-value">' + fmtCurrency(e.precio * e.cantidad) + '</span></div>';
+      });
+      html += '</div>';
+    }
+
+    // Conditions
+    html += '<div class="conditions">';
+    html += '<div class="conditions-title">📜 Condiciones del lugar</div>';
+    if (neg.condiciones_email) {
+      html += '<div class="conditions-text">' + esc(neg.condiciones_email) + '</div>';
+    } else {
+      RULES.forEach(function(r) {
+        html += '<div class="rule-row"><span>' + r.icon + '</span><span>' + esc(r.text) + '</span></div>';
+      });
+    }
+    html += '</div>';
+
+    // Location
+    if (neg.direccion) {
+      html += '<a class="card" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(neg.direccion) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit">';
+      html += '<span style="font-size:24px">📍</span>';
+      html += '<div><div style="font-size:14px;font-weight:600">Como llegar</div><div style="font-size:12px;color:var(--text-sub)">' + esc(neg.direccion) + '</div></div>';
+      html += '</a>';
+    }
+
+    // WhatsApp
+    if (neg.telefono) {
+      html += '<a class="card" href="https://wa.me/' + esc(neg.telefono) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit">';
+      html += '<span style="font-size:24px">💬</span>';
+      html += '<div><div style="font-size:14px;font-weight:600">Contactar al lugar</div><div style="font-size:12px;color:var(--text-sub)">Abrir WhatsApp</div></div>';
+      html += '</a>';
+    }
+
+    return html;
+  }
+
+  // ════════════════════════════════════════════
+  // TAB 2: MI EVENTO
+  // ════════════════════════════════════════════
+  function renderEventoTab(d) {
+    var res = d.reserva;
+    var shareUrl = window.location.origin + "/evento/" + token;
+
+    var html = '';
+
+    // Event name
+    html += '<div class="card">';
+    html += '<div class="card-title">✏️ Nombre del evento</div>';
+    html += '<input class="input" type="text" id="inp-nombre" value="' + esc(nombreEvento) + '" placeholder="Ej: Cumple de Juanito" maxlength="100" />';
+    html += '</div>';
+
+    // Toggle sections
+    html += '<div class="card">';
+    html += '<div class="card-title">👁️ Secciones visibles</div>';
+    html += '<div class="section-label">Que ven tus invitados</div>';
+    TOGGLE_SECTIONS.forEach(function(s) {
+      var checked = sections[s.key] !== false ? "checked" : "";
+      html += '<label class="toggle-row"><input type="checkbox" data-section="' + s.key + '" ' + checked + ' /><span class="toggle-ico">' + s.icon + '</span><span class="toggle-label">' + esc(s.label) + '</span></label>';
+    });
+    html += '<div class="fixed-note"><strong>Siempre visibles:</strong> ' + FIXED_SECTIONS.join(" · ") + '</div>';
+    html += '</div>';
+
+    // Organizer message
+    html += '<div class="card" id="msg-card">';
+    html += '<div class="card-title">📢 Mensaje para los invitados</div>';
+    html += '<textarea class="input textarea" id="inp-message" maxlength="300" placeholder="Ej: Traigan malla y protector solar!">' + esc(message) + '</textarea>';
+    html += '<div class="char-count"><span id="msg-count">' + message.length + '</span>/300</div>';
+    html += '</div>';
+
+    // Theme
+    html += '<div class="card">';
+    html += '<div class="card-title">🎨 Color del encabezado</div>';
+    html += '<div class="themes">';
+    THEMES.forEach(function(t) {
+      html += '<button class="theme-btn' + (theme === t.id ? " active" : "") + '" data-theme="' + t.id + '" style="background:' + t.color + '">';
+      if (theme === t.id) html += '<span class="theme-check">✓</span>';
+      html += '</button>';
+    });
+    html += '</div>';
+    html += '</div>';
+
+    // Hero image
+    html += '<div class="card">';
+    html += '<div class="card-title">🖼️ Imagen de fondo</div>';
+    html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:10px">Subi una imagen tematica para el encabezado de la invitacion.</div>';
+    if (heroUrl) {
+      html += '<div class="hero-preview"><img src="' + esc(heroUrl) + '" alt="" /><button class="hero-remove" id="hero-remove">✕ Quitar</button></div>';
+    } else {
+      html += '<div class="hero-upload" id="hero-upload-btn"><span class="hero-upload-ico">' + (heroUploading ? "⏳" : "🖼️") + '</span><div><div class="hero-upload-text">' + (heroUploading ? "Subiendo..." : "Subir imagen") + '</div><div class="hero-upload-sub">JPG, PNG o WEBP · Max 3MB</div></div></div>';
+    }
+    html += '</div>';
+
+    // Save button
+    html += '<div class="btn-row">';
+    html += '<button class="btn" id="btn-save" ' + (saving ? "disabled" : "") + '>' + (saving ? "Guardando..." : "💾 Guardar cambios") + '</button>';
+    html += '</div>';
+
+    // Generated link
+    html += '<div class="card" style="margin-top:16px">';
+    html += '<div class="card-title">🔗 Link para compartir</div>';
+    html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px">Mandales este link a tus invitados</div>';
+    html += '<div class="link-box"><span class="link-url">' + esc(shareUrl) + '</span><button class="link-copy" id="btn-copy">Copiar</button></div>';
+    html += '</div>';
+
+    // RSVP list
+    if (d.rsvp && d.rsvp.length) {
+      var confirmed = d.rsvp.filter(function(r) { return r.estado === "confirmado"; });
+      var declined = d.rsvp.filter(function(r) { return r.estado === "declinado"; });
+      var totalConf = confirmed.reduce(function(s, r) { return s + r.cantidad; }, 0);
+
+      html += '<div class="rsvp-section">';
+      html += '<div class="card">';
+      html += '<div class="card-title">✅ Confirmaciones (' + totalConf + '/' + (d.reserva.cant_invitados || 0) + ')</div>';
+      html += '<div>';
+      d.rsvp.forEach(function(g) {
+        var cls = g.estado === "declinado" ? " declined" : "";
+        html += '<span class="rsvp-chip' + cls + '"><span class="rsvp-avatar">' + esc(g.nombre.charAt(0).toUpperCase()) + '</span>' + esc(g.nombre) + ' · ' + g.cantidad + '</span>';
+      });
+      html += '</div>';
+      html += '<div class="rsvp-total"><strong>' + totalConf + '</strong> personas confirmadas' + (declined.length ? ' · ' + declined.length + ' no pueden' : '') + '</div>';
+      html += '</div></div>';
+    }
+
+    // Photos
+    if (d.fotos && d.fotos.length) {
+      html += '<div class="card">';
+      html += '<div class="card-title">📸 Fotos del evento (' + d.fotos.length + ')</div>';
+      html += '<div class="photos-grid">';
+      d.fotos.forEach(function(f) {
+        html += '<img src="' + esc(f.url) + '" alt="" loading="lazy" />';
+      });
+      html += '</div></div>';
+    }
+
+    return html;
+  }
+
+  // ════════════════════════════════════════════
+  // TAB 3: EXTRAS
+  // ════════════════════════════════════════════
+  function renderExtrasTab(d) {
+    var html = '';
+
+    // Already contracted
+    if (d.extras && d.extras.length) {
+      html += '<div class="card">';
+      html += '<div class="card-title">🎉 Extras contratados</div>';
+      d.extras.forEach(function(e) {
+        html += '<div class="card-row"><span class="card-row-label">' + esc(e.descripcion) + (e.cantidad > 1 ? ' x' + e.cantidad : '') + '</span><span class="card-row-value">' + fmtCurrency(e.precio * e.cantidad) + '</span></div>';
+      });
+      html += '</div>';
+    }
+
+    // Available extras
+    if (d.servicios && d.servicios.length) {
+      html += '<div class="section-label" style="margin-top:8px;margin-bottom:12px">Servicios disponibles</div>';
+      d.servicios.forEach(function(s) {
+        var alreadyContracted = d.extras.some(function(e) { return e.descripcion === s.descripcion; });
+        var alreadyRequested = !!requestedExtras[s.id];
+
+        html += '<div class="extra-card">';
+        html += '<div class="extra-info"><div class="extra-name">' + esc(s.descripcion) + '</div><div class="extra-price">' + fmtCurrency(s.precio) + '</div></div>';
+
+        if (alreadyContracted) {
+          html += '<button class="extra-btn sent" disabled>Contratado ✓</button>';
+        } else if (alreadyRequested) {
+          html += '<button class="extra-btn sent" disabled>Solicitado ✓</button>';
+        } else {
+          html += '<button class="extra-btn" data-extra-id="' + esc(s.id) + '">Solicitar</button>';
+        }
+        html += '</div>';
+      });
+
+      html += '<div style="font-size:12px;color:var(--text-muted);margin-top:12px;line-height:1.5">Al solicitar un extra, le avisamos al lugar para que confirmen disponibilidad y precio. Te contactaran por WhatsApp.</div>';
+    } else {
+      html += '<div class="card" style="text-align:center;padding:32px 16px">';
+      html += '<div style="font-size:32px;margin-bottom:8px">✨</div>';
+      html += '<div style="font-size:14px;color:var(--text-sub)">No hay servicios extras disponibles para este evento.</div>';
+      html += '</div>';
+    }
+
+    return html;
+  }
+
+  // ════════════════════════════════════════════
+  // EVENT BINDINGS
+  // ════════════════════════════════════════════
+  function bindEvents() {
+    // Tab switching
+    var tabs = document.querySelectorAll(".tab");
+    tabs.forEach(function(tab) {
+      tab.addEventListener("click", function() {
+        activeTab = tab.getAttribute("data-tab");
+        renderApp();
+      });
+    });
+
+    // Section toggles
+    var checks = document.querySelectorAll("[data-section]");
+    checks.forEach(function(cb) {
+      cb.addEventListener("change", function() {
+        sections[cb.getAttribute("data-section")] = cb.checked;
+      });
+    });
+
+    // Message
+    var msgInp = $("inp-message");
+    if (msgInp) {
+      msgInp.addEventListener("input", function() {
+        message = msgInp.value.slice(0, 300);
+        var counter = $("msg-count");
+        if (counter) counter.textContent = message.length;
+      });
+    }
+
+    // Nombre
+    var nombreInp = $("inp-nombre");
+    if (nombreInp) {
+      nombreInp.addEventListener("input", function() {
+        nombreEvento = nombreInp.value.slice(0, 100);
+      });
+    }
+
+    // Theme
+    var themeBtns = document.querySelectorAll(".theme-btn");
+    themeBtns.forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        theme = btn.getAttribute("data-theme");
+        renderApp();
+      });
+    });
+
+    // Hero upload
+    var heroBtn = $("hero-upload-btn");
+    var heroFile = $("hero-file");
+    if (heroBtn && heroFile) {
+      heroBtn.addEventListener("click", function() { heroFile.click(); });
+    }
+    if (heroFile) {
+      heroFile.addEventListener("change", function() {
+        var file = heroFile.files && heroFile.files[0];
+        if (!file) return;
+        heroFile.value = "";
+        if (!["image/jpeg","image/png","image/webp"].includes(file.type)) { showToast("Solo JPG, PNG o WEBP"); return; }
+        if (file.size > 3 * 1024 * 1024) { showToast("Max 3MB"); return; }
+        heroUploading = true;
+        renderApp();
+        var img = new Image();
+        var url = URL.createObjectURL(file);
+        img.onload = function() {
+          var w = img.width, h = img.height;
+          if (w > 1920) { h = Math.round(h * 1920 / w); w = 1920; }
+          var canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          canvas.toBlob(function(blob) {
+            var fileName = "hero/" + DATA.id + "_" + Date.now() + ".jpg";
+            fetch(SUPA_URL + "/storage/v1/object/evento-fotos/" + fileName, {
+              method: "POST",
+              headers: { "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY, "Content-Type": "image/jpeg" },
+              body: blob
+            }).then(function(r) {
+              if (!r.ok) throw new Error("upload failed");
+              heroUrl = SUPA_URL + "/storage/v1/object/public/evento-fotos/" + fileName;
+              heroUploading = false;
+              showToast("Imagen subida");
+              renderApp();
+            }).catch(function() {
+              heroUploading = false;
+              showToast("Error al subir imagen");
+              renderApp();
+            });
+          }, "image/jpeg", 0.85);
+        };
+        img.onerror = function() { heroUploading = false; showToast("Error al procesar imagen"); renderApp(); };
+        img.src = url;
+      });
+    }
+
+    // Hero remove
+    var heroRemove = $("hero-remove");
+    if (heroRemove) {
+      heroRemove.addEventListener("click", function() {
+        heroUrl = "";
+        renderApp();
+      });
+    }
+
+    // Save
+    var btnSave = $("btn-save");
+    if (btnSave) {
+      btnSave.addEventListener("click", function() {
+        if (saving) return;
+        saving = true;
+        renderApp();
+        api("portal-save", {
+          token: token,
+          share_sections: sections,
+          share_message: message,
+          share_theme: theme,
+          share_hero_url: heroUrl,
+          nombre_evento: nombreEvento
+        }).then(function(r) {
+          saving = false;
+          if (r.ok) {
+            showToast("Cambios guardados");
+            DATA.reserva.share_sections = sections;
+            DATA.reserva.share_message = message;
+            DATA.reserva.share_theme = theme;
+            DATA.reserva.share_hero_url = heroUrl;
+            DATA.reserva.nombre_evento = nombreEvento;
+          } else {
+            showToast("Error al guardar");
+          }
+          renderApp();
+        }).catch(function() {
+          saving = false;
+          showToast("Error de conexion");
+          renderApp();
+        });
+      });
+    }
+
+    // Copy link
+    var btnCopy = $("btn-copy");
+    if (btnCopy) {
+      btnCopy.addEventListener("click", function() {
+        var shareUrl = window.location.origin + "/evento/" + token;
+        navigator.clipboard.writeText(shareUrl).then(function() {
+          showToast("Link copiado!");
+          btnCopy.textContent = "Copiado!";
+          setTimeout(function() { btnCopy.textContent = "Copiar"; }, 2000);
+        });
+      });
+    }
+
+    // Extra request buttons
+    var extraBtns = document.querySelectorAll("[data-extra-id]");
+    extraBtns.forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        var sid = btn.getAttribute("data-extra-id");
+        btn.disabled = true;
+        btn.textContent = "Enviando...";
+        api("portal-request-extra", { token: token, servicio_id: sid }).then(function(r) {
+          if (r.ok) {
+            requestedExtras[sid] = true;
+            localStorage.setItem("portal_extras_" + token, JSON.stringify(requestedExtras));
+            showToast("Solicitud enviada!");
+          } else {
+            showToast("Error al solicitar");
+          }
+          renderApp();
+        }).catch(function() {
+          showToast("Error de conexion");
+          renderApp();
+        });
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>
