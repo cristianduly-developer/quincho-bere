@@ -912,8 +912,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   const REGALO_OPTIONS = [
     {value:"15% OFF en un servicio extra",emoji:"🎉"},
     {value:"20% OFF en un servicio extra",emoji:"🔥"},
-    {value:"10% descuento en tu próximo evento",emoji:"🎟️"},
-    {value:"Con el alquiler del gazebo, 2 livings bonificados",emoji:"🪑"},
+    {value:"25% OFF en un servicio extra",emoji:"💥"},
   ];
   const [ppFecha, setPpFecha] = useState(reserva.proximoPagoFecha||"");
   const [ppMonto, setPpMonto] = useState(reserva.proximoPagoMonto||"");
