@@ -236,6 +236,41 @@
     /* UPLOADING */
     .upload-progress{margin-top:8px;padding:10px 14px;background:var(--surface-warm);border-radius:10px;font-size:12px;color:var(--text-sub);display:flex;align-items:center;gap:8px}
     .upload-progress .loading-spinner{width:16px;height:16px;border-width:2px}
+
+    /* ── LIVE STATE ── */
+    .live-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;background:rgba(61,122,74,0.3);border:1px solid rgba(61,122,74,0.35);border-radius:20px;font-size:11px;font-weight:800;color:#6FCF7F;letter-spacing:0.15em;text-transform:uppercase}
+    .live-dot{width:8px;height:8px;border-radius:50%;background:#6FCF7F;animation:pulse-dot 1.5s infinite}
+    @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+    .wifi-hero{background:var(--green-bg);border:2px solid var(--green-border);border-radius:var(--radius);padding:24px 20px;margin-bottom:20px;text-align:center;box-shadow:var(--shadow-md)}
+    .wifi-hero-title{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:2px}
+    .wifi-hero-sub{font-size:12px;color:var(--text-muted);margin-bottom:14px}
+    .wifi-hero-pass{font-size:26px;font-weight:800;color:var(--green);letter-spacing:0.05em;margin-bottom:12px;cursor:pointer}
+    .wifi-hero-row{display:flex;align-items:center;justify-content:center;gap:14px}
+    .wifi-hero-copy{padding:10px 20px;background:var(--green);color:#FFF;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:transform .15s}
+    .wifi-hero-copy:active{transform:scale(.95)}
+
+    .upload-hero{background:var(--surface);border:2px dashed var(--accent);border-radius:var(--radius);padding:24px 20px;text-align:center;margin-bottom:20px;cursor:pointer;transition:border-color .2s,transform .15s}
+    .upload-hero:hover{border-color:var(--accent-hover)}
+    .upload-hero:active{transform:scale(.98)}
+    .upload-hero-ico{font-size:32px;margin-bottom:6px}
+    .upload-hero h3{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .upload-hero p{font-size:13px;color:var(--text-sub)}
+
+    .rsvp-summary{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:20px}
+    .rsvp-summary-ico{width:40px;height:40px;border-radius:10px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .rsvp-summary-num{font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:var(--text)}
+    .rsvp-summary-label{font-size:12px;color:var(--text-muted)}
+
+    /* ── POST STATE ── */
+    .review-hero{background:var(--surface);border:2px solid var(--gold-border);border-radius:var(--radius);padding:28px 20px;text-align:center;margin-bottom:20px;box-shadow:var(--shadow-md)}
+    .review-hero-stars{font-size:32px;margin-bottom:8px}
+    .review-hero h3{font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .review-hero p{font-size:13px;color:var(--text-sub);margin-bottom:16px;line-height:1.5}
+    .review-hero-btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:var(--accent);color:#FFF;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;transition:transform .15s}
+    .review-hero-btn:hover{transform:translateY(-1px)}
+
+    .photos-notice{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:10px;margin-bottom:12px;font-size:12px;color:var(--gold);font-weight:600}
   </style>
 </head>
 <body>
@@ -320,6 +355,22 @@
     return now.getTime() > ev.getTime();
   }
 
+  function getEventState(fecha) {
+    var ev = parseDate(fecha);
+    var now = new Date();
+    now.setHours(0, 0, 0, 0);
+    if (now.getTime() < ev.getTime()) return "pre";
+    if (now.getTime() === ev.getTime()) return "live";
+    return "post";
+  }
+
+  function daysUntilExpiry(fecha) {
+    var ev = parseDate(fecha);
+    ev.setDate(ev.getDate() + 10);
+    var now = new Date(); now.setHours(0, 0, 0, 0);
+    return Math.ceil((ev.getTime() - now.getTime()) / 86400000);
+  }
+
   function supa(method, path, body) {
     var h = { "Content-Type": "application/json", "apikey": SUPA_KEY, "Authorization": "Bearer " + SUPA_KEY };
     if (method === "POST" && !path.startsWith("rpc/")) h["Prefer"] = "return=minimal";
@@ -368,20 +419,26 @@
     var sec = ev.share_sections || {};
     var theme = THEMES[ev.share_theme] || THEMES.verde;
     var heroColor = theme.hero;
-    var eventDay = isEventDay(ev.fecha);
     var evDate = parseDate(ev.fecha);
     var neg = ev.negocio || {};
     var rsvpList = ev.rsvp || [];
     var confirmed = rsvpList.filter(function(r) { return r.estado === "confirmado"; });
     var totalConf = confirmed.reduce(function(s, r) { return s + r.cantidad; }, 0);
-
-    var heroStyle = 'background:' + heroColor;
     var hasHeroImg = !!ev.share_hero_url;
+
+    var state = getEventState(ev.fecha);
+    var eventDay = state === "live" || state === "post";
+    var daysLeft = state === "post" ? daysUntilExpiry(ev.fecha) : 0;
+
+    var dayName = DAYS[evDate.getDay()];
+    var dayNum = evDate.getDate();
+    var monthName = MONTHS[evDate.getMonth()];
+    var year = evDate.getFullYear();
 
     var html = '';
 
     // ── HERO ──
-    html += '<div class="hero" style="' + heroStyle + '">';
+    html += '<div class="hero" style="background:' + heroColor + '">';
     if (hasHeroImg) {
       html += '<img class="hero-bg-img" src="' + esc(ev.share_hero_url) + '" alt="" />';
       html += '<div class="hero-overlay"></div>';
@@ -391,126 +448,197 @@
     }
 
     html += '<div class="hero-logo">';
-    if (neg.logo_url) {
-      html += '<div class="hero-logo-mark"><img src="' + esc(neg.logo_url) + '" alt=""></div>';
-    }
+    if (neg.logo_url) html += '<div class="hero-logo-mark"><img src="' + esc(neg.logo_url) + '" alt=""></div>';
     html += '<span class="hero-logo-text">' + esc(neg.nombre || "") + '</span></div>';
 
     html += '<div class="hero-center">';
-    html += '<div class="hero-invited">Te invitaron a</div>';
-    html += '<div class="hero-line"></div>';
+    if (state === "live") {
+      html += '<div class="live-badge"><div class="live-dot"></div>Evento en marcha</div>';
+      html += '<div style="height:16px"></div>';
+    } else if (state === "post") {
+      html += '<div class="hero-invited">Gracias por venir a</div>';
+      html += '<div class="hero-line"></div>';
+    } else {
+      html += '<div class="hero-invited">Te invitaron a</div>';
+      html += '<div class="hero-line"></div>';
+    }
     html += '<div class="hero-event-name">' + esc(ev.nombre_evento || "Evento") + '</div>';
     if (ev.tipo_evento) html += '<div class="hero-event-type">' + esc(ev.tipo_evento) + '</div>';
     html += '<div class="hero-deco"><div class="hero-deco-line"></div><div class="hero-deco-diamond"></div><div class="hero-deco-line"></div></div>';
     html += '</div>';
 
-    var dayName = DAYS[evDate.getDay()];
-    var dayNum = evDate.getDate();
-    var monthName = MONTHS[evDate.getMonth()];
-    var year = evDate.getFullYear();
-
     html += '<div class="hero-info-strip">';
     html += '<div class="hero-info-block"><div class="hero-info-label">Fecha</div><div class="hero-info-value">' + dayName + ' ' + dayNum + '</div><div class="hero-info-sub">' + monthName + ' ' + year + '</div></div>';
     html += '<div class="hero-info-block"><div class="hero-info-label">Horario</div><div class="hero-info-value">' + esc(ev.horario || "") + ' a ' + esc(ev.horario_fin || "") + '</div><div class="hero-info-sub">Turno ' + esc(ev.turno || "") + '</div></div>';
-    html += '<div class="hero-info-block"><div class="hero-info-label">Invitados</div><div class="hero-info-value">' + (ev.cant_invitados || 0) + '</div><div class="hero-info-sub">personas</div></div>';
+    if (state === "live") {
+      html += '<div class="hero-info-block"><div class="hero-info-label">Confirmados</div><div class="hero-info-value">' + totalConf + '</div><div class="hero-info-sub">personas</div></div>';
+    } else {
+      html += '<div class="hero-info-block"><div class="hero-info-label">Invitados</div><div class="hero-info-value">' + (ev.cant_invitados || 0) + '</div><div class="hero-info-sub">personas</div></div>';
+    }
     html += '</div></div>';
 
     // ── CONTENT ──
     html += '<div class="content">';
 
-    // RSVP
-    if (sec.rsvp !== false) {
-      html += '<div class="rsvp" id="rsvp-card">';
-      html += '<div class="rsvp-header"><h3>Confirma tu asistencia</h3><p>Asi organizamos mejor el evento</p></div>';
-      html += '<div id="rsvp-form"><div class="rsvp-form">';
-      html += '<input class="rsvp-input" type="text" placeholder="Tu nombre" id="rsvp-name">';
-      html += '<div class="rsvp-row"><input class="rsvp-input" type="number" placeholder="Personas" min="1" max="10" value="1" id="rsvp-count" style="text-align:center"><div class="rsvp-row-hint">vos incluido</div></div>';
-      html += '<button class="rsvp-btn rsvp-btn-yes" id="btn-confirm">Confirmo que voy</button>';
-      html += '<button class="rsvp-btn rsvp-btn-no" id="btn-decline">No puedo ir esta vez</button>';
-      html += '</div></div>';
-      html += '<div class="rsvp-divider"></div>';
-      html += '<div class="rsvp-confirmed-label"><span>✅</span> Confirmados</div>';
-      html += '<div class="rsvp-guests" id="guest-list">';
-      rsvpList.forEach(function(g) {
-        var cls = g.estado === "declinado" ? " declined" : "";
-        html += '<div class="rsvp-chip' + cls + '"><div class="rsvp-avatar">' + esc(g.nombre.charAt(0).toUpperCase()) + '</div>' + esc(g.nombre) + ' · ' + g.cantidad + '</div>';
-      });
-      html += '</div>';
-      html += '<div class="rsvp-total" id="rsvp-total"><strong>' + totalConf + '</strong> personas confirmadas de ' + (ev.cant_invitados || 0) + ' invitados</div>';
-      html += '</div>';
-    }
+    // ════════════════════════════════════════════
+    // STATE: PRE-EVENTO
+    // ════════════════════════════════════════════
+    if (state === "pre") {
+      // RSVP
+      if (sec.rsvp !== false) {
+        html += '<div class="rsvp" id="rsvp-card">';
+        html += '<div class="rsvp-header"><h3>Confirma tu asistencia</h3><p>Asi organizamos mejor el evento</p></div>';
+        html += '<div id="rsvp-form"><div class="rsvp-form">';
+        html += '<input class="rsvp-input" type="text" placeholder="Tu nombre" id="rsvp-name">';
+        html += '<div class="rsvp-row"><input class="rsvp-input" type="number" placeholder="Personas" min="1" max="10" value="1" id="rsvp-count" style="text-align:center"><div class="rsvp-row-hint">vos incluido</div></div>';
+        html += '<button class="rsvp-btn rsvp-btn-yes" id="btn-confirm">Confirmo que voy</button>';
+        html += '<button class="rsvp-btn rsvp-btn-no" id="btn-decline">No puedo ir esta vez</button>';
+        html += '</div></div>';
+        html += '<div class="rsvp-divider"></div>';
+        html += '<div class="rsvp-confirmed-label"><span>✅</span> Confirmados</div>';
+        html += '<div class="rsvp-guests" id="guest-list">';
+        rsvpList.forEach(function(g) {
+          var cls = g.estado === "declinado" ? " declined" : "";
+          html += '<div class="rsvp-chip' + cls + '"><div class="rsvp-avatar">' + esc(g.nombre.charAt(0).toUpperCase()) + '</div>' + esc(g.nombre) + ' · ' + g.cantidad + '</div>';
+        });
+        html += '</div>';
+        html += '<div class="rsvp-total" id="rsvp-total"><strong>' + totalConf + '</strong> personas confirmadas de ' + (ev.cant_invitados || 0) + ' invitados</div>';
+        html += '</div>';
+      }
 
-    // COUNTDOWN
-    if (sec.countdown !== false && !eventDay) {
-      html += '<div class="countdown" id="countdown">';
-      html += '<div class="cd-box"><div class="cd-num" id="cd-d">0</div><div class="cd-label">Dias</div></div>';
-      html += '<div class="cd-box"><div class="cd-num" id="cd-h">0</div><div class="cd-label">Horas</div></div>';
-      html += '<div class="cd-box"><div class="cd-num" id="cd-m">0</div><div class="cd-label">Min</div></div>';
-      html += '<div class="cd-box"><div class="cd-num" id="cd-s">0</div><div class="cd-label">Seg</div></div>';
-      html += '</div>';
-    }
+      // COUNTDOWN
+      if (sec.countdown !== false) {
+        html += '<div class="countdown" id="countdown">';
+        html += '<div class="cd-box"><div class="cd-num" id="cd-d">0</div><div class="cd-label">Dias</div></div>';
+        html += '<div class="cd-box"><div class="cd-num" id="cd-h">0</div><div class="cd-label">Horas</div></div>';
+        html += '<div class="cd-box"><div class="cd-num" id="cd-m">0</div><div class="cd-label">Min</div></div>';
+        html += '<div class="cd-box"><div class="cd-num" id="cd-s">0</div><div class="cd-label">Seg</div></div>';
+        html += '</div>';
+      }
 
-    // ORG MESSAGE
-    if (sec.mensaje !== false && ev.share_message) {
-      html += '<div class="org-msg"><div class="org-msg-ico">📢</div><div><div class="org-msg-label">Mensaje del organizador</div><div class="org-msg-text">' + esc(ev.share_message) + '</div></div></div>';
-    }
+      // ORG MESSAGE
+      if (sec.mensaje !== false && ev.share_message) {
+        html += '<div class="org-msg"><div class="org-msg-ico">📢</div><div><div class="org-msg-label">Mensaje del organizador</div><div class="org-msg-text">' + esc(ev.share_message) + '</div></div></div>';
+      }
 
-    // AMENITIES
-    if (sec.amenities !== false) {
-      html += '<div class="section"><div class="section-head">Que incluye el lugar</div><div class="includes">';
-      AMENITIES.forEach(function(a) {
-        html += '<div class="inc"><div class="inc-ico">' + a.icon + '</div><span>' + esc(a.label) + '</span></div>';
-      });
-      html += '</div></div>';
-    }
+      // AMENITIES
+      if (sec.amenities !== false) {
+        html += '<div class="section"><div class="section-head">Que incluye el lugar</div><div class="includes">';
+        AMENITIES.forEach(function(a) { html += '<div class="inc"><div class="inc-ico">' + a.icon + '</div><span>' + esc(a.label) + '</span></div>'; });
+        html += '</div></div>';
+      }
 
-    // WIFI
-    if (sec.wifi !== false && neg.wifi_password) {
-      if (eventDay) {
-        html += '<div class="wifi" id="wifi-card"><div class="wifi-ico">📶</div><div style="flex:1"><div class="wifi-lbl">WiFi del lugar</div><div class="wifi-val" id="wifi-pass">' + esc(neg.wifi_password) + '</div><div class="wifi-hint" id="wifi-hint">Toca para copiar</div></div><canvas id="wifi-qr" width="64" height="64" style="border-radius:6px;flex-shrink:0"></canvas></div>';
-      } else {
+      // WIFI (locked)
+      if (sec.wifi !== false && neg.wifi_password) {
         var fmtEvt = evDate.getDate() + " de " + MONTHS[evDate.getMonth()].toLowerCase();
         html += '<div class="wifi locked"><div class="wifi-ico">🔒</div><div><div class="wifi-lbl">WiFi del lugar</div><div class="wifi-val">Disponible el dia del evento</div><div class="wifi-hint">Se desbloquea el ' + fmtEvt + '</div></div></div>';
       }
-    }
 
-    // RULES (always shown)
-    html += '<div class="section"><div class="section-head">Condiciones del lugar</div><div class="rules">';
-    RULES.forEach(function(r) {
-      html += '<div class="rule-row"><span>' + r.icon + '</span><span>' + esc(r.text) + '</span></div>';
-    });
-    html += '</div></div>';
+      // CONDITIONS
+      html += '<div class="section"><div class="section-head">Condiciones del lugar</div><div class="rules">';
+      RULES.forEach(function(r) { html += '<div class="rule-row"><span>' + r.icon + '</span><span>' + esc(r.text) + '</span></div>'; });
+      html += '</div></div>';
 
-    // FOTOS DEL LUGAR
-    if (sec.fotos_lugar !== false) {
-      html += '<div class="section"><div class="section-head">Conoce el lugar</div><div class="gallery" id="venue-gallery"></div></div>';
-    }
+      // VENUE PHOTOS
+      if (sec.fotos_lugar !== false) {
+        html += '<div class="section"><div class="section-head">Conoce el lugar</div><div class="gallery" id="venue-gallery"></div></div>';
+      }
 
-    // FOTOS DEL EVENTO
-    if (sec.fotos_evento !== false) {
-      if (eventDay) {
-        html += '<div class="section"><div class="section-head">Fotos del evento</div>';
-        html += '<div class="event-photos" id="event-photos">';
-        (ev.fotos || []).forEach(function(f) {
-          html += '<div class="event-photo"><img src="' + esc(f.url) + '" alt="" loading="lazy"></div>';
-        });
-        html += '</div>';
-        html += '<div class="upload-section"><div class="upload" id="upload-btn"><div class="upload-ico">📷</div><div><strong>Subi fotos del evento</strong><small>Compartilas con todos los invitados</small></div></div>';
-        html += '<div class="upload-progress hidden" id="upload-progress"><div class="loading-spinner"></div>Subiendo foto...</div>';
-        html += '<input type="file" accept="image/*" multiple id="file-input" style="display:none">';
-        html += '</div></div>';
-      } else {
+      // EVENT PHOTOS (locked)
+      if (sec.fotos_evento !== false) {
         html += '<div class="section"><div class="section-head-row"><span class="section-head" style="margin-bottom:0">Fotos del evento</span><span class="locked-badge">🔒 Dia del evento</span></div>';
         html += '<div class="upload locked" style="margin-top:12px"><div class="upload-ico">📷</div><div><strong>Subi y descarga fotos del evento</strong><small>Disponible el dia del evento</small></div></div></div>';
       }
     }
 
-    // GOOGLE REVIEW (post-event only)
-    if (eventDay && neg.google_review_url) {
-      html += '<a class="review" href="' + esc(neg.google_review_url) + '" target="_blank" rel="noopener"><div class="review-stars">⭐</div><div><div class="review-label">La pasaste bien?</div><div class="review-sub">Dejanos tu opinion en Google</div></div><div class="review-arrow">›</div></a>';
+    // ════════════════════════════════════════════
+    // STATE: EVENTO EN MARCHA (live)
+    // ════════════════════════════════════════════
+    if (state === "live") {
+      // WIFI (hero, prominent)
+      if (sec.wifi !== false && neg.wifi_password) {
+        html += '<div class="wifi-hero" id="wifi-card">';
+        html += '<div class="wifi-hero-title">WiFi del lugar</div>';
+        html += '<div class="wifi-hero-sub">Conectate para compartir fotos</div>';
+        html += '<div class="wifi-hero-pass" id="wifi-pass">' + esc(neg.wifi_password) + '</div>';
+        html += '<div class="wifi-hero-row"><canvas id="wifi-qr" width="80" height="80" style="border-radius:8px"></canvas>';
+        html += '<button class="wifi-hero-copy" id="wifi-copy-btn">Copiar clave</button></div>';
+        html += '</div>';
+      }
+
+      // PHOTO UPLOAD (hero, prominent)
+      if (sec.fotos_evento !== false) {
+        html += '<div class="upload-hero" id="upload-btn">';
+        html += '<div class="upload-hero-ico">📸</div>';
+        html += '<h3>Subi tus fotos del evento</h3>';
+        html += '<p>Compartilas con todos los invitados</p>';
+        html += '</div>';
+        html += '<div class="event-photos" id="event-photos">';
+        (ev.fotos || []).forEach(function(f) {
+          html += '<div class="event-photo"><img src="' + esc(f.url) + '" alt="" loading="lazy"></div>';
+        });
+        html += '</div>';
+        html += '<div class="upload-progress hidden" id="upload-progress"><div class="loading-spinner"></div>Subiendo foto...</div>';
+        html += '<input type="file" accept="image/*" multiple id="file-input" style="display:none">';
+        if (ev.fotos && ev.fotos.length) html += '<div style="height:20px"></div>';
+      }
+
+      // ORG MESSAGE
+      if (sec.mensaje !== false && ev.share_message) {
+        html += '<div class="org-msg"><div class="org-msg-ico">📢</div><div><div class="org-msg-label">Mensaje del organizador</div><div class="org-msg-text">' + esc(ev.share_message) + '</div></div></div>';
+      }
+
+      // RSVP (summary only)
+      if (sec.rsvp !== false && totalConf > 0) {
+        html += '<div class="rsvp-summary"><div class="rsvp-summary-ico">👥</div><div><div class="rsvp-summary-num">' + totalConf + ' personas</div><div class="rsvp-summary-label">confirmaron asistencia</div></div></div>';
+      }
+
+      // AMENITIES (compact)
+      if (sec.amenities !== false) {
+        html += '<div class="section"><div class="section-head">Que incluye el lugar</div><div class="includes">';
+        AMENITIES.forEach(function(a) { html += '<div class="inc"><div class="inc-ico">' + a.icon + '</div><span>' + esc(a.label) + '</span></div>'; });
+        html += '</div></div>';
+      }
     }
 
-    // CTA (always shown)
+    // ════════════════════════════════════════════
+    // STATE: POST-EVENTO
+    // ════════════════════════════════════════════
+    if (state === "post") {
+      // GOOGLE REVIEW (hero, prominent)
+      if (neg.google_review_url) {
+        html += '<div class="review-hero">';
+        html += '<div class="review-hero-stars">⭐⭐⭐⭐⭐</div>';
+        html += '<h3>Te gusto el evento?</h3>';
+        html += '<p>Tu opinion nos ayuda un monton.<br>Dejanos una reseña en Google y contale a otros como la pasaste.</p>';
+        html += '<a class="review-hero-btn" href="' + esc(neg.google_review_url) + '" target="_blank" rel="noopener">Dejar mi opinion en Google</a>';
+        html += '</div>';
+      }
+
+      // PHOTOS (with expiry notice)
+      if (sec.fotos_evento !== false) {
+        html += '<div class="section"><div class="section-head">Fotos del evento</div>';
+        if (daysLeft > 0) {
+          html += '<div class="photos-notice">⏳ Las fotos estaran disponibles por ' + daysLeft + ' dia' + (daysLeft !== 1 ? 's' : '') + ' mas — descargalas</div>';
+        }
+        html += '<div class="event-photos" id="event-photos">';
+        (ev.fotos || []).forEach(function(f) {
+          html += '<div class="event-photo"><img src="' + esc(f.url) + '" alt="" loading="lazy"></div>';
+        });
+        html += '</div>';
+        html += '<div class="upload-section"><div class="upload" id="upload-btn"><div class="upload-ico">📷</div><div><strong>Subi mas fotos</strong><small>Todavia podes agregar fotos del evento</small></div></div>';
+        html += '<div class="upload-progress hidden" id="upload-progress"><div class="loading-spinner"></div>Subiendo foto...</div>';
+        html += '<input type="file" accept="image/*" multiple id="file-input" style="display:none">';
+        html += '</div></div>';
+      }
+
+      // WIFI (small)
+      if (sec.wifi !== false && neg.wifi_password) {
+        html += '<div class="wifi" id="wifi-card"><div class="wifi-ico">📶</div><div style="flex:1"><div class="wifi-lbl">WiFi del lugar</div><div class="wifi-val" id="wifi-pass">' + esc(neg.wifi_password) + '</div><div class="wifi-hint" id="wifi-hint">Toca para copiar</div></div><canvas id="wifi-qr" width="64" height="64" style="border-radius:6px;flex-shrink:0"></canvas></div>';
+      }
+    }
+
+    // ── CTA (all states) ──
     html += '<div class="cta-book" style="background:' + heroColor + '">';
     html += '<div class="cta-book-glow"></div>';
     html += '<div class="cta-book-eyebrow">Te gusto el lugar?</div>';
@@ -521,15 +649,12 @@
     }
     html += '</div>';
 
-    // COMO LLEGAR (always shown)
+    // ── FOOTER ──
     var addr = neg.direccion || "";
-
-    // FOOTER
     html += '<div class="foot">';
     if (neg.logo_url) html += '<div class="foot-logo"><img src="' + esc(neg.logo_url) + '" alt=""></div>';
     html += '<div class="foot-name">' + esc(neg.nombre || "") + '</div>';
     html += '</div>';
-
     html += '</div>'; // end content
 
     // STICKY
@@ -541,8 +666,8 @@
 
     // ── POST-RENDER: EVENT HANDLERS ──
 
-    // COUNTDOWN
-    if (sec.countdown !== false && !eventDay) {
+    // COUNTDOWN (pre only)
+    if (state === "pre" && sec.countdown !== false) {
       function updateCountdown() {
         var now = new Date().getTime();
         var h0 = ev.horario ? ev.horario.split(":") : [0, 0];
@@ -563,7 +688,7 @@
       setInterval(updateCountdown, 1000);
     }
 
-    // RSVP
+    // RSVP (pre only)
     var btnConfirm = $("btn-confirm");
     var btnDecline = $("btn-decline");
     if (btnConfirm) {
@@ -589,46 +714,51 @@
       });
     }
 
-    function finishRsvp(name, count, confirmed) {
+    function finishRsvp(name, count, conf) {
       var form = $("rsvp-form");
       if (!form) return;
-      if (confirmed) {
+      if (conf) {
         form.innerHTML = '<div class="rsvp-done"><div class="rsvp-done-icon">🎉</div><div class="rsvp-done-title">Te esperamos!</div><div class="rsvp-done-sub">' + esc(name) + ' · ' + count + ' persona' + (count > 1 ? 's' : '') + '</div></div>';
         var list = $("guest-list");
-        if (list) {
-          var chip = document.createElement("div");
-          chip.className = "rsvp-chip";
-          chip.innerHTML = '<div class="rsvp-avatar">' + esc(name.charAt(0).toUpperCase()) + '</div>' + esc(name) + ' · ' + count;
-          list.appendChild(chip);
-        }
+        if (list) { var chip = document.createElement("div"); chip.className = "rsvp-chip"; chip.innerHTML = '<div class="rsvp-avatar">' + esc(name.charAt(0).toUpperCase()) + '</div>' + esc(name) + ' · ' + count; list.appendChild(chip); }
         totalConf += count;
         var tot = $("rsvp-total");
         if (tot) tot.innerHTML = '<strong>' + totalConf + '</strong> personas confirmadas de ' + (ev.cant_invitados || 0) + ' invitados';
       } else {
         form.innerHTML = '<div class="rsvp-done"><div class="rsvp-done-icon">😢</div><div class="rsvp-done-title" style="color:#DC2626">Que lastima</div><div class="rsvp-done-sub">Le avisamos al organizador</div></div>';
       }
-      showToast(confirmed ? "Asistencia confirmada!" : "Respuesta enviada");
+      showToast(conf ? "Asistencia confirmada!" : "Respuesta enviada");
     }
 
-    // WIFI COPY + QR
+    // WIFI COPY + QR (live & post)
     var wifiCard = $("wifi-card");
-    if (wifiCard) {
+    if (wifiCard && !$("wifi-copy-btn")) {
       wifiCard.addEventListener("click", function() {
         var pass = $("wifi-pass");
         if (pass && navigator.clipboard) {
           navigator.clipboard.writeText(pass.textContent).then(function() {
-            $("wifi-hint").textContent = "Copiado!";
-            setTimeout(function() { $("wifi-hint").textContent = "Toca para copiar"; }, 2000);
+            var hint = $("wifi-hint");
+            if (hint) { hint.textContent = "Copiado!"; setTimeout(function() { hint.textContent = "Toca para copiar"; }, 2000); }
           });
         }
       });
-      var qrCanvas = $("wifi-qr");
-      if (qrCanvas && neg.wifi_password) {
-        drawWifiQR(qrCanvas, neg.wifi_password);
-      }
     }
+    var wifiCopyBtn = $("wifi-copy-btn");
+    if (wifiCopyBtn) {
+      wifiCopyBtn.addEventListener("click", function() {
+        var pass = $("wifi-pass");
+        if (pass && navigator.clipboard) {
+          navigator.clipboard.writeText(pass.textContent).then(function() {
+            wifiCopyBtn.textContent = "Copiado!";
+            setTimeout(function() { wifiCopyBtn.textContent = "Copiar clave"; }, 2000);
+          });
+        }
+      });
+    }
+    var qrCanvas = $("wifi-qr");
+    if (qrCanvas && neg.wifi_password) drawWifiQR(qrCanvas, neg.wifi_password);
 
-    // PHOTO UPLOAD
+    // PHOTO UPLOAD (live & post)
     var uploadBtn = $("upload-btn");
     var fileInput = $("file-input");
     if (uploadBtn && fileInput) {
@@ -638,11 +768,8 @@
         if (!files.length) return;
         var progress = $("upload-progress");
         if (progress) progress.classList.remove("hidden");
-
         var chain = Promise.resolve();
-        files.forEach(function(file) {
-          chain = chain.then(function() { return compressAndUpload(file, ev, token); });
-        });
+        files.forEach(function(file) { chain = chain.then(function() { return compressAndUpload(file, ev, token); }); });
         chain.then(function() {
           if (progress) progress.classList.add("hidden");
           showToast(files.length + " foto" + (files.length > 1 ? "s subidas" : " subida"));
