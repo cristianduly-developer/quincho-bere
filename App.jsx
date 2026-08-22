@@ -3857,10 +3857,10 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                       await sb.remove("servicios_extras",s.id);
                       setServiciosExtras(prev=>prev.filter(x=>x.id!==s.id));
                     }}
-                    onEdit={async(nuevoMonto)=>{
-                      const updated={...s,precioActual:nuevoMonto};
+                    onUpdate={async(changes)=>{
+                      const updated={...s,...changes};
                       setServiciosExtras(prev=>prev.map(x=>x.id===s.id?updated:x));
-                      await sb.upsert("servicios_extras",[{id:s.id,org_id:getCurrentOrgId(),descripcion:s.descripcion,precio_actual:nuevoMonto,activo:true}]);
+                      await sb.upsert("servicios_extras",[{id:s.id,org_id:getCurrentOrgId(),descripcion:s.descripcion,precio_actual:changes.precioActual,activo:true,detalle:changes.detalle||null,foto_url:changes.fotoUrl||null}]);
                     }}
                   />
                 ))}
@@ -3924,18 +3924,23 @@ function AddEspacioForm({ recursos, setRecursos, plan }) {
   );
 }
 
-function ServicioExtraRow({ s, onDelete, onEdit }) {
+function ServicioExtraRow({ s, onDelete, onUpdate }) {
   const [editando, setEditando] = useState(false);
-  const [precio, setPrecio] = useState(String(s.precioActual));
+  const [form, setForm] = useState({precio:String(s.precioActual),detalle:s.detalle||"",fotoUrl:s.fotoUrl||""});
+  const [uploading, setUploading] = useState(false);
   return (
-    <div style={{padding:"10px 0",borderBottom:"1px solid #F5EDE4"}}>
+    <div style={{padding:"12px 0",borderBottom:"1px solid #F5EDE4"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-        <div style={{flex:1}}>
-          <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
-          {!editando && <div style={{fontSize:12,color:"#8B7355"}}>{fmtCurrency(s.precioActual)}</div>}
+        <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
+          {s.fotoUrl && <img src={s.fotoUrl} alt="" style={{width:40,height:40,borderRadius:8,objectFit:"cover",flexShrink:0}} />}
+          <div style={{minWidth:0}}>
+            <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
+            {!editando && <div style={{fontSize:12,color:"#8B7355"}}>{fmtCurrency(s.precioActual)}</div>}
+            {!editando && s.detalle && <div style={{fontSize:11,color:"#A8A29E",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.detalle}</div>}
+          </div>
         </div>
-        <div style={{display:"flex",gap:6}}>
-          <button onClick={()=>{setEditando(p=>!p);setPrecio(String(s.precioActual));}}
+        <div style={{display:"flex",gap:6,flexShrink:0}}>
+          <button onClick={()=>{setEditando(p=>!p);setForm({precio:String(s.precioActual),detalle:s.detalle||"",fotoUrl:s.fotoUrl||""});}}
             style={{background:"#FDF8F3",border:"1px solid #EDE0D0",color:"#C4602B",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600}}>
             {editando?"Cancelar":"✏️"}
           </button>
@@ -3946,17 +3951,50 @@ function ServicioExtraRow({ s, onDelete, onEdit }) {
         </div>
       </div>
       {editando && (
-        <div style={{display:"flex",gap:6,marginTop:8}}>
-          <input type="number" value={precio} onChange={e=>setPrecio(e.target.value)}
-            style={{flex:1,padding:"7px 10px",borderRadius:8,border:"1.5px solid #C4602B",fontSize:13,fontFamily:"inherit",outline:"none"}} />
-          <button onClick={async()=>{
-            const v=Number(precio);
-            if(!v||v<0) return alert("Ingresá un precio válido.");
-            await onEdit(v);
-            setEditando(false);
-          }} style={{padding:"7px 14px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
-            Guardar
-          </button>
+        <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
+          <input type="number" placeholder="Precio $" value={form.precio} onChange={e=>setForm(p=>({...p,precio:e.target.value}))}
+            style={{padding:"7px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",outline:"none"}} />
+          <textarea placeholder="Descripcion para el cliente (ej: Incluye parrillero profesional con experiencia en asados para 30+ personas)" value={form.detalle} onChange={e=>setForm(p=>({...p,detalle:e.target.value.slice(0,300)}))}
+            style={{padding:"7px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:12,fontFamily:"inherit",outline:"none",resize:"vertical",minHeight:50}} />
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {form.fotoUrl ? (
+              <div style={{position:"relative"}}>
+                <img src={form.fotoUrl} alt="" style={{width:60,height:60,borderRadius:8,objectFit:"cover"}} />
+                <button onClick={()=>setForm(p=>({...p,fotoUrl:""}))} style={{position:"absolute",top:-4,right:-4,width:18,height:18,borderRadius:9,background:"#DC2626",color:"#FFF",border:"none",fontSize:10,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+              </div>
+            ) : (
+              <label style={{padding:"7px 12px",background:"#FDF8F3",border:"1px dashed #EDE0D0",borderRadius:8,cursor:uploading?"wait":"pointer",fontSize:12,color:"#C4602B",fontWeight:600,fontFamily:"inherit"}}>
+                {uploading?"Subiendo...":"📷 Foto"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} disabled={uploading} onChange={async(e)=>{
+                  const file=e.target.files?.[0]; if(!file)return; e.target.value="";
+                  if(file.size>3*1024*1024){alert("Max 3MB");return;}
+                  setUploading(true);
+                  try{
+                    const img=new Image();const url=URL.createObjectURL(file);
+                    await new Promise((ok,fail)=>{img.onload=ok;img.onerror=fail;img.src=url;});
+                    let w=img.width,h=img.height;if(w>800){h=Math.round(h*800/w);w=800;}
+                    const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+                    canvas.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+                    const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.82));
+                    const fileName=`extras/${s.id}_${Date.now()}.jpg`;
+                    const{error:upErr}=await supabase.storage.from("evento-fotos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
+                    if(upErr){alert("Error: "+upErr.message);return;}
+                    setForm(p=>({...p,fotoUrl:`${import.meta.env.VITE_SUPA_URL}/storage/v1/object/public/evento-fotos/${fileName}`}));
+                  }catch(err){alert("Error al procesar imagen");}
+                  finally{setUploading(false);}
+                }} />
+              </label>
+            )}
+            <div style={{flex:1}}></div>
+            <button onClick={async()=>{
+              const v=Number(form.precio);
+              if(!v||v<0) return alert("Ingresá un precio válido.");
+              await onUpdate({precioActual:v,detalle:form.detalle,fotoUrl:form.fotoUrl});
+              setEditando(false);
+            }} style={{padding:"7px 14px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+              Guardar
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -3964,8 +4002,9 @@ function ServicioExtraRow({ s, onDelete, onEdit }) {
 }
 
 function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
-  const [form, setForm] = useState({descripcion:"",precioActual:""});
+  const [form, setForm] = useState({descripcion:"",precioActual:"",detalle:"",fotoUrl:""});
   const [show, setShow] = useState(false);
+  const [uploading, setUploading] = useState(false);
   if(!show) return <button onClick={()=>setShow(true)} style={{marginTop:12,width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar servicio</button>;
   return (
     <div style={{marginTop:12,padding:12,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
@@ -3973,16 +4012,49 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
         style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
       <input type="number" placeholder="Precio $" value={form.precioActual} onChange={e=>setForm(p=>({...p,precioActual:e.target.value}))}
         onFocus={e=>e.target.select()}
-        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box",outline:"none"}} />
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
+      <textarea placeholder="Descripcion para el cliente (opcional)" value={form.detalle} onChange={e=>setForm(p=>({...p,detalle:e.target.value.slice(0,300)}))}
+        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:12,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none",resize:"vertical",minHeight:40}} />
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+        {form.fotoUrl ? (
+          <div style={{position:"relative"}}>
+            <img src={form.fotoUrl} alt="" style={{width:50,height:50,borderRadius:8,objectFit:"cover"}} />
+            <button onClick={()=>setForm(p=>({...p,fotoUrl:""}))} style={{position:"absolute",top:-4,right:-4,width:16,height:16,borderRadius:8,background:"#DC2626",color:"#FFF",border:"none",fontSize:9,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          </div>
+        ) : (
+          <label style={{padding:"6px 10px",background:"#FFF",border:"1px dashed #EDE0D0",borderRadius:8,cursor:uploading?"wait":"pointer",fontSize:12,color:"#C4602B",fontWeight:600,fontFamily:"inherit"}}>
+            {uploading?"Subiendo...":"📷 Agregar foto"}
+            <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} disabled={uploading} onChange={async(e)=>{
+              const file=e.target.files?.[0]; if(!file)return; e.target.value="";
+              if(file.size>3*1024*1024){alert("Max 3MB");return;}
+              setUploading(true);
+              try{
+                const img=new Image();const url=URL.createObjectURL(file);
+                await new Promise((ok,fail)=>{img.onload=ok;img.onerror=fail;img.src=url;});
+                let w=img.width,h=img.height;if(w>800){h=Math.round(h*800/w);w=800;}
+                const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+                canvas.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+                const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.82));
+                const tmpId=Date.now().toString(36);
+                const fileName=`extras/${tmpId}.jpg`;
+                const{error:upErr}=await supabase.storage.from("evento-fotos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
+                if(upErr){alert("Error: "+upErr.message);return;}
+                setForm(p=>({...p,fotoUrl:`${import.meta.env.VITE_SUPA_URL}/storage/v1/object/public/evento-fotos/${fileName}`}));
+              }catch(err){alert("Error al procesar imagen");}
+              finally{setUploading(false);}
+            }} />
+          </label>
+        )}
+      </div>
       <div style={{display:"flex",gap:8}}>
-        <button onClick={()=>setShow(false)} style={{flex:1,padding:"8px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
+        <button onClick={()=>{setShow(false);setForm({descripcion:"",precioActual:"",detalle:"",fotoUrl:""});}} style={{flex:1,padding:"8px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
         <button onClick={async()=>{
           if(!form.descripcion||!form.precioActual)return;
-          const newSrv={id:genId(),descripcion:form.descripcion,precioActual:Number(form.precioActual),activo:true};
+          const newSrv={id:genId(),descripcion:form.descripcion,precioActual:Number(form.precioActual),activo:true,detalle:form.detalle,fotoUrl:form.fotoUrl};
           const updated=[...serviciosExtras,newSrv];
           setServiciosExtras(updated);
-          await sb.upsert("servicios_extras",[{id:newSrv.id,org_id:getCurrentOrgId(),descripcion:newSrv.descripcion,precio_actual:newSrv.precioActual,activo:true,creado_en:new Date().toISOString()}]);
-          setForm({descripcion:"",precioActual:""});setShow(false);
+          await sb.upsert("servicios_extras",[{id:newSrv.id,org_id:getCurrentOrgId(),descripcion:newSrv.descripcion,precio_actual:newSrv.precioActual,activo:true,detalle:form.detalle||null,foto_url:form.fotoUrl||null,creado_en:new Date().toISOString()}]);
+          setForm({descripcion:"",precioActual:"",detalle:"",fotoUrl:""});setShow(false);
         }} style={{flex:2,padding:"8px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
       </div>
     </div>
@@ -5182,7 +5254,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",comprobante:x.comprobante||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
-      setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false})) : []);
+      setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false,detalle:x.detalle||"",fotoUrl:x.foto_url||""})) : []);
       if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
       if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));

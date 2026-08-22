@@ -169,17 +169,19 @@
     .photos-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 20px; }
 
     /* ── EXTRAS ── */
-    .extra-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
-    .extra-info { flex: 1; }
-    .extra-name { font-size: 14px; font-weight: 600; }
-    .extra-price { font-size: 13px; color: var(--accent); font-weight: 700; margin-top: 2px; }
-    .extra-btn { padding: 8px 16px; background: var(--accent); color: #FFF; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
-    .extra-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .extra-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+    .extra-img { width: 100%; height: 140px; object-fit: cover; display: block; }
+    .extra-body { padding: 14px 16px; }
+    .extra-name { font-family: 'Playfair Display', Georgia, serif; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .extra-detail { font-size: 13px; color: var(--text-sub); line-height: 1.5; margin-bottom: 10px; }
+    .extra-footer { display: flex; align-items: center; justify-content: space-between; }
+    .extra-price { font-size: 18px; color: var(--accent); font-weight: 800; font-family: 'Playfair Display', Georgia, serif; }
+    .extra-btn { padding: 10px 20px; background: var(--accent); color: #FFF; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; transition: transform 0.15s; }
+    .extra-btn:hover { transform: scale(1.03); }
+    .extra-btn:active { transform: scale(0.97); }
+    .extra-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .extra-btn.sent { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
-    .extras-contracted { margin-top: 16px; }
-    .extras-contracted-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
-    .extra-contracted { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; }
-    .extra-contracted:last-child { border-bottom: none; }
+    .extra-no-img { height: 80px; background: linear-gradient(135deg, var(--surface-warm), var(--border-light)); display: flex; align-items: center; justify-content: center; font-size: 36px; }
 
     /* ── TOAST ── */
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1C1C1E; color: #FFF; padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 600; z-index: 999; transition: transform 0.3s ease; pointer-events: none; white-space: nowrap; }
@@ -598,8 +600,18 @@
         var alreadyRequested = !!requestedExtras[s.id];
 
         html += '<div class="extra-card">';
-        html += '<div class="extra-info"><div class="extra-name">' + esc(s.descripcion) + '</div><div class="extra-price">' + fmtCurrency(s.precio) + '</div></div>';
-
+        if (s.foto_url) {
+          html += '<img class="extra-img" src="' + esc(s.foto_url) + '" alt="" loading="lazy" />';
+        } else {
+          html += '<div class="extra-no-img">✨</div>';
+        }
+        html += '<div class="extra-body">';
+        html += '<div class="extra-name">' + esc(s.descripcion) + '</div>';
+        if (s.detalle) {
+          html += '<div class="extra-detail">' + esc(s.detalle) + '</div>';
+        }
+        html += '<div class="extra-footer">';
+        html += '<div class="extra-price">' + fmtCurrency(s.precio) + '</div>';
         if (alreadyContracted) {
           html += '<button class="extra-btn sent" disabled>Contratado ✓</button>';
         } else if (alreadyRequested) {
@@ -607,7 +619,7 @@
         } else {
           html += '<button class="extra-btn" data-extra-id="' + esc(s.id) + '">Solicitar</button>';
         }
-        html += '</div>';
+        html += '</div></div></div>';
       });
 
       html += '<div style="font-size:12px;color:var(--text-muted);margin-top:12px;line-height:1.5">Al solicitar un extra, le avisamos al lugar para que confirmen disponibilidad y precio. Te contactaran por WhatsApp.</div>';
