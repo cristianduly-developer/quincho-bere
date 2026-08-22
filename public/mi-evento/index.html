@@ -129,9 +129,12 @@
     .char-count { text-align: right; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
     .themes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .theme-btn { width: 36px; height: 36px; border-radius: 10px; border: 2px solid var(--border); cursor: pointer; position: relative; transition: transform 0.15s; }
-    .theme-btn:hover { transform: scale(1.08); }
-    .theme-btn.active { border-color: var(--accent); border-width: 3px; }
+    .theme-btn { width: 48px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; cursor: pointer; padding: 0; }
+    .theme-btn:hover .theme-swatch { transform: scale(1.08); }
+    .theme-swatch { width: 42px; height: 42px; border-radius: 10px; border: 2px solid var(--border); position: relative; transition: transform 0.15s; }
+    .theme-btn.active .theme-swatch { border-color: var(--accent); border-width: 3px; }
+    .theme-check { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFF; font-size: 14px; font-weight: 800; }
+    .theme-name { font-size: 10px; color: var(--text-muted); font-weight: 600; }
     .theme-check { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFF; font-size: 14px; font-weight: 800; }
 
     .hero-upload { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--surface); border: 1.5px dashed var(--border); border-radius: 10px; cursor: pointer; margin-bottom: 16px; }
@@ -220,12 +223,12 @@
   var SUPA_KEY = "sb_publishable_syUaThUY-PaE_8fNcR4e6w_azyDZryB";
 
   var THEMES = [
-    { id: "verde",  color: "#1A3328", label: "Verde" },
-    { id: "azul",   color: "#1A2840", label: "Azul" },
-    { id: "rosa",   color: "#3D1A2E", label: "Rosa" },
-    { id: "dorado", color: "#2E2510", label: "Dorado" },
-    { id: "negro",  color: "#1A1A1A", label: "Negro" },
-    { id: "borgona",color: "#3D1A1A", label: "Borgoña" }
+    { id: "verde",  color: "#1A3328", preview: "#2D6B4D", label: "Verde" },
+    { id: "azul",   color: "#1A2840", preview: "#2B4A7A", label: "Azul" },
+    { id: "rosa",   color: "#3D1A2E", preview: "#8B3A62", label: "Rosa" },
+    { id: "dorado", color: "#2E2510", preview: "#A68A3E", label: "Dorado" },
+    { id: "negro",  color: "#1A1A1A", preview: "#3D3D3D", label: "Negro" },
+    { id: "borgona",color: "#3D1A1A", preview: "#8B2D2D", label: "Borgoña" }
   ];
 
   var TOGGLE_SECTIONS = [
@@ -545,8 +548,11 @@
     html += '<div class="card-title">🎨 Color del encabezado</div>';
     html += '<div class="themes">';
     THEMES.forEach(function(t) {
-      html += '<button class="theme-btn' + (theme === t.id ? " active" : "") + '" data-theme="' + t.id + '" style="background:' + t.color + '">';
+      html += '<button class="theme-btn' + (theme === t.id ? " active" : "") + '" data-theme="' + t.id + '">';
+      html += '<div class="theme-swatch" style="background:' + t.preview + '">';
       if (theme === t.id) html += '<span class="theme-check">✓</span>';
+      html += '</div>';
+      html += '<span class="theme-name">' + t.label + '</span>';
       html += '</button>';
     });
     html += '</div>';
