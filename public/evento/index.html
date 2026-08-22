@@ -435,7 +435,7 @@
 
     var state = getEventState(ev.fecha);
     var eventDay = state === "live" || state === "post";
-    var daysLeft = state === "post" ? daysUntilExpiry(ev.fecha) : 0;
+    var daysLeft = state === "post" ? Math.min(10, daysUntilExpiry(ev.fecha)) : 0;
 
     var dayName = DAYS[evDate.getDay()];
     var dayNum = evDate.getDate();
