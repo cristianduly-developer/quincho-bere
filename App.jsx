@@ -1185,7 +1185,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
               <Btn small variant="ghost" onClick={()=>setConfirmDelete(false)}>No</Btn>
             </div>
         }
-        {reserva.estado!=="cancelada"&&negocio?.portalActivo!==false&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir evento</Btn>}
+        {reserva.estado!=="cancelada"&&negocio?.portalActivo!==false&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir portal</Btn>}
         <Btn small variant="ghost" onClick={onClose}>Cerrar</Btn>
       </div>
 
@@ -1216,7 +1216,14 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                     <span style={{flex:1,wordBreak:"break-all",fontSize:12,color:"#5C4033"}}>{portalUrl}</span>
                     <button onClick={()=>{navigator.clipboard.writeText(portalUrl).then(()=>showToast&&showToast("Link copiado","ok"));}} style={{padding:"6px 12px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Copiar</button>
                   </div>
-                  <div style={{fontSize:11,color:"#8B7355",marginTop:4}}>Mandale este link por WhatsApp o email. El cliente configura su invitacion desde ahi.</div>
+                  <button onClick={()=>{
+                    const nombre = cliente ? (cliente.nombre||"").split(" ")[0] : "";
+                    const msg = (nombre ? "Hola "+nombre+"! 👋" : "Hola! 👋") + "\nTe comparto el portal de tu evento en *Quincho de Bere* 🎉\n\nDesde ahi podes:\n✅ Ver los detalles de tu reserva\n📨 Armar y compartir la invitacion para tus invitados\n📸 Ver las fotos del lugar\n🎁 Agregar extras para tu evento\n\n👉 " + portalUrl + "\n\nCualquier duda me avisas!";
+                    const wa = cliente?.whatsapp ? cliente.whatsapp.replace(/\D/g,"") : "";
+                    window.open("https://wa.me/"+(wa||"")+"?text="+encodeURIComponent(msg),"_blank");
+                  }} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",marginTop:8,padding:"10px 16px",background:"#25D366",color:"#FFF",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    <span style={{fontSize:18}}>📲</span> Enviar por WhatsApp
+                  </button>
                 </div>
 
                 {/* Link de invitados (referencia) */}
