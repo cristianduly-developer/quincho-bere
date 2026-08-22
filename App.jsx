@@ -1185,148 +1185,43 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
 
       {/* Panel Evento Compartido */}
       {showSharePanel && (()=>{
-        const SHARE_THEMES=[{id:"verde",color:"#1A3328",label:"Verde"},{id:"azul",color:"#1A2840",label:"Azul"},{id:"rosa",color:"#3D1A2E",label:"Rosa"},{id:"dorado",color:"#2E2510",label:"Dorado"},{id:"negro",color:"#1A1A1A",label:"Negro"},{id:"borgona",color:"#3D1A1A",label:"Borgoña"}];
-        const TOGGLE_SECTIONS=[
-          {key:"rsvp",label:"Confirmar asistencia",icon:"✅"},
-          {key:"countdown",label:"Cuenta regresiva",icon:"⏳"},
-          {key:"mensaje",label:"Mensaje del organizador",icon:"📢"},
-          {key:"amenities",label:"Qué incluye el lugar",icon:"🏊"},
-          {key:"wifi",label:"WiFi (día del evento)",icon:"📶"},
-          {key:"fotos_lugar",label:"Fotos del lugar",icon:"📷"},
-          {key:"fotos_evento",label:"Fotos del evento",icon:"🎞️"},
-        ];
-        const FIXED_SECTIONS=["Condiciones del lugar","Cómo llegar","CTA del negocio","Reseña Google (post-evento)"];
-        const shareUrl=reserva.shareToken ? (window.location.origin+"/evento/"+reserva.shareToken) : null;
         const portalUrl=reserva.shareToken ? (window.location.origin+"/mi-evento/"+reserva.shareToken) : null;
-        const toggleSec=(k)=>setShareSections(s=>({...s,[k]:!s[k]}));
-        const handleSaveShare=async()=>{
+        const shareUrl=reserva.shareToken ? (window.location.origin+"/evento/"+reserva.shareToken) : null;
+        const handleGenerate=async()=>{
           setShareSaving(true);
           let token=reserva.shareToken;
           if(!token){ token=genId(); }
-          await onSaveShareConfig({shareToken:token,shareSections,shareMessage,shareTheme,shareHeroUrl:shareHeroUrl||null});
+          await onSaveShareConfig({shareToken:token,shareSections:{rsvp:true,countdown:true,mensaje:false,amenities:true,wifi:true,fotos_lugar:true,fotos_evento:true},shareMessage:"",shareTheme:"verde",shareHeroUrl:null});
           setShareSaving(false);
-        };
-        const copyLink=()=>{
-          if(!shareUrl) return;
-          navigator.clipboard.writeText(shareUrl).then(()=>showToast&&showToast("Link copiado","ok"));
         };
         return (
           <div style={{background:"#F0EBE3",border:"1.5px solid #E7DFD3",borderRadius:14,padding:"16px",marginTop:12}}>
-            <div style={{fontWeight:800,fontSize:15,color:"#1C1C1E",marginBottom:14,display:"flex",alignItems:"center",gap:8}}>🔗 Evento Compartido</div>
+            <div style={{fontWeight:800,fontSize:15,color:"#1C1C1E",marginBottom:6,display:"flex",alignItems:"center",gap:8}}>🔗 Evento Compartido</div>
+            <div style={{fontSize:13,color:"#5C4033",lineHeight:1.5,marginBottom:14}}>Genera un link para el cliente. Desde ahi puede ver su reserva, armar la invitacion para sus invitados, ver confirmaciones y pedir extras.</div>
 
-            {/* Secciones toggleables */}
-            <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>Secciones visibles</div>
-            {TOGGLE_SECTIONS.map(s=>(
-              <label key={s.key} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid #E7DFD3",cursor:"pointer"}}>
-                <input type="checkbox" checked={!!shareSections[s.key]} onChange={()=>toggleSec(s.key)}
-                  style={{width:18,height:18,accentColor:"#C4602B"}} />
-                <span style={{fontSize:14}}>{s.icon}</span>
-                <span style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{s.label}</span>
-              </label>
-            ))}
-            <div style={{padding:"8px 0",marginTop:4}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>Siempre visibles:</div>
-              <div style={{fontSize:12,color:"#8B7355"}}>{FIXED_SECTIONS.join(" · ")}</div>
-            </div>
-
-            {/* Mensaje del organizador */}
-            {shareSections.mensaje && (
-              <div style={{marginTop:12}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>Mensaje para los invitados</div>
-                <textarea value={shareMessage} onChange={e=>setShareMessage(e.target.value.slice(0,300))}
-                  maxLength={300} placeholder="Ej: Traigan malla y protector solar!"
-                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E7DFD3",fontSize:13,fontFamily:"inherit",resize:"vertical",minHeight:60,boxSizing:"border-box",background:"#FFF"}} />
-                <div style={{textAlign:"right",fontSize:11,color:"#8B7355",marginTop:2}}>{shareMessage.length}/300</div>
-              </div>
-            )}
-
-            {/* Tema del hero */}
-            <div style={{marginTop:12}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>Color del encabezado</div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {SHARE_THEMES.map(t=>(
-                  <button key={t.id} onClick={()=>setShareTheme(t.id)}
-                    style={{width:36,height:36,borderRadius:10,background:t.color,border:shareTheme===t.id?"3px solid #C4602B":"2px solid #E7DFD3",cursor:"pointer",position:"relative"}}>
-                    {shareTheme===t.id && <span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontSize:14,fontWeight:800}}>✓</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Imagen de fondo */}
-            <div style={{marginTop:14}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>Imagen de fondo (opcional)</div>
-              <div style={{fontSize:12,color:"#8B7355",marginBottom:8}}>Subi una imagen tematica que aparece de fondo en el encabezado. Ej: personaje del cumple, foto de la pareja, etc.</div>
-              {shareHeroUrl ? (
-                <div style={{position:"relative",borderRadius:10,overflow:"hidden",marginBottom:8}}>
-                  <img src={shareHeroUrl} alt="" style={{width:"100%",height:100,objectFit:"cover",display:"block"}} />
-                  <button onClick={()=>setShareHeroUrl("")} style={{position:"absolute",top:6,right:6,background:"rgba(0,0,0,.6)",color:"#FFF",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit"}}>✕ Quitar</button>
-                </div>
-              ) : (
-                <label style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",background:"#FFF",border:"1.5px dashed #E7DFD3",borderRadius:10,cursor:heroUploading?"wait":"pointer"}}>
-                  <span style={{fontSize:20}}>{heroUploading?"⏳":"🖼️"}</span>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{heroUploading?"Subiendo...":"Subir imagen"}</div>
-                    <div style={{fontSize:11,color:"#8B7355"}}>JPG, PNG o WEBP · Max 3MB</div>
+            {!reserva.shareToken ? (
+              <Btn onClick={handleGenerate} disabled={shareSaving}>{shareSaving?"Generando...":"Generar link del portal"}</Btn>
+            ) : (
+              <>
+                {/* Portal del cliente */}
+                <div style={{marginBottom:14}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>Link para el cliente</div>
+                  <div style={{display:"flex",gap:6,alignItems:"center",padding:"10px 12px",background:"#FFF",borderRadius:10,border:"1px solid #E7DFD3"}}>
+                    <span style={{flex:1,wordBreak:"break-all",fontSize:12,color:"#5C4033"}}>{portalUrl}</span>
+                    <button onClick={()=>{navigator.clipboard.writeText(portalUrl).then(()=>showToast&&showToast("Link copiado","ok"));}} style={{padding:"6px 12px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Copiar</button>
                   </div>
-                  <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} disabled={heroUploading} onChange={async(e)=>{
-                    const file=e.target.files?.[0];
-                    if(!file) return;
-                    e.target.value="";
-                    if(!["image/jpeg","image/png","image/webp"].includes(file.type)){showToast("Solo JPG, PNG o WEBP","error");return;}
-                    if(file.size>3*1024*1024){showToast("La imagen no puede superar 3MB","error");return;}
-                    setHeroUploading(true);
-                    try{
-                      const img=new Image();
-                      const url=URL.createObjectURL(file);
-                      await new Promise((ok,fail)=>{img.onload=ok;img.onerror=fail;img.src=url;});
-                      let w=img.width,h=img.height;
-                      const maxW=1920;
-                      if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
-                      const canvas=document.createElement("canvas");
-                      canvas.width=w;canvas.height=h;
-                      canvas.getContext("2d").drawImage(img,0,0,w,h);
-                      URL.revokeObjectURL(url);
-                      const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.85));
-                      const fileName=`hero/${reserva.id}_${Date.now()}.jpg`;
-                      const{error:upErr}=await supabase.storage.from("evento-fotos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
-                      if(upErr){showToast("Error al subir: "+upErr.message,"error");return;}
-                      const pubUrl=`${import.meta.env.VITE_SUPA_URL}/storage/v1/object/public/evento-fotos/${fileName}`;
-                      setShareHeroUrl(pubUrl);
-                      showToast("Imagen subida","ok");
-                    }catch(err){showToast("Error al procesar imagen","error");}
-                    finally{setHeroUploading(false);}
-                  }} />
-                </label>
-              )}
-            </div>
+                  <div style={{fontSize:11,color:"#8B7355",marginTop:4}}>Mandale este link por WhatsApp o email. El cliente configura su invitacion desde ahi.</div>
+                </div>
 
-            {/* Guardar + Link */}
-            <div style={{marginTop:16,display:"flex",gap:8,flexWrap:"wrap"}}>
-              <Btn onClick={handleSaveShare} disabled={shareSaving}>
-                {shareSaving?"Guardando...":(reserva.shareToken?"Actualizar link":"Generar link")}
-              </Btn>
-              {shareUrl && (
-                <Btn variant="secondary" onClick={copyLink}>📋 Copiar link</Btn>
-              )}
-            </div>
-            {portalUrl && (
-              <div style={{marginTop:12}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>Portal del cliente</div>
-                <div style={{display:"flex",gap:6,alignItems:"center",padding:"10px 12px",background:"#FFF",borderRadius:10,border:"1px solid #E7DFD3"}}>
-                  <span style={{flex:1,wordBreak:"break-all",fontSize:12,color:"#5C4033"}}>{portalUrl}</span>
-                  <button onClick={()=>{navigator.clipboard.writeText(portalUrl).then(()=>showToast&&showToast("Link del portal copiado","ok"));}} style={{padding:"6px 12px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Copiar</button>
-                </div>
-                <div style={{fontSize:11,color:"#8B7355",marginTop:4}}>Mandale este link al cliente. Ahi puede configurar su invitacion, ver pagos y pedir extras.</div>
-              </div>
-            )}
-            {shareUrl && (
-              <div style={{marginTop:10}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>Link para invitados</div>
-                <div style={{padding:"10px 12px",background:"#FFF",borderRadius:10,border:"1px solid #E7DFD3",wordBreak:"break-all",fontSize:12,color:"#5C4033"}}>
-                  {shareUrl}
-                </div>
-              </div>
+                {/* Link de invitados (referencia) */}
+                <details style={{marginTop:4}}>
+                  <summary style={{fontSize:11,fontWeight:700,color:"#8B7355",cursor:"pointer"}}>Ver link de invitados (referencia)</summary>
+                  <div style={{padding:"8px 12px",background:"#FFF",borderRadius:10,border:"1px solid #E7DFD3",wordBreak:"break-all",fontSize:11,color:"#8B7355",marginTop:6}}>
+                    {shareUrl}
+                  </div>
+                  <div style={{fontSize:11,color:"#A8A29E",marginTop:4}}>Este es el link que el cliente comparte con sus invitados desde su portal.</div>
+                </details>
+              </>
             )}
           </div>
         );
