@@ -336,8 +336,10 @@
     html += '</div></div></div>';
 
     // Tabs
+    var rsvpCount = (d.rsvp || []).filter(function(r) { return r.estado === "confirmado"; }).reduce(function(s, r) { return s + r.cantidad; }, 0);
+    var rsvpBadge = rsvpCount > 0 ? '<span style="background:var(--green);color:#FFF;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">' + rsvpCount + '</span>' : '';
     html += '<div class="tabs"><div class="tabs-inner">';
-    html += '<button class="tab' + (activeTab === "reserva" ? " active" : "") + '" data-tab="reserva"><span class="tab-ico">📋</span>Mi Reserva</button>';
+    html += '<button class="tab' + (activeTab === "reserva" ? " active" : "") + '" data-tab="reserva"><span class="tab-ico">📋</span>Mi Reserva' + rsvpBadge + '</button>';
     html += '<button class="tab' + (activeTab === "evento" ? " active" : "") + '" data-tab="evento"><span class="tab-ico">🔗</span>Mi Evento</button>';
     html += '<button class="tab' + (activeTab === "extras" ? " active" : "") + '" data-tab="extras"><span class="tab-ico">✨</span>Extras</button>';
     html += '</div></div>';
@@ -455,6 +457,42 @@
       html += '</a>';
     }
 
+    // RSVP resumen en Mi Reserva
+    html += renderRsvpSection(d);
+
+    return html;
+  }
+
+  // ════════════════════════════════════════════
+  // RSVP SECTION (reutilizable)
+  // ════════════════════════════════════════════
+  function renderRsvpSection(d) {
+    var html = '';
+    var rsvpList = d.rsvp || [];
+    var confirmed = rsvpList.filter(function(r) { return r.estado === "confirmado"; });
+    var declined = rsvpList.filter(function(r) { return r.estado === "declinado"; });
+    var totalConf = confirmed.reduce(function(s, r) { return s + r.cantidad; }, 0);
+    var maxInv = d.reserva.cant_invitados || 0;
+
+    html += '<div class="card" style="margin-top:16px">';
+    html += '<div class="card-title">✅ Confirmaciones de asistencia (' + totalConf + (maxInv ? '/' + maxInv : '') + ')</div>';
+
+    if (rsvpList.length === 0) {
+      html += '<div style="text-align:center;padding:16px 0">';
+      html += '<div style="font-size:28px;margin-bottom:6px">📋</div>';
+      html += '<div style="font-size:13px;color:var(--text-muted);line-height:1.5">Todavia nadie confirmo asistencia.<br>Cuando compartas el link, tus invitados van a poder confirmar desde ahi.</div>';
+      html += '</div>';
+    } else {
+      html += '<div style="margin-bottom:8px">';
+      rsvpList.forEach(function(g) {
+        var cls = g.estado === "declinado" ? " declined" : "";
+        html += '<span class="rsvp-chip' + cls + '"><span class="rsvp-avatar">' + esc(g.nombre.charAt(0).toUpperCase()) + '</span>' + esc(g.nombre) + ' · ' + g.cantidad + '</span>';
+      });
+      html += '</div>';
+      html += '<div class="rsvp-total"><strong>' + totalConf + '</strong> persona' + (totalConf !== 1 ? 's' : '') + ' confirmada' + (totalConf !== 1 ? 's' : '') + (declined.length ? ' · ' + declined.length + ' no puede' + (declined.length !== 1 ? 'n' : '') : '') + '</div>';
+    }
+
+    html += '</div>';
     return html;
   }
 
@@ -537,24 +575,8 @@
     html += '<div class="link-box"><span class="link-url">' + esc(shareUrl) + '</span><button class="link-copy" id="btn-copy">Copiar</button></div>';
     html += '</div>';
 
-    // RSVP list
-    if (d.rsvp && d.rsvp.length) {
-      var confirmed = d.rsvp.filter(function(r) { return r.estado === "confirmado"; });
-      var declined = d.rsvp.filter(function(r) { return r.estado === "declinado"; });
-      var totalConf = confirmed.reduce(function(s, r) { return s + r.cantidad; }, 0);
-
-      html += '<div class="rsvp-section">';
-      html += '<div class="card">';
-      html += '<div class="card-title">✅ Confirmaciones (' + totalConf + '/' + (d.reserva.cant_invitados || 0) + ')</div>';
-      html += '<div>';
-      d.rsvp.forEach(function(g) {
-        var cls = g.estado === "declinado" ? " declined" : "";
-        html += '<span class="rsvp-chip' + cls + '"><span class="rsvp-avatar">' + esc(g.nombre.charAt(0).toUpperCase()) + '</span>' + esc(g.nombre) + ' · ' + g.cantidad + '</span>';
-      });
-      html += '</div>';
-      html += '<div class="rsvp-total"><strong>' + totalConf + '</strong> personas confirmadas' + (declined.length ? ' · ' + declined.length + ' no pueden' : '') + '</div>';
-      html += '</div></div>';
-    }
+    // RSVP list (siempre visible)
+    html += renderRsvpSection(d);
 
     // Photos
     if (d.fotos && d.fotos.length) {
