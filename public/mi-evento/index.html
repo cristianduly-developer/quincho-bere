@@ -237,6 +237,24 @@
     .step-num { width: 20px; height: 20px; border-radius: 10px; background: var(--accent); color: #FFF; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex-shrink: 0; }
 
     .hidden { display: none !important; }
+
+    /* ── TIPS PRE-EVENTO ── */
+    .tips-panel{background:linear-gradient(135deg,var(--gold-bg),#FFF8E6);border:1.5px solid var(--gold-border);border-radius:16px;padding:20px;margin-bottom:20px}
+    .tips-title{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+    .tips-subtitle{font-size:12px;color:var(--text-muted);margin-bottom:16px}
+    .tips-grid{display:flex;flex-direction:column;gap:10px}
+    .tip-card{display:flex;align-items:flex-start;gap:12px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+    .tip-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+    .tip-ico-pay{background:#FEF2F2}
+    .tip-ico-rsvp{background:#EBF5ED}
+    .tip-ico-clock{background:#EFF6FF}
+    .tip-ico-weather{background:#FFF7ED}
+    .tip-ico-tip{background:var(--gold-bg)}
+    .tip-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:2px}
+    .tip-text{font-size:14px;color:var(--text);line-height:1.4;font-weight:600}
+    .tip-sub{font-size:12px;color:var(--text-sub);line-height:1.4;margin-top:2px}
+    .tip-list{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-wrap:wrap;gap:6px}
+    .tip-list li{font-size:12px;color:var(--text-sub);background:var(--surface-warm);border:1px solid var(--border-light);padding:4px 10px;border-radius:8px}
   </style>
 </head>
 <body>
@@ -344,6 +362,171 @@
   var nombreEvento = "";
   var heroUploading = false;
   var requestedExtras = JSON.parse(localStorage.getItem("portal_extras_" + token) || "{}");
+  var weatherData = null;
+
+  function fetchWeather(fecha) {
+    var url = "https://api.open-meteo.com/v1/forecast?latitude=-38.0055&longitude=-57.5426&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=America/Argentina/Buenos_Aires&start_date=" + fecha + "&end_date=" + fecha;
+    fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+      if (data && data.daily && data.daily.time && data.daily.time.length > 0) {
+        weatherData = {
+          max: Math.round(data.daily.temperature_2m_max[0]),
+          min: Math.round(data.daily.temperature_2m_min[0]),
+          rain: data.daily.precipitation_probability_max[0],
+          code: data.daily.weathercode[0]
+        };
+        renderApp();
+      }
+    }).catch(function() {});
+  }
+
+  function weatherIcon(code) {
+    if (code <= 1) return "☀️";
+    if (code <= 3) return "⛅";
+    if (code <= 48) return "🌫️";
+    if (code <= 67) return "🌧️";
+    if (code <= 77) return "🌨️";
+    if (code <= 82) return "🌧️";
+    if (code <= 86) return "🌨️";
+    if (code >= 95) return "⛈️";
+    return "🌤️";
+  }
+
+  function weatherLabel(code) {
+    if (code <= 1) return "Despejado";
+    if (code <= 3) return "Parcialmente nublado";
+    if (code <= 48) return "Nublado";
+    if (code <= 55) return "Llovizna";
+    if (code <= 67) return "Lluvia";
+    if (code <= 77) return "Nieve";
+    if (code <= 82) return "Lluvias fuertes";
+    if (code >= 95) return "Tormenta";
+    return "Variable";
+  }
+
+  function isDaytime(horario) {
+    if (!horario) return true;
+    var h = parseInt(horario.split(":")[0], 10);
+    return h >= 6 && h < 19;
+  }
+
+  function renderTipsPanel(d) {
+    var res = d.reserva;
+    var pay = d.pagos;
+    var rsvpList = d.rsvp || [];
+    var evDate = new Date(res.fecha + "T12:00:00");
+    var now = new Date(); now.setHours(0,0,0,0);
+    var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
+
+    if (dLeft < 0 || dLeft > 2) return "";
+
+    // Countdown en horas/minutos
+    var evStart = new Date(res.fecha + "T" + (res.horario || "12:00") + ":00");
+    var nowMs = new Date();
+    var diffMs = evStart.getTime() - nowMs.getTime();
+    var hoursLeft = Math.max(0, Math.floor(diffMs / 3600000));
+    var minsLeft = Math.max(0, Math.floor((diffMs % 3600000) / 60000));
+
+    var dayLabel, daySubtitle;
+    if (diffMs <= 0) {
+      dayLabel = "🎉 Tu evento ya empezo!";
+      daySubtitle = "Disfruta al maximo. Que sea un dia inolvidable!";
+    } else if (hoursLeft < 24) {
+      dayLabel = "⏳ Faltan " + hoursLeft + "hs " + minsLeft + "min para tu evento!";
+      daySubtitle = "Ya casi! Queremos que salga todo perfecto, asi que te dejamos algunos tips.";
+    } else if (dLeft === 1) {
+      dayLabel = "📋 Tu evento es manana!";
+      daySubtitle = "Queremos que salga todo bien, asi que te preparamos algunos tips y recomendaciones.";
+    } else {
+      dayLabel = "📋 Tu evento es pasado manana!";
+      daySubtitle = "Ya falta poco! Te dejamos algunos tips para que tengas todo listo.";
+    }
+
+    var html = '<div class="tips-panel">';
+    html += '<div class="tips-title">' + dayLabel + '</div>';
+    html += '<div class="tips-subtitle">' + daySubtitle + '</div>';
+    html += '<div class="tips-grid">';
+
+    // 1. PAGO
+    if (pay.saldo > 0) {
+      html += '<div class="tip-card"><div class="tip-ico tip-ico-pay">💰</div><div>';
+      html += '<div class="tip-label">Saldo pendiente</div>';
+      html += '<div class="tip-text">Te queda un saldo de ' + fmtCurrency(pay.saldo) + '</div>';
+      html += '<div class="tip-sub">Recorda que el saldo se abona antes o el dia del evento</div>';
+      html += '</div></div>';
+    } else if (pay.total > 0) {
+      html += '<div class="tip-card"><div class="tip-ico tip-ico-rsvp">✅</div><div>';
+      html += '<div class="tip-label">Pagos</div>';
+      html += '<div class="tip-text">Tenes todo pago, estas al dia!</div>';
+      html += '</div></div>';
+    }
+
+    // 2. RSVP
+    var conf = rsvpList.filter(function(r) { return r.estado === "confirmado"; });
+    var totalConf = conf.reduce(function(s, r) { return s + r.cantidad; }, 0);
+    var totalInv = res.cant_invitados || 0;
+    var pending = rsvpList.filter(function(r) { return r.estado === "pendiente"; });
+    if (rsvpList.length > 0) {
+      html += '<div class="tip-card"><div class="tip-ico tip-ico-rsvp">👥</div><div>';
+      html += '<div class="tip-label">Invitados</div>';
+      html += '<div class="tip-text">' + totalConf + ' personas confirmadas' + (totalInv > 0 ? ' de ' + totalInv + ' invitados' : '') + '</div>';
+      if (pending.length > 0) {
+        html += '<div class="tip-sub">Todavia hay ' + pending.length + ' invitado' + (pending.length > 1 ? 's' : '') + ' sin confirmar. Mandale un recordatorio!</div>';
+      }
+      html += '</div></div>';
+    }
+
+    // 3. HORARIO
+    html += '<div class="tip-card"><div class="tip-ico tip-ico-clock">⏰</div><div>';
+    html += '<div class="tip-label">Horario</div>';
+    html += '<div class="tip-text">' + esc(res.horario || "") + ' a ' + esc(res.horario_fin || "") + '</div>';
+    html += '<div class="tip-sub">Podes llegar 15 minutos antes para acomodarte tranquilo</div>';
+    html += '</div></div>';
+
+    // 4. CLIMA
+    if (weatherData) {
+      var rainHigh = weatherData.rain > 40;
+      html += '<div class="tip-card"><div class="tip-ico tip-ico-weather">' + weatherIcon(weatherData.code) + '</div><div>';
+      html += '<div class="tip-label">Pronostico para el dia del evento</div>';
+      html += '<div class="tip-text">' + weatherLabel(weatherData.code) + ' — ' + weatherData.min + '° / ' + weatherData.max + '°</div>';
+      if (rainHigh) {
+        html += '<div class="tip-sub">Hay ' + weatherData.rain + '% de probabilidad de lluvia. Tene un plan B para actividades al aire libre</div>';
+      }
+      html += '</div></div>';
+    }
+
+    // 5. TIPS SEGUN CONTEXTO
+    var daytime = isDaytime(res.horario);
+    var tips = [];
+    if (daytime) {
+      tips.push("🧴 Protector solar");
+      tips.push("🩱 Malla para la pile");
+      tips.push("🏖️ Toalla");
+    }
+    if (!daytime) {
+      tips.push("🧥 Abrigo por si refresca");
+    }
+    tips.push("👟 Ropa comoda");
+    if (weatherData && weatherData.max > 28 && daytime) {
+      tips.push("🧊 Mucha agua fresca");
+      tips.push("🧢 Gorra o sombrero");
+    }
+    if (weatherData && weatherData.rain > 40) {
+      tips.push("☂️ Paraguas por las dudas");
+    }
+    if (weatherData && weatherData.max < 15) {
+      tips.push("🧣 Abrigate bien");
+    }
+
+    html += '<div class="tip-card"><div class="tip-ico tip-ico-tip">💡</div><div>';
+    html += '<div class="tip-label">No te olvides</div>';
+    html += '<ul class="tip-list">';
+    tips.forEach(function(t) { html += '<li>' + t + '</li>'; });
+    html += '</ul>';
+    html += '</div></div>';
+
+    html += '</div></div>';
+    return html;
+  }
 
   // ── LOAD DATA ──
   api("portal-data", { token: token }).then(function(data) {
@@ -358,6 +541,11 @@
     heroUrl = data.reserva.share_hero_url || "";
     nombreEvento = data.reserva.nombre_evento || "";
     document.title = (nombreEvento || "Mi Evento") + " — " + (data.negocio.nombre_negocio || "");
+    // Fetch clima si faltan <=2 dias
+    var evD = new Date(data.reserva.fecha + "T12:00:00");
+    var nowD = new Date(); nowD.setHours(0,0,0,0);
+    var daysL = Math.ceil((evD.getTime() - nowD.getTime()) / 86400000);
+    if (daysL >= 0 && daysL <= 2 && !weatherData) fetchWeather(data.reserva.fecha);
     renderApp();
   }).catch(function() {
     $("app").innerHTML = '<div class="error-page"><h2>Error de conexion</h2><p>No pudimos cargar los datos. Intenta de nuevo.</p></div>';
@@ -401,6 +589,9 @@
     html += '<div class="welcome-title">Este es el portal de tu evento</div>';
     html += '<div class="welcome-sub">Desde aca podes ver los datos de tu reserva, armar la invitacion para tus invitados y solicitar extras.</div>';
     html += '</div>';
+
+    // Tips pre-evento (48hs antes)
+    html += renderTipsPanel(d);
 
     if (activeTab === "reserva") html += renderReservaTab(d);
     if (activeTab === "evento") html += renderEventoTab(d);
