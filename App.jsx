@@ -587,12 +587,12 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn disabled={saving||fechaSinTemporada} onClick={()=>{
           if(saving) return;
-          if(fechaSinTemporada) return alert("Esta fecha no está dentro de ninguna temporada habilitada para este espacio.");
-          if(!f.clienteId) return alert("Seleccioná un cliente.");
-          if(!f.fecha||!f.montoPactado) return alert("Completá fecha y monto pactado.");
-          if(Number(f.montoPactado)<=0) return alert("El monto pactado debe ser mayor a cero.");
-          if(!isEdit&&f.fecha < toDateStr(new Date())) return alert("No podés registrar una reserva en una fecha pasada.");
-          if(f.estado==="visita"&&!f.fechaVisita) return alert("Indicá la fecha de la visita.");
+          if(fechaSinTemporada) return showToast("Esta fecha no está dentro de ninguna temporada habilitada para este espacio.","warn");
+          if(!f.clienteId) return showToast("Seleccioná un cliente.","warn");
+          if(!f.fecha||!f.montoPactado) return showToast("Completá fecha y monto pactado.","warn");
+          if(Number(f.montoPactado)<=0) return showToast("El monto pactado debe ser mayor a cero.","warn");
+          if(!isEdit&&f.fecha < toDateStr(new Date())) return showToast("No podés registrar una reserva en una fecha pasada.","warn");
+          if(f.estado==="visita"&&!f.fechaVisita) return showToast("Indicá la fecha de la visita.","warn");
           onSave({...f, turnoId:f.turnoId||null, montoPactado:Number(f.montoPactado), cantInvitados:Number(f.cantInvitados)||1, tipoEvento:f.tipoEvento||null, nombreEvento:f.nombreEvento||null, fechaVisita:f.fechaVisita||null, horaVisita:f.horaVisita||null});
         }}>{saving?"Guardando...":(isEdit?"Guardar cambios":"Crear reserva")}</Btn>
       </div>
@@ -622,8 +622,8 @@ function ClienteModal({ onClose, onSave, cliente, clientes }) {
   };
   const doSave = () => onSave({...f, estadoCrm:f.estadoCrm||null, origen:f.origen||null});
   const handleSubmit = () => {
-    if(!f.nombre) return alert("El nombre es obligatorio.");
-    if(f.whatsapp&&(!/^[\d\s+\-().]{7,20}$/.test(f.whatsapp)||f.whatsapp.replace(/\D/g,'').length<7)) return alert("El WhatsApp ingresado no parece válido. Ejemplo: +54 223 1234567");
+    if(!f.nombre) return showToast("El nombre es obligatorio.","warn");
+    if(f.whatsapp&&(!/^[\d\s+\-().]{7,20}$/.test(f.whatsapp)||f.whatsapp.replace(/\D/g,'').length<7)) return showToast("El WhatsApp ingresado no parece válido. Ejemplo: +54 223 1234567","warn");
     if(isNew) {
       const found = findDupes(f);
       if(found.length>0) { setDupes(found); return; }
@@ -694,9 +694,9 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
   const handleFile = async (e) => {
     const file = e.target.files[0];
     if(!file) return;
-    if(file.size > 3*1024*1024) return alert("La imagen no puede superar 3MB.");
+    if(file.size > 3*1024*1024) return showToast("La imagen no puede superar 3MB.","warn");
     const ALLOWED_TYPES = ["image/jpeg","image/png","image/webp","image/gif","application/pdf"];
-    if(!ALLOWED_TYPES.includes(file.type)) return alert("Solo se permiten imágenes (JPG, PNG, WEBP) o PDF.");
+    if(!ALLOWED_TYPES.includes(file.type)) return showToast("Solo se permiten imágenes JPG, PNG, WEBP o PDF.","warn");
     setUploadingFile(true);
     const EXT_MAP = {"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif","application/pdf":"pdf"};
     const ext = EXT_MAP[file.type] || 'jpg';
@@ -730,8 +730,8 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
     })];
 
   const doSave = (print) => {
-    if(!f.reservaId||!f.monto) return alert("Seleccioná una reserva e ingresá el monto.");
-    if(Number(f.monto)<=0) return alert("El monto debe ser mayor a cero.");
+    if(!f.reservaId||!f.monto) return showToast("Seleccioná una reserva e ingresá el monto.","warn");
+    if(Number(f.monto)<=0) return showToast("El monto debe ser mayor a cero.","warn");
     onSave({...f, monto:Number(f.monto), comprobante:comprobante||null}, print);
   };
 
@@ -792,8 +792,8 @@ function GastoModal({ onClose, onSave, gasto }) {
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn onClick={()=>{
-          if(!f.concepto||!f.monto)return alert("Completá concepto y monto.");
-          if(Number(f.monto)<=0)return alert("El monto debe ser mayor a cero.");
+          if(!f.concepto||!f.monto)return showToast("Completá concepto y monto.","warn");
+          if(Number(f.monto)<=0)return showToast("El monto debe ser mayor a cero.","warn");
           onSave({...f,monto:Number(f.monto)});
         }}>{isEdit?"Guardar cambios":"Registrar gasto"}</Btn>
       </div>
@@ -835,9 +835,9 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
         <Btn onClick={()=>{
           const srv = servicios.find(s=>s.id===f.servicioId);
           const desc = f.servicioId==="custom"?f.descripcion:srv?.descripcion;
-          if(!desc||!f.cantidad||!f.precioHistorico)return alert("Completá todos los campos.");
-          if(Number(f.cantidad)<=0) return alert("La cantidad debe ser mayor a cero.");
-          if(Number(f.precioHistorico)<=0) return alert("El precio debe ser mayor a cero.");
+          if(!desc||!f.cantidad||!f.precioHistorico)return showToast("Completá todos los campos.","warn");
+          if(Number(f.cantidad)<=0) return showToast("La cantidad debe ser mayor a cero.","warn");
+          if(Number(f.precioHistorico)<=0) return showToast("El precio debe ser mayor a cero.","warn");
           onSave({reservaId,servicioId:f.servicioId!=="custom"?f.servicioId:null,descripcion:desc,cantidad:Number(f.cantidad),precioHistorico:Number(f.precioHistorico)});
         }}>Agregar Extra</Btn>
       </div>
@@ -1061,7 +1061,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
               <div style={{display:"flex",gap:8}}>
                 <Btn variant="ghost" onClick={()=>setShowProximoPago(false)}>Cancelar</Btn>
                 <Btn onClick={()=>{
-                  if(!ppMonto||!ppFecha) return alert("Completá monto y fecha.");
+                  if(!ppMonto||!ppFecha) return showToast("Completá monto y fecha.","warn");
                   onEditProximoPago(ppFecha, Number(ppMonto));
                   setShowProximoPago(false);
                 }}>Guardar</Btn>
@@ -1133,8 +1133,8 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
           <div style={{display:"flex",gap:8}}>
             <Btn variant="ghost" onClick={()=>{setShowReschedule(false);setRescheduleDate("");}}>Cancelar</Btn>
             <Btn onClick={()=>{
-              if(!rescheduleDate) return alert("Seleccioná la nueva fecha.");
-              if(rescheduleDate===reserva.fecha) return alert("La nueva fecha es igual a la actual.");
+              if(!rescheduleDate) return showToast("Seleccioná la nueva fecha.","warn");
+              if(rescheduleDate===reserva.fecha) return showToast("La nueva fecha es igual a la actual.","warn");
               const nota="📌 Reprogramado desde: "+fmtDate(reserva.fecha)+(reserva.notas?"\n"+reserva.notas:"");
               onEdit({...reserva, fecha:rescheduleDate, notas:nota, _fromReschedule:true});
               setShowReschedule(false);setRescheduleDate("");
@@ -1438,7 +1438,7 @@ function EditPagoModal({ pago, onClose, onSave }) {
       <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
         <Btn onClick={()=>{
-          if(!monto||Number(monto)<=0) return alert("El monto debe ser mayor a 0.");
+          if(!monto||Number(monto)<=0) return showToast("El monto debe ser mayor a 0.","warn");
           onSave({...pago, monto:Number(monto), metodo, notas});
         }}>Guardar cambios</Btn>
       </div>
@@ -1794,7 +1794,7 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
                   style={{...inputStyle}} />
               </div>
               <button onClick={()=>{
-                  if(!bMotivo.trim()){alert("El motivo es obligatorio.");return;}
+                  if(!bMotivo.trim()){showToast("El motivo es obligatorio.","warn");return;}
                   onBloquear({turno:bTurno, motivo:bMotivo.trim()});
                 }}
                 style={{width:"100%",padding:"13px",background:"#1F2937",border:"none",borderRadius:10,color:"#FFF",fontWeight:800,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
@@ -1924,8 +1924,8 @@ function UsuariosView({ usuarios, setUsuarios, currentUser }) {
           <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
             <Btn variant="ghost" onClick={()=>setShowForm(false)}>Cancelar</Btn>
             <Btn onClick={()=>{
-              if(!form.nombre||!form.email) return alert("Completá nombre e email.");
-              if(!form.pin||form.pin.length!==4) return alert("El PIN debe tener 4 dígitos.");
+              if(!form.nombre||!form.email) return showToast("Completá nombre e email.","warn");
+              if(!form.pin||form.pin.length!==4) return showToast("El PIN debe tener 4 dígitos.","warn");
               save([...usuarios,{id:genId(),...form}]);
               setShowForm(false); setForm({nombre:"",email:"",rol:"Personal",estado:"Activo",pin:""});
             }}>Guardar</Btn>
@@ -2066,7 +2066,7 @@ function RatingModal({ reserva, clientes, onSave, onSnooze }) {
             style={{width:"100%",padding:"10px 12px",borderRadius:8,fontSize:13,border:"1.5px solid #EDE0D0",outline:"none",fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}} />
         </div>
         <button onClick={()=>{
-          if(!estrellas) return alert("Por favor seleccioná una calificación de 1 a 5 estrellas.");
+          if(!estrellas) return showToast("Por favor seleccioná una calificación de 1 a 5 estrellas.","warn");
           onSave({estrellas, nota, fecha:toDateStr(new Date())});
         }} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#C4602B,#9E4A1E)",color:"#FFF",border:"none",borderRadius:10,fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>
           Guardar calificación
@@ -2125,7 +2125,7 @@ function BloqueoModal({ date, bloqueoExistente, onClose, onBloquear, onDesbloque
       </div>
       <div style={{display:"flex",gap:10}}>
         <Btn variant="ghost" onClick={onClose}>Cancelar</Btn>
-        <Btn onClick={()=>{ if(!motivo.trim()) return alert("El motivo es obligatorio."); onBloquear({turno,motivo:motivo.trim()}); }}>
+        <Btn onClick={()=>{ if(!motivo.trim()) return showToast("El motivo es obligatorio.","warn"); onBloquear({turno,motivo:motivo.trim()}); }}>
           🚫 Confirmar bloqueo
         </Btn>
       </div>
@@ -2566,9 +2566,9 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
               {icon:"👥",label:"Cliente",action:()=>setModal("cliente"),perm:currentUser?.gestionOperativa!==false},
 
               {icon:"💸",label:"Gastos",action:()=>onNavigate("gastos"),perm:currentUser?.gestionOperativa!==false},
-              {icon:"🔔",label:"Alertas",action:()=>getPlanLimits(currentUser?.plan).recordatorios!==false?onNavigate("recordatorios"):alert("Los recordatorios no están disponibles en tu plan."),perm:true},
+              {icon:"🔔",label:"Alertas",action:()=>getPlanLimits(currentUser?.plan).recordatorios!==false?onNavigate("recordatorios"):showToast("Los recordatorios no están disponibles en tu plan.","warn"),perm:true},
             ].map((b,i)=>(
-              <button key={i} onClick={b.perm?b.action:()=>alert("Sin permiso.")} style={{
+              <button key={i} onClick={b.perm?b.action:()=>showToast("Sin permiso.","warn")} style={{
                 display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 4px",
                 background:b.perm?"#FFF":"#F3F4F6",border:"1px solid #EDE0D0",borderRadius:10,
                 cursor:b.perm?"pointer":"not-allowed",fontFamily:"inherit",opacity:b.perm?1:0.45,
@@ -2779,8 +2779,8 @@ function AddUsuarioForm({ usuarios, setUsuarios }) {
   const roles = ["Empleado","Administrador"];
 
   const handleSave = async () => {
-    if(!form.email||!form.email.includes("@")) return alert("El Gmail es obligatorio.");
-    if(!form.nombre) return alert("El nombre es obligatorio.");
+    if(!form.email||!form.email.includes("@")) return showToast("El Gmail es obligatorio.","warn");
+    if(!form.nombre) return showToast("El nombre es obligatorio.","warn");
     setSaving(true);
     try {
       // Save to perfiles_usuarios (used for Google OAuth access control)
@@ -2793,9 +2793,9 @@ function AddUsuarioForm({ usuarios, setUsuarios }) {
       }]);
       setForm({nombre:"",email:"",rol:"Empleado"});
       setShow(false);
-      alert("✅ Usuario autorizado. Podrá ingresar con su Gmail de Google.");
+      showToast("✅ Usuario autorizado. Podrá ingresar con su Gmail de Google.","ok");
     } catch(e) {
-      alert("Error al guardar: "+e.message);
+      showToast("Error al guardar: "+e.message,"error");
     }
     setSaving(false);
   };
@@ -2844,13 +2844,13 @@ function ColaboradoresSection({ orgId, plan, embedded }) {
   const handleAdd = async () => {
     if(!email.trim()) return;
     if(colaboradores.length >= maxColab){
-      alert(`Tu plan ${plan||"actual"} permite hasta ${maxColab} colaborador${maxColab!==1?"es":""}. Actualizá tu plan para agregar más.`);
+      showToast(`Tu plan ${plan||"actual"} permite hasta ${maxColab} colaborador${maxColab!==1?"es":""}. Actualizá tu plan para agregar más.`,"warn");
       return;
     }
     setSaving(true);
     const { data:{ session } } = await supabase.auth.getSession();
     const r = await fetch('/api/colaboradores',{ method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`}, body: JSON.stringify({ email: email.trim(), nombre: nombre.trim()||email.trim() }) });
-    if(!r.ok){ const d=await r.json(); alert("Error al agregar colaborador: "+(d.error||r.status)); setSaving(false); return; }
+    if(!r.ok){ const d=await r.json(); showToast("Error al agregar colaborador: "+(d.error||r.status,"error")); setSaving(false); return; }
     const nuevo = { org_id: orgId, email: email.trim(), nombre: nombre.trim()||email.trim(), activo: true };
     setColaboradores(prev=>[...prev, nuevo]);
     setEmail(""); setNombre(""); setSaving(false);
@@ -2948,7 +2948,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
   };
 
   const handleAddTemporada = async () => {
-    if(!tmpForm.nombre||!tmpForm.mesDesde||!tmpForm.mesHasta) return alert("Completá nombre y meses.");
+    if(!tmpForm.nombre||!tmpForm.mesDesde||!tmpForm.mesHasta) return showToast("Completá nombre y meses.","warn");
     // RPC atómica: inserta temporada + precios en una sola transacción DB
     // Si falla cualquiera de los dos, ninguno queda guardado
     const precios = turnos.map(t=>({turno_id:t.id,precio_semana:t.precio_semana||0,precio_finde:t.precio_finde||0}));
@@ -3015,11 +3015,11 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
   };
 
   const handleAddTurno = async () => {
-    if(!form.nombre||!form.horaInicio||!form.horaFin) return alert("Completá nombre, hora inicio y hora fin.");
+    if(!form.nombre||!form.horaInicio||!form.horaFin) return showToast("Completá nombre, hora inicio y hora fin.","warn");
     setSaving(true);
     const nuevo = {recurso_id:espacio.id,org_id:getCurrentOrgId(),nombre:form.nombre.trim(),icono:form.icono||"📌",hora_inicio:form.horaInicio,hora_fin:form.horaFin,precio_semana:Number(form.precioSemana)||0,precio_finde:Number(form.precioFinde)||0,activo:true};
     const {data,error} = await supabase.from("turnos_recurso").insert(nuevo).select().single();
-    if(error){alert("Error: "+error.message);setSaving(false);return;}
+    if(error){showToast("Error: "+error.message,"error");setSaving(false);return;}
     const mapX=x=>({id:x.id,recursoId:x.recurso_id||x.recursoId,orgId:x.org_id||x.orgId,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||x.horaInicio||"",horaFin:x.hora_fin||x.horaFin||"",precioSemana:Number(x.precio_semana||x.precioSemana)||0,precioFinde:Number(x.precio_finde||x.precioFinde)||0,activo:true});
     setTurnos(prev=>{const n=[...prev,data];if(onTurnosChange)onTurnosChange(espacio.id,n.map(mapX));return n;});
     // Si ya hay temporadas configuradas, crear también el precio de este turno para cada una (default: precio base)
@@ -3047,20 +3047,20 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
   };
 
   const handleGenerarSlots = async () => {
-    if(!slotForm.horaInicio||!slotForm.horaFin||!slotForm.duracion) return alert("Completá horario de apertura, cierre y duración.");
+    if(!slotForm.horaInicio||!slotForm.horaFin||!slotForm.duracion) return showToast("Completá horario de apertura, cierre y duración.","warn");
     const [hI,mI]=slotForm.horaInicio.split(":").map(Number);
     const [hF,mF]=slotForm.horaFin.split(":").map(Number);
     const inicioMin = hI*60+mI;
     const finMin = hF*60+mF;
     const dur = Number(slotForm.duracion);
     const intervalo = Number(slotForm.intervalo)||0;
-    if(finMin<=inicioMin||dur<=0||dur>finMin-inicioMin) return alert("Horarios o duración inválidos.");
+    if(finMin<=inicioMin||dur<=0||dur>finMin-inicioMin) return showToast("Horarios o duración inválidos.","warn");
     const slots=[];
     const hh=h=>String(Math.floor(h/60)).padStart(2,"0")+":"+String(h%60).padStart(2,"0");
     for(let t=inicioMin;t+dur<=finMin;t+=dur+intervalo){
       slots.push({recurso_id:espacio.id,org_id:getCurrentOrgId(),nombre:hh(t)+" – "+hh(t+dur),hora_inicio:hh(t),hora_fin:hh(t+dur),precio_semana:Number(slotForm.precioSemana)||0,precio_finde:Number(slotForm.precioFinde)||0,activo:true});
     }
-    if(slots.length===0) return alert("No se generaron turnos. Revisá los horarios.");
+    if(slots.length===0) return showToast("No se generaron turnos. Revisá los horarios.","warn");
     if(turnos.length>0 && !window.confirm(`Esto va a reemplazar los ${turnos.length} turnos actuales de este espacio. ¿Continuar?`)) return;
     setGenerando(true);
     // Desactivar turnos existentes
@@ -3069,13 +3069,13 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
     await supabase.from("recursos").update({modo:"slot",slot_hora_inicio:slotForm.horaInicio,slot_hora_fin:slotForm.horaFin,slot_duracion_min:dur,slot_intervalo_min:intervalo}).eq("id",espacio.id);
     // Insertar nuevos slots
     const {data,error}=await supabase.from("turnos_recurso").insert(slots).select();
-    if(error){alert("Error al generar turnos: "+error.message+"\n\nSi dice 'foreign key', corré el SQL de corrección en Supabase (consultá al soporte).");setGenerando(false);return;}
+    if(error){showToast("Error al generar turnos: "+error.message,"error");setGenerando(false);return;}
     const mapped=(data||[]).map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:true}));
     setTurnos(data||[]);
     setLoaded(true);
     if(onTurnosChange) onTurnosChange(espacio.id, mapped);
     setGenerando(false);
-    alert(`✅ Se generaron ${slots.length} turnos de ${dur} minutos.`);
+    showToast(`✅ Se generaron ${slots.length} turnos de ${dur} minutos.`,"ok");
   };
 
   const cambiarModo = async (nuevoModo) => {
@@ -3376,10 +3376,10 @@ function TurnosEspacioSection({ recursos }) {
   },[espacioSel]);
 
   const handleAdd = async () => {
-    if(!form.nombre||!form.horaInicio||!form.horaFin) return alert("Completá nombre, hora inicio y hora fin.");
+    if(!form.nombre||!form.horaInicio||!form.horaFin) return showToast("Completá nombre, hora inicio y hora fin.","warn");
     const nuevo = { recurso_id: espacioSel, org_id: getCurrentOrgId(), nombre: form.nombre.trim(), hora_inicio: form.horaInicio, hora_fin: form.horaFin, precio_semana: Number(form.precioSemana)||0, precio_finde: Number(form.precioFinde)||0, activo: true };
     const { data, error } = await supabase.from("turnos_recurso").insert(nuevo).select().single();
-    if(error){ alert("Error: "+error.message); return; }
+    if(error){ showToast("Error: "+error.message,"error"); return; }
     setTurnos(prev=>[...prev, data]);
     setForm({ nombre:"", horaInicio:"", horaFin:"", precioSemana:"", precioFinde:"" });
     setShowForm(false);
@@ -3632,7 +3632,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const handleSaveNegocio = async () => {
     const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail, google_review_url: negForm.googleReviewUrl, wifi_password: negForm.wifiPassword, portal_activo: negForm.portalActivo };
     const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
-    if (error) { alert("Error al guardar: " + error.message); return; }
+    if (error) { showToast("Error al guardar: " + error.message,"error"); return; }
     setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail, googleReviewUrl: negForm.googleReviewUrl, wifiPassword: negForm.wifiPassword, portalActivo: negForm.portalActivo });
     setNegSaved(true);
     setTimeout(()=>setNegSaved(false), 2000);
@@ -3875,7 +3875,7 @@ function AddEspacioForm({ recursos, setRecursos, plan }) {
   const limits = getPlanLimits(plan);
   const atLimit = recursos.length >= limits.espacios;
   if(!show) return (
-    <button onClick={()=>{ if(atLimit){alert(`Tu plan ${plan||"actual"} permite hasta ${limits.espacios} espacio${limits.espacios!==1?"s":""}. Actualizá tu plan para agregar más.`);return;} setShow(true);}}
+    <button onClick={()=>{ if(atLimit){showToast(`Tu plan ${plan||"actual"} permite hasta ${limits.espacios} espacio${limits.espacios!==1?"s":""}. Actualizá tu plan para agregar más.`,"warn");return;} setShow(true);}}
       style={{marginTop:12,width:"100%",padding:"10px",background: atLimit?"#F3F4F6":"#FDF8F3",border:`1.5px dashed ${atLimit?"#D1D5DB":"#C4602B"}`,borderRadius:10,color:atLimit?"#9CA3AF":"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
       {atLimit ? `🔒 Límite de espacios (${limits.espacios}) alcanzado` : "+ Agregar espacio"}
     </button>
@@ -3892,7 +3892,7 @@ function AddEspacioForm({ recursos, setRecursos, plan }) {
           if(!form.nombre) return;
           const nuevo={id:genId(),nombre:form.nombre,capacidadMax:Number(form.capacidadMax)||0,modo:"fijo",orgId:getCurrentOrgId(),org_id:getCurrentOrgId()};
           const {error}=await supabase.from("recursos").insert({id:nuevo.id,nombre:nuevo.nombre,capacidad_max:nuevo.capacidadMax,modo:"fijo",org_id:getCurrentOrgId(),creado_en:new Date().toISOString()});
-          if(error){alert("Error al guardar espacio: "+error.message);return;}
+          if(error){showToast("Error al guardar espacio: "+error.message,"error");return;}
           setRecursos(prev=>[...prev,nuevo]);
           setForm({nombre:"",capacidadMax:""});setShow(false);
         }} style={{flex:2,padding:"9px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
@@ -3944,7 +3944,7 @@ function ServicioExtraRow({ s, onDelete, onUpdate }) {
                 {uploading?"Subiendo...":"📷 Foto"}
                 <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} disabled={uploading} onChange={async(e)=>{
                   const file=e.target.files?.[0]; if(!file)return; e.target.value="";
-                  if(file.size>15*1024*1024){alert("Max 15MB");return;}
+                  if(file.size>15*1024*1024){showToast("Max 15MB","warn");return;}
                   setUploading(true);
                   try{
                     const img=new Image();const url=URL.createObjectURL(file);
@@ -3955,9 +3955,9 @@ function ServicioExtraRow({ s, onDelete, onUpdate }) {
                     const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.82));
                     const fileName=`extras/${s.id}_${Date.now()}.jpg`;
                     const{error:upErr}=await supabase.storage.from("evento-fotos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
-                    if(upErr){alert("Error: "+upErr.message);return;}
+                    if(upErr){showToast("Error: "+upErr.message,"error");return;}
                     setForm(p=>({...p,fotoUrl:`${import.meta.env.VITE_SUPA_URL}/storage/v1/object/public/evento-fotos/${fileName}`}));
-                  }catch(err){alert("Error al procesar imagen");}
+                  }catch(err){showToast("Error al procesar imagen","error");}
                   finally{setUploading(false);}
                 }} />
               </label>
@@ -3965,7 +3965,7 @@ function ServicioExtraRow({ s, onDelete, onUpdate }) {
             <div style={{flex:1}}></div>
             <button onClick={async()=>{
               const v=Number(form.precio);
-              if(!v||v<0) return alert("Ingresá un precio válido.");
+              if(!v||v<0) return showToast("Ingresá un precio válido.","warn");
               await onUpdate({precioActual:v,detalle:form.detalle,fotoUrl:form.fotoUrl});
               setEditando(false);
             }} style={{padding:"7px 14px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
@@ -4003,7 +4003,7 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
             {uploading?"Subiendo...":"📷 Agregar foto"}
             <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} disabled={uploading} onChange={async(e)=>{
               const file=e.target.files?.[0]; if(!file)return; e.target.value="";
-              if(file.size>15*1024*1024){alert("Max 15MB");return;}
+              if(file.size>15*1024*1024){showToast("Max 15MB","warn");return;}
               setUploading(true);
               try{
                 const img=new Image();const url=URL.createObjectURL(file);
@@ -4015,9 +4015,9 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
                 const tmpId=Date.now().toString(36);
                 const fileName=`extras/${tmpId}.jpg`;
                 const{error:upErr}=await supabase.storage.from("evento-fotos").upload(fileName,blob,{contentType:"image/jpeg",upsert:true});
-                if(upErr){alert("Error: "+upErr.message);return;}
+                if(upErr){showToast("Error: "+upErr.message,"error");return;}
                 setForm(p=>({...p,fotoUrl:`${import.meta.env.VITE_SUPA_URL}/storage/v1/object/public/evento-fotos/${fileName}`}));
-              }catch(err){alert("Error al procesar imagen");}
+              }catch(err){showToast("Error al procesar imagen","error");}
               finally{setUploading(false);}
             }} />
           </label>
@@ -4234,7 +4234,7 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
         </div>
         <div style={{padding:"12px 16px",borderTop:"1px solid #EDE0D0",display:"flex",gap:8,background:"#FFF"}}>
           <button onClick={()=>{
-            if(!("webkitSpeechRecognition" in window))return alert("Tu navegador no soporta voz.");
+            if(!("webkitSpeechRecognition" in window))return showToast("Tu navegador no soporta voz.","error");
             const rec=new window.webkitSpeechRecognition();
             rec.lang="es-AR";rec.continuous=false;rec.interimResults=false;
             rec.onresult=(e)=>setInput(e.results[0][0].transcript);
@@ -4636,7 +4636,7 @@ function OnboardingWizard({ onFinish, userName }) {
   const lblS = {fontSize:12,fontWeight:700,color:"#5C4033",textTransform:"uppercase",letterSpacing:0.5,display:"block",marginBottom:4};
 
   const addTurno = () => {
-    if(!turnoForm.nombre||!turnoForm.horaInicio||!turnoForm.horaFin) return alert("Completá nombre, hora inicio y hora fin.");
+    if(!turnoForm.nombre||!turnoForm.horaInicio||!turnoForm.horaFin) return showToast("Completá nombre, hora inicio y hora fin.","warn");
     setTurnos(prev=>[...prev,{...turnoForm}]);
     setTurnoForm({nombre:"",horaInicio:"",horaFin:"",precioSemana:"",precioFinde:"",icono:"📌"});
   };
@@ -4707,7 +4707,7 @@ function OnboardingWizard({ onFinish, userName }) {
                 <label style={lblS}>Dirección <span style={{fontWeight:400,color:"#8B7355"}}>(opcional)</span></label>
                 <input style={inpS} value={negocio.direccion} onChange={e=>setNegocio(p=>({...p,direccion:e.target.value}))} placeholder="Ej: San Martín 1234" />
               </div>
-              <button onClick={()=>{ if(!negocio.nombreNegocio.trim()) return alert("Ingresá el nombre de tu negocio."); setStep(2); }}
+              <button onClick={()=>{ if(!negocio.nombreNegocio.trim()) return showToast("Ingresá el nombre de tu negocio.","warn"); setStep(2); }}
                 style={{width:"100%",padding:13,background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
                 Continuar →
               </button>
@@ -4741,7 +4741,7 @@ function OnboardingWizard({ onFinish, userName }) {
               </div>
               <div style={{display:"flex",gap:10}}>
                 <button onClick={()=>setStep(1)} style={{flex:1,padding:12,background:"#FFF",border:"1.5px solid #EDE0D0",borderRadius:10,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit",color:"#8B7355"}}>← Atrás</button>
-                <button onClick={()=>{ if(!espacio.nombre.trim()) return alert("Ingresá el nombre del espacio."); setStep(3); }}
+                <button onClick={()=>{ if(!espacio.nombre.trim()) return showToast("Ingresá el nombre del espacio.","warn"); setStep(3); }}
                   style={{flex:2,padding:12,background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
                   Continuar →
                 </button>
@@ -5311,7 +5311,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           const mesActual = toDateStr(new Date()).slice(0,7);
           const reservasMes = reservas.filter(r=>r.creadoEn?.slice(0,7)===mesActual && r.estado!=="cancelada").length;
           if(reservasMes >= limits.reservasMes){
-            showToast(`Tu plan permite hasta ${limits.reservasMes} reservas por mes. Límite alcanzado.`, "err");
+            showToast(`Tu plan permite hasta ${limits.reservasMes} reservas por mes. Límite alcanzado.`, "error");
             return;
           }
         }
@@ -5321,9 +5321,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
             ? (r.turno_id===data.turnoId || r.turno==="completo")
             : (r.turno===data.turno||r.turno==="completo"||data.turno==="completo"||!!r.turno_id)
         ));
-        if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);showToast("Conflicto: ya existe una reserva de "+clientName(c)+" en ese espacio, día y turno.","err");return;}
+        if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);showToast("Conflicto: ya existe una reserva de "+clientName(c)+" en ese espacio, día y turno.","error");return;}
         const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turnoId||b.turno===data.turno||b.turno==="completo"||(data.turno==="completo"&&b.turno)));
-        if(bloqueoConflict){showToast("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.","err");return;}
+        if(bloqueoConflict){showToast("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.","error");return;}
       }
       if(editReserva){
         await saveR(reservas.map(r=>r.id===editReserva.id?{...r,...data}:r));
@@ -5331,10 +5331,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         const nuevaReserva={id:genId(),...data,shareToken:genId(),creadoEn:new Date().toISOString(),fechaCreacion:toDateStr(new Date()),creadoPor:currentUser?.nombre||"",recordatorioEnviado:false,postEventoProcesado:false};
         const {error:insErr}=await supabase.from("reservas").insert(mapReserva(nuevaReserva));
         if(insErr){
-          if(insErr.code==="23505") return alert("⚠️ Ya existe una reserva en ese espacio, día y turno. Alguien más acaba de tomarlo.");
+          if(insErr.code==="23505") return showToast("⚠️ Ya existe una reserva en ese espacio, día y turno. Alguien más acaba de tomarlo.","warn");
           const amigable=mensajeErrorGuardado(insErr);
-          if(amigable) return showToast(amigable,"err");
-          return alert("Error al guardar la reserva: "+insErr.message);
+          if(amigable) return showToast(amigable,"error");
+          return showToast("Error al guardar la reserva: "+insErr.message,"error");
         }
         setReservas(prev=>[...prev,nuevaReserva]);
 
@@ -5386,11 +5386,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const handleSavePago=async(data,shouldPrint)=>{
     if(savingPago) return;
     const resCheck=reservas.find(r=>r.id===data.reservaId);
-    if(resCheck&&['cancelada','finalizada','visita'].includes(resCheck.estado)){alert("No se puede registrar un pago en una reserva "+resCheck.estado+".");return;}
+    if(resCheck&&['cancelada','finalizada','visita'].includes(resCheck.estado)){showToast("No se puede registrar un pago en una reserva "+resCheck.estado+".","error");return;}
     if(resCheck){
       const yaP=pagos.filter(p=>p.reservaId===data.reservaId).reduce((s,p)=>s+p.monto,0);
       const totalEvCheck=resCheck.montoPactado+getTotalExtras(resCheck.id,extrasReserva);
-      if(yaP+data.monto>totalEvCheck){alert(`El pago de ${fmtCurrency(data.monto)} supera el total del evento (${fmtCurrency(totalEvCheck)}). Ya cobrado: ${fmtCurrency(yaP)}.`);return;}
+      if(yaP+data.monto>totalEvCheck){showToast(`El pago de ${fmtCurrency(data.monto,"warn")} supera el total del evento (${fmtCurrency(totalEvCheck)}). Ya cobrado: ${fmtCurrency(yaP)}.`);return;}
     }
     setSavingPago(true);
     try{
@@ -5471,7 +5471,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const handleSaveExtra=async(data)=>{
     if(savingExtra) return;
     const res=reservas.find(r=>r.id===data.reservaId);
-    if(res&&['cancelada','finalizada','visita'].includes(res.estado)){alert("No se puede agregar un extra a una reserva en estado "+res.estado+".");return;}
+    if(res&&['cancelada','finalizada','visita'].includes(res.estado)){showToast("No se puede agregar un extra a una reserva en estado "+res.estado+".","error");return;}
     setSavingExtra(true);
     try{ await saveER([...extrasReserva,{id:genId(),...data,creadoEn:new Date().toISOString()}]); setModal(null); setExtraReservaId(null); }
     finally{ setSavingExtra(false); }
@@ -5479,7 +5479,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const handleDeleteReserva=async(id)=>{
     const prevReservas=reservas; const prevPagos=pagos; const prevExtras=extrasReserva;
     const {error}=await supabase.from("reservas").delete().eq("id",id);
-    if(error){ alert("Error al eliminar la reserva. Intentá de nuevo."); return; }
+    if(error){ showToast("Error al eliminar la reserva. Intentá de nuevo.","error"); return; }
     const [{error:ep},{error:ee}]=await Promise.all([
       supabase.from("pagos").delete().eq("reserva_id",id),
       supabase.from("extras_reserva").delete().eq("reserva_id",id),
@@ -5505,7 +5505,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       }
       return false;
     });
-    if(conflict){const c=clientes.find(x=>x.id===conflict.clienteId);return alert("No se puede bloquear: hay una reserva de "+clientName(c)+" en ese turno.");}
+    if(conflict){const c=clientes.find(x=>x.id===conflict.clienteId);return showToast("No se puede bloquear: hay una reserva de "+clientName(c,"error")+" en ese turno.");}
     saveBloqueos([...bloqueos,{id:genId(),fecha:date,turno,motivo,creadoPor:currentUser?.nombre||"",creadoEn:new Date().toISOString()}]);
     setBloqueoModal(null);setDayModal(null);
   };
@@ -5519,6 +5519,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     setRatingQueue(q=>q.filter(r=>r.id!==reservaId));
   };
   const handleDeleteCliente=async(id)=>{
+    const cli=clientes.find(c=>c.id===id);
+    if(!window.confirm(`¿Eliminar a ${cli?.nombre||"este cliente"}? Se borrarán sus pagos, extras y recordatorios. El historial de reservas se conserva.`)) return;
     const resIds=reservas.filter(r=>r.clienteId===id).map(r=>r.id);
     // 1. Borrar recordatorios del cliente y de sus reservas
     await supabase.from("recordatorios").delete().eq("cliente_id",id);
@@ -5791,7 +5793,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           saveR(reservas.map(x=>x.id===r.id?{...x,estado:"pendiente",fechaVisita:null,horaVisita:null,seguimientoDescartado:false,motivoNoConcreto:null}:x));
           const cli=clientes.find(c=>c.id===r.clienteId);
           if(cli&&cli.estadoCrm==="Potencial") saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
-          showToast("Reserva reactivada","success");
+          showToast("Reserva reactivada","ok");
         }} />}
       {currentUser && alertaActiva && <AlertaRecordatorioModal
         alerta={alertaActiva}
@@ -5898,7 +5900,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
             setTurnosRecurso(mappedTurnos);
             setOnboarding(false);
           } catch(e) {
-            alert(e.message||"Error al guardar. Intentá de nuevo.");
+            showToast(e.message||"Error al guardar. Intentá de nuevo.","error");
           }
         }}
       />}
