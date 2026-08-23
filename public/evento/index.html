@@ -703,7 +703,7 @@
 
     $("app").innerHTML = html;
 
-    // VENUE PHOTOS: load from config via RPC
+    // VENUE PHOTOS: load from config via RPC (each org uploads their own)
     var vpSection = $("venue-photos-section");
     if (vpSection && ev.org_id) {
       supaRpc("get_fotos_lugar", { p_org_id: ev.org_id }).then(function(fotos) {
