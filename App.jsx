@@ -213,11 +213,13 @@ const PDF_CSS =
   ".fitem{text-align:center;width:45%}" +
   ".fline{border-top:1px solid #1C1C1E;margin-top:36px;padding-top:5px;font-size:11px;color:#8B7355}" +
   ".footer{margin-top:28px;padding-top:10px;border-top:1px solid #EDE0D0;font-size:11px;color:#8B7355;text-align:center}" +
-  ".sello{position:absolute;top:50%;right:40px;transform:translateY(-50%) rotate(-18deg);width:160px;height:160px;border:4px solid rgba(196,96,43,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:900;font-size:14px;color:rgba(196,96,43,0.3);letter-spacing:1px;text-transform:uppercase;pointer-events:none;z-index:0}" +
-  ".sello-inner{border:2px solid rgba(196,96,43,0.2);border-radius:50%;width:140px;height:140px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px}" +
-  ".sello-nombre{font-size:13px;line-height:1.2;max-width:110px;word-break:break-word}" +
-  ".sello-linea{width:60px;height:2px;background:rgba(196,96,43,0.2);margin:3px 0}" +
-  ".sello-tipo{font-size:9px;letter-spacing:2px}" +
+  ".sello{width:120px;height:120px;border:3px solid rgba(196,96,43,0.35);border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:900;font-size:12px;color:rgba(196,96,43,0.4);letter-spacing:1px;text-transform:uppercase;transform:rotate(-12deg);flex-shrink:0}" +
+  ".sello-inner{border:2px solid rgba(196,96,43,0.25);border-radius:50%;width:104px;height:104px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px}" +
+  ".sello-nombre{font-size:11px;line-height:1.2;max-width:80px;word-break:break-word}" +
+  ".sello-linea{width:50px;height:2px;background:rgba(196,96,43,0.25);margin:2px 0}" +
+  ".sello-tipo{font-size:8px;letter-spacing:2px}" +
+  ".firma-con-sello{display:flex;align-items:flex-end;justify-content:space-between;margin-top:40px;border-top:1px dashed #EDE0D0;padding-top:14px;gap:10px}" +
+  ".firma-cols{display:flex;justify-content:space-between;flex:1;gap:20px}" +
   ".monto-destacado{background:linear-gradient(135deg,#FDF8F3,#F5EDE4);border:2px solid #C4602B;border-radius:10px;padding:16px 20px;margin:14px 0;text-align:center}" +
   ".monto-label{font-size:11px;color:#8B7355;text-transform:uppercase;letter-spacing:1px;font-weight:700}" +
   ".monto-valor{font-size:28px;font-weight:900;color:#C4602B;margin-top:4px}" +
@@ -232,11 +234,18 @@ function pSello(negocio,tipo){
   var nombre=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
   return '<div class="sello"><div class="sello-inner"><div class="sello-nombre">'+nombre+'</div><div class="sello-linea"></div><div class="sello-tipo">'+tipo+'</div></div></div>';
 }
-function buildDoc(title,body,negocio,tipo){
+function pFirmaConSello(negocio,tipo,nombreCliente){
+  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
+  var sello=pSello(negocio,tipo);
+  return '<div class="firma-con-sello"><div class="firma-cols">'+
+    '<div class="fitem"><div class="fline">Firma prestador<br><b>'+nombreNeg+'</b></div></div>'+
+    '<div class="fitem"><div class="fline">Conformidad cliente<br><b>'+escHtml(nombreCliente)+'</b></div></div>'+
+    '</div>'+sello+'</div>';
+}
+function buildDoc(title,body,negocio){
   var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Quincho');
   var footer=pDiv('footer',nombreNeg+' · '+new Date().toLocaleDateString('es-AR'));
-  var sello=tipo?pSello(negocio,tipo):'';
-  var html='<style>'+PDF_CSS+'</style>'+sello+body+footer;
+  var html='<style>'+PDF_CSS+'</style>'+body+footer;
   return {title:title, html:html};
 }
 
@@ -269,7 +278,7 @@ function printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio){
   if(te>0)body+=pRow('+ Extras',fmtCurrency(te));
   body+=pRow('Total',fmtCurrency(reserva.montoPactado+te))+pRow('Cobrado',fmtCurrency(tp),'pos')+'<div class="total"><span>'+(saldo>0?'Saldo pendiente':'Pagado')+'</span><span class="'+(saldo>0?'neg':'pos')+'">'+fmtCurrency(Math.abs(saldo))+'</span></div>';
   if(resPagos.length>0){body+=pH2('Cobros');resPagos.forEach(function(p){body+=pRow(fmtDate(p.fecha)+' - '+escHtml(p.metodo),'+'+fmtCurrency(p.monto),'pos');});}
-  return buildDoc('Ficha '+escHtml(clientName(cliente)),body,negocio,'FICHA');
+  return buildDoc('Ficha '+escHtml(clientName(cliente)),body,negocio);
 }
 
 function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
@@ -286,9 +295,7 @@ function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
     ".contrato-sub{text-align:center;font-size:12px;color:#8B7355;margin-bottom:24px}" +
     ".clausula{margin:14px 0 8px;font-weight:700;font-size:13px;color:#3D2B1F;border-left:3px solid #C4602B;padding-left:8px}" +
     ".condicion{font-size:12.5px;color:#333;padding:4px 0 4px 12px;border-bottom:1px dotted #EDE0D0}" +
-    ".firma2{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:50px;padding-top:14px;border-top:1px dashed #EDE0D0}" +
-    ".firma2-item{text-align:center}" +
-    ".firma2-line{border-top:1px solid #1C1C1E;margin-top:48px;padding-top:5px;font-size:11px;color:#8B7355}";
+    "";
 
   var hdr=pLogoHdr(negocio,'Contrato de Alquiler','<div style="font-size:11px;color:#8B7355;text-align:right">'+ciudad+'<br>'+hoy+'</div>');
   var titulo='<div class="contrato-title">CONTRATO DE ALQUILER DE ESPACIO</div><div class="contrato-sub">Ref. N° '+reserva.id.slice(-8).toUpperCase()+'</div>';
@@ -338,15 +345,11 @@ function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
     'Las partes declaran haber leído y aceptado las condiciones del presente contrato en la ciudad de '+ciudad+', el '+hoy+'.'+
     '</div>';
 
-  var firmas='<div class="firma2">'+
-    '<div class="firma2-item"><div class="firma2-line">Firma y aclaración del Prestador<br><b>'+nombreNeg+'</b></div></div>'+
-    '<div class="firma2-item"><div class="firma2-line">Firma y aclaración del Contratante<br><b>'+escHtml(clientName(cliente))+'</b></div></div>'+
-    '</div>';
+  var firmas=pFirmaConSello(negocio,'CONTRATO',clientName(cliente));
 
   var style='<style>'+PDF_CSS+CSS_EXTRA+'</style>';
-  var sello=pSello(negocio,'CONTRATO');
   var footer=pDiv('footer',nombreNeg+' · Generado el '+new Date().toLocaleDateString('es-AR'));
-  var html=style+sello+hdr+titulo+partes+evento+economia+condiciones+aceptacion+firmas+footer;
+  var html=style+hdr+titulo+partes+evento+economia+condiciones+aceptacion+firmas+footer;
   return {title:'Contrato '+escHtml(clientName(cliente)),html:html};
 }
 
@@ -379,16 +382,15 @@ function printRecibo(pago,reserva,cliente,negocio,resExtras,resPagos){
     body+='<div class="total"><span>'+(saldo>0?'Saldo pendiente':'Cuenta saldada')+'</span><span class="'+(saldo>0?'neg':'pos')+'">'+(saldo>0?fmtCurrency(saldo):'$0')+'</span></div>';
   }
   if(pagos.length>1){body+=pH2('Historial de cobros');pagos.forEach(function(p){var esCurrent=p.id===pago.id;body+=pRow((esCurrent?'► ':'')+fmtDate(p.fecha)+' - '+escHtml(p.metodo),fmtCurrency(p.monto),'pos');});}
-  var firma=pDiv('firma',pDiv('fitem',pDiv('fline','Firma prestador<br><b>'+nombreNeg+'</b>'))+pDiv('fitem',pDiv('fline','Conformidad cliente<br><b>'+escHtml(clientName(cliente))+'</b>')));
-  body+=firma;
-  return buildDoc('Recibo '+escHtml(clientName(cliente)),body,negocio,'COMPROBANTE');
+  body+=pFirmaConSello(negocio,'COMPROBANTE',clientName(cliente));
+  return buildDoc('Recibo '+escHtml(clientName(cliente)),body,negocio);
 }
 
 function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,porCobrar,negocio){
   var hdr=pLogoHdr(negocio,'Reporte Financiero','<b>'+MONTHS[month]+' '+year+'</b>');
   var body=hdr+pH2('Resumen del mes')+pRow('Ingresos cobrados',fmtCurrency(ingresos),'pos')+pRow('Gastos operacionales',fmtCurrency(gastos),'neg')+'<div class="total"><span>Ganancia Neta</span><span class="'+(ganancia>=0?'pos':'neg')+'">'+fmtCurrency(Math.abs(ganancia))+'</span></div>'+pH2('Ocupacion')+pRow('Eventos activos',String(confirmadas))+pRow('Por cobrar',fmtCurrency(porCobrar),'neg');
   if(catData.length>0){body+=pH2('Gastos por categoria');catData.forEach(function(c){body+=pRow(c.name,fmtCurrency(c.value));});}
-  return buildDoc('Reporte '+MONTHS[month]+' '+year,body,negocio,'REPORTE');
+  return buildDoc('Reporte '+MONTHS[month]+' '+year,body,negocio);
 }
 
 
