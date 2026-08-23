@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MONTHS, EXPENSE_CATS, TURNOS } from "../lib/constants.js";
-import { fmtCurrency, fmtDate, escHtml, toDateStr, getSaldo } from "../lib/utils.js";
+import { fmtCurrency, fmtDate, escHtml, toDateStr, getSaldo, getTotalExtras } from "../lib/utils.js";
 import { card } from "../lib/styles.js";
 
 export default function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio, turnosRecurso, recursos, bloqueos }) {
@@ -157,7 +157,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
     : null;
 
   const ticketPromedio = monthRes.length>0
-    ? Math.round(monthRes.reduce((s,r)=>s+r.montoPactado,0)/monthRes.length)
+    ? Math.round(monthRes.reduce((s,r)=>s+r.montoPactado+getTotalExtras(r.id,extrasReserva),0)/monthRes.length)
     : null;
 
   const topClientes = (()=>{
@@ -417,18 +417,141 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
       {(()=>{
         if(!serviciosExtras||!serviciosExtras.length) return null;
         const items=serviciosExtras.map(function(srv){
-          var total=extrasReserva.filter(function(e){var r=reservas.find(function(x){return x.id===e.reservaId;});return e.servicioId===srv.id&&r&&r.fecha&&r.fecha.startsWith(selKey);}).reduce(function(s,e){return s+e.cantidad;},0);
-          return total>0?{name:srv.descripcion,total}:null;
+          const matching=extrasReserva.filter(function(e){var r=reservas.find(function(x){return x.id===e.reservaId;});return e.servicioId===srv.id&&r&&r.fecha&&enRango(r.fecha);});
+          var total=matching.reduce(function(s,e){return s+e.cantidad;},0);
+          var ingresos=matching.reduce(function(s,e){return s+(e.precioHistorico*e.cantidad);},0);
+          return total>0?{name:srv.descripcion,total,ingresos}:null;
         }).filter(Boolean);
         if(!items.length) return null;
+        const totalExtrasIngreso=items.reduce((s,it)=>s+it.ingresos,0);
+        const resConExtras=new Set(extrasReserva.filter(e=>monthRes.some(r=>r.id===e.reservaId)).map(e=>e.reservaId)).size;
+        const pctExtras=monthRes.length>0?Math.round((resConExtras/monthRes.length)*100):0;
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
             <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>🎉 Extras contratados</div>
+            <div style={{display:"flex",gap:10,marginBottom:12}}>
+              <div style={{flex:1,background:"#F0FDF4",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid #BBF7D0"}}>
+                <div style={{fontSize:18,fontWeight:800,color:"#16A34A"}}>{fmtCurrency(totalExtrasIngreso)}</div>
+                <div style={{fontSize:10,color:"#16A34A",fontWeight:600}}>Ingreso extras</div>
+              </div>
+              <div style={{flex:1,background:"#EFF6FF",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid #BFDBFE"}}>
+                <div style={{fontSize:18,fontWeight:800,color:"#2563EB"}}>{pctExtras}%</div>
+                <div style={{fontSize:10,color:"#2563EB",fontWeight:600}}>{resConExtras} de {monthRes.length} sumaron</div>
+              </div>
+            </div>
             {items.map(function(it){return (
-              <div key={it.name} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #EDE0D0",fontSize:13}}>
-                <span>{it.name}</span><span style={{fontWeight:700,color:"#C4602B"}}>{it.total} {it.total===1?"vez":"veces"}</span>
+              <div key={it.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #EDE0D0",fontSize:13}}>
+                <span>{it.name}</span>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <span style={{fontSize:12,color:"#16A34A",fontWeight:600}}>{fmtCurrency(it.ingresos)}</span>
+                  <span style={{fontWeight:700,color:"#C4602B",minWidth:50,textAlign:"right"}}>{it.total}x</span>
+                </div>
               </div>
             );})}
+          </div>
+        );
+      })()}
+
+      {/* Funnel de conversión */}
+      {(()=>{
+        const allPeriod=reservas.filter(r=>r.fecha&&enRango(r.fecha));
+        if(allPeriod.length===0) return null;
+        const visitas=allPeriod.filter(r=>r.fechaVisita).length;
+        const senadas=allPeriod.filter(r=>["senada","confirmada","finalizada"].includes(r.estado)).length;
+        const confirmadas=allPeriod.filter(r=>["confirmada","finalizada"].includes(r.estado)).length;
+        const canceladas=allPeriod.filter(r=>r.estado==="cancelada").length;
+        const total=allPeriod.length;
+        const steps=[
+          {label:"Consultas",count:total,color:"#7C3AED"},
+          {label:"Visitaron",count:visitas,color:"#3B82F6"},
+          {label:"Señaron",count:senadas,color:"#D97706"},
+          {label:"Confirmadas",count:confirmadas,color:"#16A34A"},
+        ];
+        return (
+          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Funnel de conversión</div>
+            {steps.map((step,i)=>{
+              const pct=total>0?Math.round((step.count/total)*100):0;
+              const prevCount=i>0?steps[i-1].count:null;
+              const convRate=prevCount&&prevCount>0?Math.round((step.count/prevCount)*100):null;
+              return (
+                <div key={step.label} style={{marginBottom:i<steps.length-1?8:0}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                    <span style={{fontSize:12,fontWeight:600,color:"#1C1C1E"}}>{step.label}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      {convRate!==null&&<span style={{fontSize:10,color:convRate>=50?"#16A34A":"#DC2626",fontWeight:600}}>{convRate}%</span>}
+                      <span style={{fontWeight:800,fontSize:14,color:step.color}}>{step.count}</span>
+                    </div>
+                  </div>
+                  <div style={{height:8,background:"#EDE0D0",borderRadius:4,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:pct+"%",background:step.color,borderRadius:4,transition:"width .3s",minWidth:step.count>0?4:0}}/>
+                  </div>
+                </div>
+              );
+            })}
+            {canceladas>0&&(
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,paddingTop:8,borderTop:"1px solid #EDE0D0"}}>
+                <span style={{fontSize:12,color:"#DC2626",fontWeight:600}}>Canceladas</span>
+                <span style={{fontWeight:800,fontSize:14,color:"#DC2626"}}>{canceladas} <span style={{fontSize:10,fontWeight:400}}>({total>0?Math.round((canceladas/total)*100):0}%)</span></span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Origen de clientes */}
+      {(()=>{
+        const clienteIds=new Set(monthRes.map(r=>r.clienteId));
+        const origenes={};
+        clientes.filter(c=>clienteIds.has(c.id)&&c.origen).forEach(c=>{
+          origenes[c.origen]=(origenes[c.origen]||0)+1;
+        });
+        const items=Object.entries(origenes).sort((a,b)=>b[1]-a[1]);
+        if(items.length===0) return null;
+        const sinOrigen=clientes.filter(c=>clienteIds.has(c.id)&&!c.origen).length;
+        const maxOr=Math.max(...items.map(x=>x[1]),1);
+        return (
+          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>📣 Origen de clientes</div>
+            {items.map(([origen,cant])=>(
+              <div key={origen} style={{marginBottom:6}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                  <span style={{fontSize:12,fontWeight:600,color:"#1C1C1E"}}>{origen}</span>
+                  <span style={{fontWeight:700,fontSize:13,color:"#7C3AED"}}>{cant}</span>
+                </div>
+                <div style={{height:6,background:"#EDE0D0",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:Math.round((cant/maxOr)*100)+"%",background:"#7C3AED",borderRadius:3}}/>
+                </div>
+              </div>
+            ))}
+            {sinOrigen>0&&<div style={{fontSize:11,color:"#9CA3AF",marginTop:6}}>{sinOrigen} cliente{sinOrigen!==1?"s":""} sin origen registrado</div>}
+          </div>
+        );
+      })()}
+
+      {/* Tasa de conversión visita→reserva */}
+      {(()=>{
+        const visitaron=new Set(reservas.filter(r=>r.fechaVisita&&enRango(r.fechaVisita)).map(r=>r.clienteId));
+        if(visitaron.size===0) return null;
+        const convirtieron=new Set(reservas.filter(r=>r.fechaVisita&&enRango(r.fechaVisita)&&["pendiente","senada","confirmada","finalizada"].includes(r.estado)).map(r=>r.clienteId));
+        const pct=Math.round((convirtieron.size/visitaron.size)*100);
+        return (
+          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:8}}>🎯 Conversión de visitas</div>
+            <div style={{display:"flex",alignItems:"center",gap:16}}>
+              <div style={{position:"relative",width:64,height:64,flexShrink:0}}>
+                <svg viewBox="0 0 36 36" style={{width:64,height:64,transform:"rotate(-90deg)"}}>
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#EDE0D0" strokeWidth="3"/>
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke={pct>=60?"#16A34A":pct>=40?"#D97706":"#DC2626"} strokeWidth="3"
+                    strokeDasharray={`${pct*0.974} 100`} strokeLinecap="round"/>
+                </svg>
+                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:16,color:"#1C1C1E"}}>{pct}%</div>
+              </div>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E"}}>{convirtieron.size} de {visitaron.size} visitantes</div>
+                <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>concretaron reserva</div>
+              </div>
+            </div>
           </div>
         );
       })()}
