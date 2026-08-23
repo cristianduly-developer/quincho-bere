@@ -417,9 +417,58 @@
     var now = new Date(); now.setHours(0,0,0,0);
     var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
 
-    if (dLeft < 0 || dLeft > 2) return "";
+    if (dLeft < -10 || dLeft > 2) return "";
 
-    // Countdown en horas/minutos
+    var neg = d.negocio;
+
+    // ════════════════════════════════════
+    // POST-EVENTO (dia siguiente hasta 10 dias despues)
+    // ════════════════════════════════════
+    if (dLeft < 0) {
+      var daysGone = Math.abs(dLeft);
+      var fotosExpiry = 10 - daysGone;
+      var html = '<div class="tips-panel" style="background:linear-gradient(135deg,#EBF5ED,#F0FFF4);border-color:var(--green-border)">';
+      html += '<div class="tips-title">🎉 Gracias por elegirnos!</div>';
+      html += '<div class="tips-subtitle">Esperamos que la hayas pasado increible. Nos encantaria saber como fue tu experiencia.</div>';
+      html += '<div class="tips-grid">';
+
+      // Google Review
+      if (neg.google_review_url) {
+        html += '<div class="tip-card"><div class="tip-ico" style="background:#FFF8E6">⭐</div><div>';
+        html += '<div class="tip-label">Tu opinion nos ayuda mucho</div>';
+        html += '<div class="tip-text">Dejanos una resena en Google</div>';
+        html += '<div class="tip-sub">Contale a otros como la pasaste. Solo toma 1 minuto!</div>';
+        html += '<a href="' + esc(neg.google_review_url) + '" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:8px 18px;background:var(--accent);color:#FFF;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none">Dejar mi opinion</a>';
+        html += '</div></div>';
+      }
+
+      // Fotos expiry
+      if (fotosExpiry > 0) {
+        var fotosCount = (d.fotos || []).length;
+        html += '<div class="tip-card"><div class="tip-ico" style="background:#EFF6FF">📸</div><div>';
+        html += '<div class="tip-label">Fotos del evento</div>';
+        html += '<div class="tip-text">' + (fotosCount > 0 ? 'Hay ' + fotosCount + ' fotos subidas' : 'Subi las fotos que tengas!') + '</div>';
+        html += '<div class="tip-sub">Las fotos se eliminan en ' + fotosExpiry + ' dia' + (fotosExpiry > 1 ? 's' : '') + '. Descargalas antes!</div>';
+        html += '</div></div>';
+      }
+
+      // Referido
+      html += '<div class="tip-card"><div class="tip-ico" style="background:var(--gold-bg)">💬</div><div>';
+      html += '<div class="tip-label">Recomendanos</div>';
+      html += '<div class="tip-text">Si la pasaste bien, contale a tus amigos!</div>';
+      html += '<div class="tip-sub">Conoces a alguien que quiera hacer un evento? Pasale nuestro contacto</div>';
+      if (neg.telefono) {
+        html += '<a href="https://wa.me/' + esc(neg.telefono) + '?text=' + encodeURIComponent("Hola! Un amigo festejo en " + (neg.nombre_negocio || "el quincho") + " y me interesa consultar disponibilidad.") + '" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:8px 18px;background:#25D366;color:#FFF;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none">Compartir por WhatsApp</a>';
+      }
+      html += '</div></div>';
+
+      html += '</div></div>';
+      return html;
+    }
+
+    // ════════════════════════════════════
+    // PRE-EVENTO (hoy, manana, pasado)
+    // ════════════════════════════════════
     var evStart = new Date(res.fecha + "T" + (res.horario || "12:00") + ":00");
     var nowMs = new Date();
     var diffMs = evStart.getTime() - nowMs.getTime();
