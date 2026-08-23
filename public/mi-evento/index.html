@@ -255,6 +255,18 @@
     .tip-sub{font-size:12px;color:var(--text-sub);line-height:1.4;margin-top:2px}
     .tip-list{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-wrap:wrap;gap:6px}
     .tip-list li{font-size:12px;color:var(--text-sub);background:var(--surface-warm);border:1px solid var(--border-light);padding:4px 10px;border-radius:8px}
+
+    /* ── NUDGES UPSELL ── */
+    .nudge-panel{background:linear-gradient(135deg,#FFF8F5,#FFF3EC);border:1.5px solid rgba(196,96,43,0.15);border-radius:16px;padding:18px;margin-bottom:16px}
+    .nudge-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px}
+    .nudge-sub{font-size:12px;color:var(--text-muted);margin-bottom:14px}
+    .nudge-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+    .nudge-card:last-child{margin-bottom:0}
+    .nudge-img{width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--surface-warm)}
+    .nudge-name{font-size:14px;font-weight:600;color:var(--text)}
+    .nudge-hint{font-size:12px;color:var(--text-sub);line-height:1.3;margin-top:2px}
+    .nudge-price{font-size:12px;font-weight:700;color:var(--accent);margin-top:3px}
+    .nudge-arrow{color:var(--accent);font-size:18px;margin-left:auto;flex-shrink:0}
   </style>
 </head>
 <body>
@@ -407,6 +419,80 @@
     if (!horario) return true;
     var h = parseInt(horario.split(":")[0], 10);
     return h >= 6 && h < 19;
+  }
+
+  function renderNudges(d) {
+    var res = d.reserva;
+    var evDate = new Date(res.fecha + "T12:00:00");
+    var now = new Date(); now.setHours(0,0,0,0);
+    var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
+
+    if (dLeft < 3 || dLeft > 15) return "";
+
+    var contratados = (d.extras || []).map(function(e) { return e.descripcion.toLowerCase(); });
+    var servicios = d.servicios || [];
+    var tipo = (res.tipo_evento || "").toLowerCase();
+
+    var isInfantil = tipo.indexOf("infantil") >= 0 || tipo.indexOf("cumple") >= 0 || tipo.indexOf("nene") >= 0 || tipo.indexOf("nena") >= 0 || tipo.indexOf("nino") >= 0 || tipo.indexOf("nina") >= 0;
+
+    var keywords = [
+      { keys: ["inflable"], hint: "Los chicos se divierten toda la tarde", forKids: true },
+      { keys: ["barra"], hint: "Cerveza tirada para toda la fiesta", forKids: false },
+      { keys: ["audiovisual", "contenido", "esencial", "premium"], hint: "Fotos y videos profesionales de tu evento", forKids: false },
+      { keys: ["candy", "mesa"], hint: "Mesa dulce lista para tu evento", forKids: true },
+      { keys: ["pack full", "full deco"], hint: "Todo incluido: gazebo, neon, candy y mas", forKids: false },
+      { keys: ["gazebo"], hint: "Mas sombra y un nuevo sector para tu evento", forKids: false },
+      { keys: ["fondo de fotos", "neon"], hint: "Un rincon especial para las mejores fotos", forKids: false }
+    ];
+
+    var suggestions = [];
+    servicios.forEach(function(srv) {
+      var srvLow = srv.descripcion.toLowerCase();
+      var yaContratado = contratados.some(function(c) { return c === srvLow; });
+      if (yaContratado) return;
+
+      keywords.forEach(function(kw) {
+        if (suggestions.length >= 3) return;
+        var alreadySuggested = suggestions.some(function(s) { return s.id === srv.id; });
+        if (alreadySuggested) return;
+
+        var match = kw.keys.some(function(k) { return srvLow.indexOf(k) >= 0; });
+        if (!match) return;
+
+        if (kw.forKids === true && !isInfantil) return;
+        if (kw.forKids === false && isInfantil && kw.keys[0] === "barra") return;
+
+        suggestions.push({ id: srv.id, nombre: srv.descripcion, precio: srv.precio, hint: kw.hint, foto: srv.foto_url });
+      });
+    });
+
+    if (suggestions.length === 0) return "";
+
+    var titulo, subtitulo;
+    if (dLeft <= 7) {
+      titulo = "⏳ Ultimos dias para sumar extras!";
+      subtitulo = "Faltan " + dLeft + " dias. Despues del evento ya no se pueden agregar.";
+    } else {
+      titulo = "✨ Mejora tu evento";
+      subtitulo = "Todavia estas a tiempo de sumar algo especial";
+    }
+
+    var html = '<div class="nudge-panel">';
+    html += '<div class="nudge-title">' + titulo + '</div>';
+    html += '<div class="nudge-sub">' + subtitulo + '</div>';
+    suggestions.forEach(function(s) {
+      html += '<div class="nudge-card" data-go-extras>';
+      if (s.foto) html += '<img class="nudge-img" src="' + esc(s.foto) + '" alt="">';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div class="nudge-name">' + esc(s.nombre) + '</div>';
+      html += '<div class="nudge-hint">' + esc(s.hint) + '</div>';
+      html += '<div class="nudge-price">' + fmtCurrency(s.precio) + '</div>';
+      html += '</div>';
+      html += '<div class="nudge-arrow">›</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    return html;
   }
 
   function renderTipsPanel(d) {
@@ -716,6 +802,9 @@
       });
       html += '</div>';
     }
+
+    // Nudges upsell (3-15 dias antes)
+    html += renderNudges(d);
 
     // Regalo banner en Mi Reserva
     var hasRegalo = d.reserva.regalo_descuento && d.reserva.regalo_enviado_en && (Date.now() < new Date(d.reserva.regalo_enviado_en).getTime() + 72*60*60*1000);
