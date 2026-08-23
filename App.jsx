@@ -2575,7 +2575,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const toggleTarea=(id)=>{
     saveTareas(tareas.map(t=>t.id===id?{...t,estado:t.estado==="pendiente"?"completada":"pendiente"}:t));
   };
-  const deleteTarea=(id)=>{setTareas(tareas.filter(t=>t.id!==id));sb.remove("tareas",id);};
+  const deleteTarea=(id)=>{saveTareas(tareas.filter(t=>t.id!==id));supabase.from("tareas").delete().eq("id",id);};
 
   return (
     <div style={{padding: isDesktop ? "20px 28px 40px" : "16px 16px 100px"}}>
