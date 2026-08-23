@@ -29,10 +29,10 @@ export const DEFAULT_CONFIG = {
 };
 
 export const PLAN_LIMITS = {
-  basico:      { reservasMes:50,  colaboradores:0, espacios:1, recordatorios:false, serviciosExtras:false },
-  profesional: { reservasMes:100, colaboradores:1, espacios:3, recordatorios:true,  serviciosExtras:true  },
-  premium:     { reservasMes:null,colaboradores:3, espacios:5, recordatorios:true,  serviciosExtras:true  },
-  sincargo:    { reservasMes:null,colaboradores:3, espacios:5, recordatorios:true,  serviciosExtras:true  },
-  demo:        { reservasMes:100, colaboradores:1, espacios:3, recordatorios:true,  serviciosExtras:true  },
+  basico:      { reservasMes:50,  colaboradores:0, espacios:1, recordatorios:false, serviciosExtras:false, portal:false },
+  profesional: { reservasMes:100, colaboradores:1, espacios:3, recordatorios:true,  serviciosExtras:true,  portal:true  },
+  premium:     { reservasMes:null,colaboradores:3, espacios:5, recordatorios:true,  serviciosExtras:true,  portal:true  },
+  sincargo:    { reservasMes:null,colaboradores:3, espacios:5, recordatorios:true,  serviciosExtras:true,  portal:true  },
+  demo:        { reservasMes:100, colaboradores:1, espacios:3, recordatorios:true,  serviciosExtras:true,  portal:true  },
 };
 export const getPlanLimits = (plan) => PLAN_LIMITS[plan] || PLAN_LIMITS.basico;

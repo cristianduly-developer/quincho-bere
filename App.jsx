@@ -893,7 +893,7 @@ function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
   );
 }
 
-function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto, turnosRecurso, onSaveShareConfig }) {
+function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto, turnosRecurso, onSaveShareConfig, logCom, comunicaciones }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -1185,7 +1185,8 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
               <Btn small variant="ghost" onClick={()=>setConfirmDelete(false)}>No</Btn>
             </div>
         }
-        {reserva.estado!=="cancelada"&&negocio?.portalActivo!==false&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir portal</Btn>}
+        {reserva.estado!=="cancelada"&&negocio?.portalActivo!==false&&getPlanLimits(plan).portal!==false&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir portal</Btn>}
+        {reserva.estado!=="cancelada"&&getPlanLimits(plan).portal===false&&<Btn small variant="secondary" onClick={()=>showToast("El portal de clientes está disponible en el plan Profesional o superior.","warn")} style={{opacity:0.6}}>🔒 Portal (plan superior)</Btn>}
         <Btn small variant="ghost" onClick={onClose}>Cerrar</Btn>
       </div>
 
@@ -1221,6 +1222,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                     const msg = (nombre ? "Hola "+nombre+"! 👋" : "Hola! 👋") + "\nTe comparto el portal de tu evento en *Quincho de Bere* 🎉\n\nDesde ahi podes:\n✅ Ver los detalles de tu reserva\n📨 Armar y compartir la invitacion para tus invitados\n📸 Ver las fotos del lugar\n🎁 Agregar extras para tu evento\n\n👉 " + portalUrl + "\n\nCualquier duda me avisas!";
                     const wa = cliente?.whatsapp ? cliente.whatsapp.replace(/\D/g,"") : "";
                     window.open("https://wa.me/"+(wa||"")+"?text="+encodeURIComponent(msg),"_blank");
+                    if(logCom) logCom("whatsapp","Envío portal del cliente",reserva.clienteId,reserva.id,wa);
                   }} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",marginTop:8,padding:"10px 16px",background:"#25D366",color:"#FFF",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                     <span style={{fontSize:18}}>📲</span> Enviar por WhatsApp
                   </button>
@@ -1287,7 +1289,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   );
 }
 
-function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnosRecurso }) {
+function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnosRecurso, comunicaciones }) {
   const allRes = reservas.filter(r=>r.clienteId===cliente.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const esVisitaNoConcreto = r => r.estado==="cancelada" && r.fechaVisita;
   const cr = allRes.filter(r=>!esVisitaNoConcreto(r));
@@ -1413,6 +1415,24 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
           Ver todas ({allRes.length})
         </button>
       )}
+      {comunicaciones && (()=>{
+        const coms = comunicaciones.filter(c=>c.clienteId===cliente.id).sort((a,b)=>(b.creadoEn||"").localeCompare(a.creadoEn||""));
+        if(!coms.length) return null;
+        return (<>
+          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8,marginTop:4}}>Historial de comunicaciones</div>
+          {coms.slice(0,6).map(c=>(
+            <div key={c.id} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"8px 0",borderBottom:"1px solid #EDE0D0"}}>
+              <span style={{fontSize:18,lineHeight:"22px",flexShrink:0}}>{c.tipo==="email"?"📧":c.tipo==="whatsapp"?"💬":"🔗"}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{c.asunto}</div>
+                {c.destino && <div style={{fontSize:11,color:"#8B7355",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.destino}</div>}
+                <div style={{fontSize:10,color:"#C4B49A",marginTop:2}}>{c.creadoEn ? new Date(c.creadoEn).toLocaleDateString("es-AR",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}) : ""}{c.creadoPor ? ` · ${c.creadoPor}` : ""}</div>
+              </div>
+            </div>
+          ))}
+          {coms.length>6 && <div style={{fontSize:11,color:"#C4B49A",textAlign:"center",padding:"6px 0"}}>+{coms.length-6} más</div>}
+        </>);
+      })()}
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:12}}>
         <Btn small variant="secondary" onClick={onEdit}>✏️ Editar</Btn>
         <Btn small variant="ghost" onClick={onClose}>Cerrar</Btn>
@@ -4938,6 +4958,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const [tareas,setTareas]=useState([]);
   const [bloqueos,setBloqueos]=useState([]);
   const [recordatorios,setRecordatorios]=useState([]);
+  const [comunicaciones,setComunicaciones]=useState([]);
   const [bloqueoModal,setBloqueoModal]=useState(null);
   const [showBriefing,setShowBriefing]=useState(false);
   const [loaded,setLoaded]=useState(false);
@@ -5225,9 +5246,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       supabase.from("bloqueos").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:true}).limit(500),
       supabase.from("recordatorios").select("*").eq("org_id",orgId).neq("estado","Procesado").order("fecha_alerta",{ascending:true}).limit(200),
       supabase.from("temporadas_precio").select("*").eq("org_id",orgId).order("mes_desde",{ascending:true}).limit(100),
+      supabase.from("comunicaciones").select("*").eq("org_id",orgId).order("creado_en",{ascending:false}).limit(500),
     ]).then(async _t2=>{
       const _t2d=(i)=>_t2[i].status==="fulfilled"?_t2[i].value?.data:null;
-      const [p,g,er,se,t,bl,rec,tmp]=[0,1,2,3,4,5,6,7].map(_t2d);
+      const [p,g,er,se,t,bl,rec,tmp,com]=[0,1,2,3,4,5,6,7,8].map(_t2d);
       if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",comprobante:x.comprobante||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
@@ -5235,6 +5257,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
       if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
+      if(com?.length) setComunicaciones(com.map(x=>({id:x.id,tipo:x.tipo||"",asunto:x.asunto||"",clienteId:x.cliente_id||"",reservaId:x.reserva_id||"",destino:x.destino||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(tmp?.length){
         setTemporadasPrecio(tmp.map(x=>({id:x.id,orgId:x.org_id,recursoId:x.recurso_id,nombre:x.nombre||"Temporada",mesDesde:x.mes_desde,diaDesde:x.dia_desde,mesHasta:x.mes_hasta,diaHasta:x.dia_hasta})));
         const {data:ptData}=await supabase.from("precios_temporada").select("*").in("temporada_id",tmp.map(t=>t.id));
@@ -5370,7 +5393,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 condiciones:    negocio?.condicionesEmail || "",
                 eventoUrl:      negocio?.portalActivo!==false && nuevaReserva.shareToken ? (window.location.origin + "/evento/" + nuevaReserva.shareToken) : "",
               }),
-            }).catch(()=>{});
+            }).then(()=>{logCom("email","Confirmación de reserva",data.clienteId,nuevaReserva.id,freshCli.email);}).catch(()=>{});
             }).catch(()=>{});
           }).catch(()=>{});
         }
@@ -5424,7 +5447,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 condiciones:negocio?.condicionesEmail||"",
                 estado:newEstado,
                 eventoUrl:negocio?.portalActivo!==false&&res.shareToken?(window.location.origin+"/evento/"+res.shareToken):"",
-              })}).then(()=>showToast("📧 Mail enviado a "+freshCli.email,"ok")).catch(()=>showToast("📧 Mail no se pudo enviar","error"));
+              })}).then(()=>{showToast("📧 Mail enviado a "+freshCli.email,"ok");logCom("email","Actualización de pago ("+newEstado+")",res.clienteId,res.id,freshCli.email);}).catch(()=>showToast("📧 Mail no se pudo enviar","error"));
               }).catch(()=>{});
             }).catch(()=>{ showToast("⚠️ Reserva "+newEstado+", pero no se pudo verificar el mail","warn"); });
           }
@@ -5513,6 +5536,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     await sb.remove("bloqueos", bloqueoId);
     setBloqueos(bloqueos.filter(b=>b.id!==bloqueoId));
     setBloqueoModal(null);setDayModal(null);
+  };
+  const logCom=async(tipo,asunto,clienteId,reservaId,destino)=>{
+    const entry={id:genId(),tipo,asunto,clienteId:clienteId||null,reservaId:reservaId||null,destino:destino||"",creadoPor:currentUser?.nombre||"",creadoEn:new Date().toISOString()};
+    setComunicaciones(prev=>[entry,...prev]);
+    supabase.from("comunicaciones").insert({id:entry.id,org_id:getCurrentOrgId(),cliente_id:entry.clienteId,reserva_id:entry.reservaId,tipo,asunto,destino:entry.destino,creado_por:entry.creadoPor}).catch(()=>{});
   };
   const handleSaveRating=(reservaId, calificacion)=>{
     saveR(reservas.map(r=>r.id===reservaId?{...r,calificacion}:r));
@@ -5763,6 +5791,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         }}
         negocio={negocio}
         plan={currentUser?.plan}
+        logCom={logCom}
+        comunicaciones={comunicaciones}
         onSaveShareConfig={async(cfg)=>{
           const updated={...detailReserva,...cfg};
           saveR(reservas.map(r=>r.id===detailReserva.id?updated:r));
@@ -5786,7 +5816,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           showToast("Visita no concretada — fecha liberada","info");
         }}
       />}
-      {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas} turnosRecurso={turnosRecurso}
+      {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas} turnosRecurso={turnosRecurso} comunicaciones={comunicaciones}
         onClose={()=>setDetailCliente(null)}
         onEdit={()=>{setEditCliente(detailCliente);setDetailCliente(null);setModal("cliente");}}
         onReactivar={(r)=>{
