@@ -2575,7 +2575,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const toggleTarea=(id)=>{
     saveTareas(tareas.map(t=>t.id===id?{...t,estado:t.estado==="pendiente"?"completada":"pendiente"}:t));
   };
-  const deleteTarea=(id)=>saveTareas(tareas.filter(t=>t.id!==id));
+  const deleteTarea=(id)=>{setTareas(tareas.filter(t=>t.id!==id));sb.remove("tareas",id);};
 
   return (
     <div style={{padding: isDesktop ? "20px 28px 40px" : "16px 16px 100px"}}>
@@ -5575,7 +5575,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     } finally{ setSavingGasto(false); }
   };
   const handleDeleteGasto=async(gasto)=>{
-    await saveG(gastos.filter(g=>g.id!==gasto.id));
+    await sb.remove("gastos",gasto.id);
+    setGastos(gastos.filter(g=>g.id!==gasto.id));
     showToast("Gasto eliminado","info");
   };
   const handleSaveExtra=async(data)=>{
