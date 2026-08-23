@@ -197,7 +197,7 @@ function LogoSVG({ size=48, color="#C4602B" }) {
 
 const PDF_CSS =
   "*{box-sizing:border-box;margin:0;padding:0}" +
-  "body{font-family:Arial,sans-serif;color:#1C1C1E;padding:40px;max-width:760px;margin:0 auto;font-size:14px;line-height:1.5}" +
+  "body{font-family:Arial,sans-serif;color:#1C1C1E;padding:40px;max-width:760px;margin:0 auto;font-size:14px;line-height:1.5;position:relative}" +
   ".hdr{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #C4602B;padding-bottom:14px;margin-bottom:20px}" +
   ".logo{font-size:20px;font-weight:800;color:#C4602B}" +
   ".logo-img{height:52px;width:52px;border-radius:50%;object-fit:cover;margin-right:12px}" +
@@ -213,15 +213,30 @@ const PDF_CSS =
   ".fitem{text-align:center;width:45%}" +
   ".fline{border-top:1px solid #1C1C1E;margin-top:36px;padding-top:5px;font-size:11px;color:#8B7355}" +
   ".footer{margin-top:28px;padding-top:10px;border-top:1px solid #EDE0D0;font-size:11px;color:#8B7355;text-align:center}" +
-  "@media print{body{padding:20px}}";
+  ".sello{position:absolute;top:50%;right:40px;transform:translateY(-50%) rotate(-18deg);width:160px;height:160px;border:4px solid rgba(196,96,43,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:900;font-size:14px;color:rgba(196,96,43,0.3);letter-spacing:1px;text-transform:uppercase;pointer-events:none;z-index:0}" +
+  ".sello-inner{border:2px solid rgba(196,96,43,0.2);border-radius:50%;width:140px;height:140px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px}" +
+  ".sello-nombre{font-size:13px;line-height:1.2;max-width:110px;word-break:break-word}" +
+  ".sello-linea{width:60px;height:2px;background:rgba(196,96,43,0.2);margin:3px 0}" +
+  ".sello-tipo{font-size:9px;letter-spacing:2px}" +
+  ".monto-destacado{background:linear-gradient(135deg,#FDF8F3,#F5EDE4);border:2px solid #C4602B;border-radius:10px;padding:16px 20px;margin:14px 0;text-align:center}" +
+  ".monto-label{font-size:11px;color:#8B7355;text-transform:uppercase;letter-spacing:1px;font-weight:700}" +
+  ".monto-valor{font-size:28px;font-weight:900;color:#C4602B;margin-top:4px}" +
+  ".estado-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;margin-top:6px}" +
+  "@media print{body{padding:20px}.sello{print-color-adjust:exact;-webkit-print-color-adjust:exact}}";
 
 function pRow(l,v,c){return '<div class="row"><span class="lbl">'+l+'</span><span class="val'+(c?' '+c:'')+'">' +v+'</span></div>';}
 function pH2(t){return '<h2>'+t+'</h2>';}
 function pDiv(c,i){return '<div class="'+c+'">'+i+'</div>';}
 
-function buildDoc(title,body){
-  var footer=pDiv('footer','Mi Quincho - '+new Date().toLocaleDateString('es-AR'));
-  var html='<style>'+PDF_CSS+'</style>'+body+footer;
+function pSello(negocio,tipo){
+  var nombre=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
+  return '<div class="sello"><div class="sello-inner"><div class="sello-nombre">'+nombre+'</div><div class="sello-linea"></div><div class="sello-tipo">'+tipo+'</div></div></div>';
+}
+function buildDoc(title,body,negocio,tipo){
+  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Quincho');
+  var footer=pDiv('footer',nombreNeg+' · '+new Date().toLocaleDateString('es-AR'));
+  var sello=tipo?pSello(negocio,tipo):'';
+  var html='<style>'+PDF_CSS+'</style>'+sello+body+footer;
   return {title:title, html:html};
 }
 
@@ -254,7 +269,7 @@ function printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio){
   if(te>0)body+=pRow('+ Extras',fmtCurrency(te));
   body+=pRow('Total',fmtCurrency(reserva.montoPactado+te))+pRow('Cobrado',fmtCurrency(tp),'pos')+'<div class="total"><span>'+(saldo>0?'Saldo pendiente':'Pagado')+'</span><span class="'+(saldo>0?'neg':'pos')+'">'+fmtCurrency(Math.abs(saldo))+'</span></div>';
   if(resPagos.length>0){body+=pH2('Cobros');resPagos.forEach(function(p){body+=pRow(fmtDate(p.fecha)+' - '+escHtml(p.metodo),'+'+fmtCurrency(p.monto),'pos');});}
-  return buildDoc('Ficha '+escHtml(clientName(cliente)),body);
+  return buildDoc('Ficha '+escHtml(clientName(cliente)),body,negocio,'FICHA');
 }
 
 function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
@@ -279,9 +294,10 @@ function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
   var titulo='<div class="contrato-title">CONTRATO DE ALQUILER DE ESPACIO</div><div class="contrato-sub">Ref. N° '+reserva.id.slice(-8).toUpperCase()+'</div>';
 
   // Partes
+  var dir=negocio&&negocio.direccion?escHtml(negocio.direccion):'';
   var partes=pH2('LAS PARTES')+
     '<div class="clausula">Prestador del Servicio</div>'+
-    pRow('Nombre / Razón social',nombreNeg)+(tel?pRow('Contacto',tel):'')+
+    pRow('Nombre / Razón social',nombreNeg)+(tel?pRow('Contacto',tel):'')+(dir?pRow('Dirección',dir+', '+ciudad):pRow('Ciudad',ciudad))+
     '<div class="clausula">Contratante</div>'+
     pRow('Nombre',escHtml(clientName(cliente)))+
     (cliente&&cliente.whatsapp?pRow('WhatsApp',escHtml(cliente.whatsapp)):'')+
@@ -301,10 +317,13 @@ function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
 
   // Condiciones económicas
   var economia=pH2('CONDICIONES ECONÓMICAS')+
-    pRow('Monto total acordado',fmtCurrency(reserva.montoPactado+te))+
-    (te>0?pRow('Extras incluidos',fmtCurrency(te)):'')+
-    (tp>0?pRow('Seña / pagos recibidos',fmtCurrency(tp)):'')+
-    '<div class="total"><span>'+(saldo>0?'Saldo pendiente al evento':'Estado de cuenta')+'</span><span class="'+(saldo>0?'neg':'pos')+'">'+(saldo>0?fmtCurrency(saldo):'Pagado en su totalidad')+'</span></div>';
+    pRow('Monto base del alquiler',fmtCurrency(reserva.montoPactado));
+  if(resExtras.length>0){economia+='<div class="clausula">Extras contratados</div>';resExtras.forEach(function(e){economia+=pRow(escHtml(e.descripcion)+' x'+e.cantidad,fmtCurrency(e.cantidad*e.precioHistorico));});}
+  if(te>0)economia+=pRow('Subtotal extras',fmtCurrency(te));
+  economia+=pRow('<b>Total acordado</b>','<b>'+fmtCurrency(reserva.montoPactado+te)+'</b>');
+  if(resPagos.length>0){economia+='<div class="clausula">Pagos registrados</div>';resPagos.forEach(function(p){economia+=pRow(fmtDate(p.fecha)+' — '+escHtml(p.metodo),fmtCurrency(p.monto),'pos');});}
+  if(tp>0)economia+=pRow('Total cobrado a la fecha',fmtCurrency(tp),'pos');
+  economia+='<div class="total"><span>'+(saldo>0?'Saldo pendiente al evento':'Estado de cuenta')+'</span><span class="'+(saldo>0?'neg':'pos')+'">'+(saldo>0?fmtCurrency(saldo):'Pagado en su totalidad')+'</span></div>';
 
   // Condiciones del alquiler — usa las configuradas en Config (condicionesEmail)
   var condTxt=negocio&&negocio.condicionesEmail?negocio.condicionesEmail:'';
@@ -325,24 +344,51 @@ function printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio){
     '</div>';
 
   var style='<style>'+PDF_CSS+CSS_EXTRA+'</style>';
-  var footer=pDiv('footer',nombreNeg+' · Generado el '+new Date().toLocaleDateString('es-AR')+' | Soluciones MDP');
-  var html=style+hdr+titulo+partes+evento+economia+condiciones+aceptacion+firmas+footer;
+  var sello=pSello(negocio,'CONTRATO');
+  var footer=pDiv('footer',nombreNeg+' · Generado el '+new Date().toLocaleDateString('es-AR'));
+  var html=style+sello+hdr+titulo+partes+evento+economia+condiciones+aceptacion+firmas+footer;
   return {title:'Contrato '+escHtml(clientName(cliente)),html:html};
 }
 
-function printRecibo(pago,reserva,cliente,negocio){
+function printRecibo(pago,reserva,cliente,negocio,resExtras,resPagos){
   var hdr=pLogoHdr(negocio,'Comprobante de Pago','<b>N° '+pago.id.slice(-6).toUpperCase()+'</b><br>'+new Date().toLocaleDateString('es-AR'));
-  var texto='Recibi de '+escHtml(clientName(cliente))+' la suma de '+fmtCurrency(pago.monto)+' en concepto de pago para la reserva del dia '+fmtDate(reserva?reserva.fecha:'-')+' en '+escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio')+'. Metodo: '+escHtml(pago.metodo)+'.';
-  if(pago.notas)texto+=' Ref: '+escHtml(pago.notas);
-  var firma=pDiv('firma',pDiv('fitem',pDiv('fline','Firma prestador'))+pDiv('fitem',pDiv('fline','Conformidad cliente')));
-  return buildDoc('Recibo '+escHtml(clientName(cliente)),hdr+pDiv('box',texto)+pH2('Detalle')+pRow('Cliente',escHtml(clientName(cliente)))+pRow('Monto',fmtCurrency(pago.monto),'pos')+pRow('Metodo',escHtml(pago.metodo))+pRow('Fecha',fmtDate(pago.fecha))+firma);
+  var nombreNeg=escHtml((negocio&&negocio.nombreNegocio)||'Mi Negocio');
+  var body=hdr;
+  body+='<div class="monto-destacado"><div class="monto-label">Monto recibido</div><div class="monto-valor">'+fmtCurrency(pago.monto)+'</div><div class="estado-badge" style="background:#DCFCE7;color:#16A34A">'+escHtml(pago.metodo)+'</div></div>';
+  body+=pH2('Datos del cobro')+pRow('Cliente',escHtml(clientName(cliente)));
+  if(cliente&&cliente.whatsapp)body+=pRow('WhatsApp',escHtml(cliente.whatsapp));
+  body+=pRow('Monto cobrado',fmtCurrency(pago.monto),'pos')+pRow('Método de pago',escHtml(pago.metodo))+pRow('Fecha del cobro',fmtDate(pago.fecha));
+  if(pago.notas)body+=pRow('Referencia',escHtml(pago.notas));
+  if(reserva){
+    body+=pH2('Evento asociado')+pRow('Fecha del evento',fmtDate(reserva.fecha));
+    if(TURNOS[reserva.turno])body+=pRow('Turno',escHtml(TURNOS[reserva.turno].label));
+    if(reserva.horario)body+=pRow('Horario',escHtml(reserva.horario)+(reserva.horarioFin?' a '+escHtml(reserva.horarioFin):'')+' hs');
+    if(reserva.tipoEvento)body+=pRow('Tipo de evento',escHtml(reserva.tipoEvento));
+    if(reserva.cantInvitados>0)body+=pRow('Invitados',String(reserva.cantInvitados)+' personas');
+  }
+  var extras=resExtras||[];
+  var pagos=resPagos||[];
+  var te=extras.reduce(function(s,e){return s+(e.precioHistorico*e.cantidad);},0);
+  var tp=pagos.reduce(function(s,p){return s+p.monto;},0);
+  if(reserva){
+    body+=pH2('Estado de cuenta')+pRow('Monto pactado',fmtCurrency(reserva.montoPactado));
+    if(te>0){body+=pRow('+ Extras',fmtCurrency(te));extras.forEach(function(e){body+=pRow('  '+escHtml(e.descripcion)+' x'+e.cantidad,fmtCurrency(e.cantidad*e.precioHistorico));});}
+    body+=pRow('Total del evento',fmtCurrency(reserva.montoPactado+te));
+    body+=pRow('Total cobrado',fmtCurrency(tp),'pos');
+    var saldo=(reserva.montoPactado+te)-tp;
+    body+='<div class="total"><span>'+(saldo>0?'Saldo pendiente':'Cuenta saldada')+'</span><span class="'+(saldo>0?'neg':'pos')+'">'+(saldo>0?fmtCurrency(saldo):'$0')+'</span></div>';
+  }
+  if(pagos.length>1){body+=pH2('Historial de cobros');pagos.forEach(function(p){var esCurrent=p.id===pago.id;body+=pRow((esCurrent?'► ':'')+fmtDate(p.fecha)+' - '+escHtml(p.metodo),fmtCurrency(p.monto),'pos');});}
+  var firma=pDiv('firma',pDiv('fitem',pDiv('fline','Firma prestador<br><b>'+nombreNeg+'</b>'))+pDiv('fitem',pDiv('fline','Conformidad cliente<br><b>'+escHtml(clientName(cliente))+'</b>')));
+  body+=firma;
+  return buildDoc('Recibo '+escHtml(clientName(cliente)),body,negocio,'COMPROBANTE');
 }
 
 function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,porCobrar,negocio){
   var hdr=pLogoHdr(negocio,'Reporte Financiero','<b>'+MONTHS[month]+' '+year+'</b>');
   var body=hdr+pH2('Resumen del mes')+pRow('Ingresos cobrados',fmtCurrency(ingresos),'pos')+pRow('Gastos operacionales',fmtCurrency(gastos),'neg')+'<div class="total"><span>Ganancia Neta</span><span class="'+(ganancia>=0?'pos':'neg')+'">'+fmtCurrency(Math.abs(ganancia))+'</span></div>'+pH2('Ocupacion')+pRow('Eventos activos',String(confirmadas))+pRow('Por cobrar',fmtCurrency(porCobrar),'neg');
   if(catData.length>0){body+=pH2('Gastos por categoria');catData.forEach(function(c){body+=pRow(c.name,fmtCurrency(c.value));});}
-  return buildDoc('Reporte '+MONTHS[month]+' '+year,body);
+  return buildDoc('Reporte '+MONTHS[month]+' '+year,body,negocio,'REPORTE');
 }
 
 
@@ -5490,16 +5536,22 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     if(shouldPrint){
       var res2=reservas.find(r=>r.id===data.reservaId);
       var cli=clientes.find(c=>c.id===res2?.clienteId);
-      var docData=printRecibo(newP,res2,cli,negocio);
+      var resExt=extrasReserva.filter(function(e){return e.reservaId===data.reservaId;});
+      var resPag=newPagos.filter(function(p){return p.reservaId===data.reservaId;});
+      var docData=printRecibo(newP,res2,cli,negocio,resExt,resPag);
       if(cli&&cli.whatsapp){
         var negNombre=negocio?.nombreNegocio||"nuestro negocio";
-        var waMsg="*Recibo de Pago - "+negNombre+"*\n\n"+
-          "Cliente: "+clientName(cli)+"\n"+
-          "Evento: "+fmtDate(res2?res2.fecha:"")+" · "+(res2&&res2.turno?res2.turno:"")+"\n"+
-          "Monto cobrado: "+fmtCurrency(newP.monto)+"\n"+
-          "Método: "+newP.metodo+"\n"+
-          "Fecha del cobro: "+fmtDate(newP.fecha)+"\n\n"+
-          "_Gracias por tu confianza en "+negNombre+"_ 🏠";
+        var teWa=resExt.reduce(function(s,e){return s+(e.precioHistorico*e.cantidad);},0);
+        var tpWa=resPag.reduce(function(s,p){return s+p.monto;},0);
+        var saldoWa=res2?(res2.montoPactado+teWa)-tpWa:0;
+        var waMsg="*🏠 Comprobante de Pago*\n*"+negNombre+"*\n\n"+
+          "👤 "+clientName(cli)+"\n"+
+          "📅 Evento: "+fmtDate(res2?res2.fecha:"")+(res2&&TURNOS[res2.turno]?" · "+TURNOS[res2.turno].label:"")+"\n"+
+          "💰 *Cobrado: "+fmtCurrency(newP.monto)+"*\n"+
+          "💳 Método: "+newP.metodo+"\n"+
+          "📆 Fecha: "+fmtDate(newP.fecha)+"\n"+
+          (saldoWa>0?"\n📊 Saldo pendiente: "+fmtCurrency(saldoWa)+"\n":"\n✅ *Cuenta saldada*\n")+
+          "\n_Gracias por tu confianza_ 🙌";
         docData={...docData,waPhone:cli.whatsapp,waMsg:waMsg};
       }
       setPrintData(docData);
