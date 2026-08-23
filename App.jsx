@@ -3641,7 +3641,7 @@ function MiPlanView({ currentUser, onBack }) {
 }
 
 function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio, setPreciosTemporada, onGoMiPlan }) {
-  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"", googleReviewUrl: negocio?.googleReviewUrl||"", wifiPassword: negocio?.wifiPassword||"", portalActivo: negocio?.portalActivo!==false });
+  const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"", googleReviewUrl: negocio?.googleReviewUrl||"", wifiPassword: negocio?.wifiPassword||"", portalActivo: negocio?.portalActivo!==false, fotosLugar: negocio?.fotosLugar||[] });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
   const [open, setOpen] = useState("negocio");
@@ -3650,10 +3650,10 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
   const toggle = s => setOpen(o => o===s ? null : s);
 
   const handleSaveNegocio = async () => {
-    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail, google_review_url: negForm.googleReviewUrl, wifi_password: negForm.wifiPassword, portal_activo: negForm.portalActivo };
+    const row = { org_id: getCurrentOrgId(), nombre_negocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logo_url: negForm.logoUrl, msg_recordatorio: negForm.msgRecordatorio, msg_post_evento: negForm.msgPostEvento, recordatorio_activo: negForm.recordatorioActivo, post_evento_activo: negForm.postEventoActivo, condiciones_email: negForm.condicionesEmail, google_review_url: negForm.googleReviewUrl, wifi_password: negForm.wifiPassword, portal_activo: negForm.portalActivo, fotos_lugar: negForm.fotosLugar };
     const { error } = await supabase.from("config").upsert(row, { onConflict: "org_id" });
     if (error) { showToast("Error al guardar: " + error.message,"error"); return; }
-    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail, googleReviewUrl: negForm.googleReviewUrl, wifiPassword: negForm.wifiPassword, portalActivo: negForm.portalActivo });
+    setNegocio({ nombreNegocio: negForm.nombreNegocio, ciudad: negForm.ciudad, direccion: negForm.direccion, telefono: negForm.telefono, logoUrl: negForm.logoUrl, msgRecordatorio: negForm.msgRecordatorio, msgPostEvento: negForm.msgPostEvento, recordatorioActivo: negForm.recordatorioActivo, postEventoActivo: negForm.postEventoActivo, condicionesEmail: negForm.condicionesEmail, googleReviewUrl: negForm.googleReviewUrl, wifiPassword: negForm.wifiPassword, portalActivo: negForm.portalActivo, fotosLugar: negForm.fotosLugar });
     setNegSaved(true);
     setTimeout(()=>setNegSaved(false), 2000);
   };
@@ -3785,12 +3785,6 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                 </>
               )}
             </div>
-            {/* WiFi */}
-            <div style={{padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0",marginBottom:10}}>
-              <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",marginBottom:2}}>📶 Contraseña WiFi</div>
-              <div style={{fontSize:11,color:"#8B7355",marginBottom:8}}>Se muestra en el link compartido del evento el dia del evento.</div>
-              <input style={inpS} value={negForm.wifiPassword} onChange={e=>setNegForm(p=>({...p,wifiPassword:e.target.value}))} placeholder="Contraseña del WiFi" />
-            </div>
             {/* Google Reviews */}
             <div style={{padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
               <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",marginBottom:2}}>⭐ Link de reseñas de Google</div>
@@ -3822,7 +3816,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
         {open==="portal" && (
           <div style={{marginTop:16}}>
             <div style={{fontSize:12,color:"#8B7355",marginBottom:14,lineHeight:1.5}}>Cuando está activo, cada reserva puede generar un link exclusivo para el cliente. Desde ahí configura su invitación, recibe confirmaciones de asistencia, y consulta extras.</div>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0",marginBottom:12}}>
               <div>
                 <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>🔗 Portal del evento</div>
                 <div style={{fontSize:11,color:"#8B7355"}}>Permite compartir el evento con clientes</div>
@@ -3831,6 +3825,45 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                 style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:negForm.portalActivo?"#16A34A":"#EDE0D0",color:negForm.portalActivo?"#FFF":"#8B7355",flexShrink:0,marginLeft:8}}>
                 {negForm.portalActivo?"✅ Activo":"Inactivo"}
               </button>
+            </div>
+            <div style={{padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0",marginBottom:12}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",marginBottom:2}}>📶 Contraseña WiFi</div>
+              <div style={{fontSize:11,color:"#8B7355",marginBottom:8}}>Se muestra en el portal el día del evento.</div>
+              <input style={inpS} value={negForm.wifiPassword} onChange={e=>setNegForm(p=>({...p,wifiPassword:e.target.value}))} placeholder="Contraseña del WiFi" />
+            </div>
+            <div style={{padding:12,background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0",marginBottom:12}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",marginBottom:2}}>📷 Fotos del lugar</div>
+              <div style={{fontSize:11,color:"#8B7355",marginBottom:10}}>Se muestran en el portal para que los invitados conozcan el espacio. Hasta 12 fotos.</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                {(negForm.fotosLugar||[]).map((f,i)=>(
+                  <div key={i} style={{position:"relative",borderRadius:10,overflow:"hidden",aspectRatio:"4/3",background:"#F5EDE4",border:"1.5px solid #EDE0D0"}}>
+                    <img src={f.url} alt={f.alt||""} style={{width:"100%",height:"100%",objectFit:"cover"}} loading="lazy" />
+                    <button onClick={()=>{setNegForm(p=>({...p,fotosLugar:p.fotosLugar.filter((_,j)=>j!==i)}));}} style={{position:"absolute",top:4,right:4,width:24,height:24,borderRadius:12,background:"rgba(0,0,0,0.6)",color:"#FFF",border:"none",cursor:"pointer",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"inherit",lineHeight:1}}>×</button>
+                  </div>
+                ))}
+                {(negForm.fotosLugar||[]).length<12 && (
+                  <label style={{borderRadius:10,aspectRatio:"4/3",background:"#FDF8F3",border:"2px dashed #EDE0D0",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",gap:4}}>
+                    <span style={{fontSize:24}}>+</span>
+                    <span style={{fontSize:10,color:"#8B7355",fontWeight:600}}>Agregar</span>
+                    <input type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} onChange={async(e)=>{
+                      const file=e.target.files?.[0]; if(!file) return;
+                      const ALLOWED=["image/jpeg","image/png","image/webp"];
+                      if(!ALLOWED.includes(file.type)){showToast("Solo JPG, PNG o WEBP.","error");e.target.value="";return;}
+                      if(file.size>3*1024*1024){showToast("Máximo 3MB por foto.","error");e.target.value="";return;}
+                      const ext=file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg";
+                      const path=`lugar/${getCurrentOrgId()}-${Date.now()}.${ext}`;
+                      const {error}=await supabase.storage.from("negocio-assets").upload(path,file,{upsert:true,contentType:file.type});
+                      if(error){showToast("Error al subir: "+error.message,"error");return;}
+                      const {data}=supabase.storage.from("negocio-assets").getPublicUrl(path);
+                      const url=data.publicUrl+"?t="+Date.now();
+                      const alt=file.name.replace(/\.[^.]+$/,"").replace(/[-_]/g," ");
+                      setNegForm(p=>({...p,fotosLugar:[...(p.fotosLugar||[]),{url,alt}]}));
+                      showToast("Foto agregada.","ok");
+                      e.target.value="";
+                    }} />
+                  </label>
+                )}
+              </div>
             </div>
             <SaveBtn />
           </div>
@@ -4947,7 +4980,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
 ¡Muchas gracias por elegirnos!`;
 
-  const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true, condicionesEmail:"" });
+  const [negocio,setNegocio]=useState({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true, condicionesEmail:"", fotosLugar:[] });
   const [onboarding,setOnboarding]=useState(false); // wizard primer uso
   const [usuarios,setUsuarios]=useState([]);
   const [perfilesUsuarios,setPerfilesUsuarios]=useState([]);
@@ -5232,7 +5265,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null,regaloDescuento:x.regalo_descuento||null,regaloEnviadoEn:x.regalo_enviado_en||null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",estadoCrm:x.estado_crm||null,origen:x.origen||null,creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
-    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||"",wifiPassword:cfgData.wifi_password||"",portalActivo:cfgData.portal_activo!==false});
+    if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||"",wifiPassword:cfgData.wifi_password||"",portalActivo:cfgData.portal_activo!==false,fotosLugar:cfgData.fotos_lugar||[]});
     if(!rc?.length && orgId) setOnboarding(true);
 
     // ── TIER 2: diferido — carga en background sin bloquear el render ─
@@ -5292,7 +5325,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     setRecursos([]); setTurnosRecurso([]); setExtrasReserva([]);
     setServiciosExtras(DEFAULT_SERVICIOS); setTareas([]); setBloqueos([]);
     setRecordatorios([]); setTemporadasPrecio([]); setPreciosTemporada([]);
-    setNegocio({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true, portalActivo:true });
+    setNegocio({ nombreNegocio:"", ciudad:"", direccion:"", telefono:"", logoUrl:"", msgRecordatorio:"", msgPostEvento:"", recordatorioActivo:true, postEventoActivo:true, portalActivo:true, fotosLugar:[] });
     lsRemove("qb_user");
     lsRemove("qb_access_token");
     lsRemove(`sb-${SUPA_URL.split("//")[1].split(".")[0]}-auth-token`);
