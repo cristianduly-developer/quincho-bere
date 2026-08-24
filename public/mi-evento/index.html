@@ -817,14 +817,14 @@
 
     // Regalo banner en Mi Reserva
     var hasRegalo = d.reserva.regalo_descuento && d.reserva.regalo_enviado_en && (Date.now() < new Date(d.reserva.regalo_enviado_en).getTime() + 72*60*60*1000);
-    if (hasRegalo && !localStorage.getItem("regalo_" + token)) {
+    if (hasRegalo && !localStorage.getItem("regalo_" + DATA.id)) {
       html += '<div class="card" data-go-extras style="cursor:pointer;background:linear-gradient(135deg,#FFF8E6,#FFF3D0);border:1.5px solid #FFD54F;text-align:center;padding:20px 16px">';
       html += '<div style="font-size:36px;margin-bottom:6px">🎁</div>';
       html += '<div style="font-size:16px;font-weight:800;color:#1C1C1E;font-family:\'Playfair Display\',Georgia,serif">¡Tenés un regalito esperándote!</div>';
       html += '<div style="font-size:13px;color:#5C4033;margin-top:6px;line-height:1.5">Revisá los extras disponibles para descubrir tu sorpresa</div>';
       html += '<div style="margin-top:12px;display:inline-block;padding:10px 24px;background:#C4602B;color:#FFF;border-radius:10px;font-size:13px;font-weight:700">Ver mi regalito →</div>';
       html += '</div>';
-    } else if (hasRegalo && localStorage.getItem("regalo_" + token) === "1") {
+    } else if (hasRegalo && localStorage.getItem("regalo_" + DATA.id) === "1") {
       var regaloText = DATA.reserva.regalo_descuento;
       var envMs = new Date(DATA.reserva.regalo_enviado_en).getTime() + 72*60*60*1000;
       var hLeft = Math.max(0, Math.ceil((envMs - Date.now()) / (1000*60*60)));
@@ -917,7 +917,7 @@
       return '<div class="regalo-expired"><div style="font-size:28px;margin-bottom:6px">⏰</div><div style="font-size:14px;color:var(--text-sub)">Tu regalito expiró</div></div>';
     }
 
-    var scratched = localStorage.getItem("regalo_" + token) === "1";
+    var scratched = localStorage.getItem("regalo_" + DATA.id) === "1";
     var horasLeft = Math.max(0, Math.ceil((expiraMs - now) / (1000 * 60 * 60)));
     var html = '<div class="regalo-wrap">';
 
@@ -1440,7 +1440,7 @@
 
         if (scratchedPixels > totalPixels * 0.35 && !revealed) {
           revealed = true;
-          localStorage.setItem("regalo_" + token, "1");
+          localStorage.setItem("regalo_" + DATA.id, "1");
           canvas.style.transition = "opacity 0.5s";
           canvas.style.opacity = "0";
           setTimeout(function() { renderApp(); }, 600);
