@@ -67,6 +67,7 @@ export default async function handler(req, res) {
           share_hero_url: reserva.share_hero_url,
           regalo_descuento: reserva.regalo_descuento || null,
           regalo_enviado_en: reserva.regalo_enviado_en || null,
+          sobre_digital: reserva.sobre_digital || null,
         },
         negocio: configRes.data || {},
         cliente: clienteRes.data || {},
@@ -96,6 +97,7 @@ export default async function handler(req, res) {
       if (b.share_theme !== undefined) update.share_theme = b.share_theme
       if (b.share_hero_url !== undefined) update.share_hero_url = b.share_hero_url || null
       if (b.nombre_evento !== undefined) update.nombre_evento = (b.nombre_evento || '').slice(0, 100)
+      if (b.sobre_digital !== undefined) update.sobre_digital = b.sobre_digital
 
       if (!Object.keys(update).length) return res.json({ ok: true })
 

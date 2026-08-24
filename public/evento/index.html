@@ -284,6 +284,64 @@
     .review-hero-btn:hover{transform:translateY(-1px)}
 
     .photos-notice{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:10px;margin-bottom:12px;font-size:12px;color:var(--gold);font-weight:600}
+
+    /* ── SOBRE DIGITAL ── */
+    .sobre-section{margin:16px;perspective:600px}
+    .sobre-closed{position:relative;width:100%;height:180px;cursor:pointer;transition:transform .3s}
+    .sobre-closed:hover{transform:translateY(-3px)}
+    .sobre-body{position:absolute;bottom:0;width:100%;height:140px;background:#D4A574;border-radius:4px 4px 14px 14px;box-shadow:0 4px 16px rgba(180,140,90,0.25);overflow:hidden}
+    .sobre-body::after{content:'';position:absolute;top:0;left:0;right:0;height:60px;background:#E8C9A0;clip-path:polygon(0 0,50% 55%,100% 0)}
+    .sobre-flap{position:absolute;top:0;width:100%;height:100px;background:#C49660;clip-path:polygon(0 40px,50% 100%,100% 40px,100% 0,0 0);transform-origin:top center;transition:transform .5s;z-index:2}
+    .sobre-flap::before{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.3)}
+    .sobre-label{position:absolute;bottom:36px;width:100%;text-align:center;z-index:1;color:#FFF;font-size:14px;font-weight:700;letter-spacing:.5px;text-shadow:0 1px 3px rgba(0,0,0,.2)}
+    .sobre-tap{position:absolute;bottom:12px;width:100%;text-align:center;z-index:1;color:rgba(255,255,255,.7);font-size:11px;animation:sobrePulse 2s ease infinite}
+    @keyframes sobrePulse{0%,100%{opacity:.5}50%{opacity:1}}
+    .sobre-open{animation:sobreSlideUp .4s ease}
+    @keyframes sobreSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .sobre-card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
+    .sobre-emoji{font-size:32px;text-align:center;margin-bottom:10px}
+    .sobre-msg{font-size:14px;color:var(--text-sub);line-height:1.6;text-align:center;margin-bottom:16px}
+    .sobre-msg strong{color:var(--text)}
+    .alias-box{background:var(--surface-warm);border:1.5px dashed var(--accent);border-radius:12px;padding:14px;margin-bottom:14px}
+    .alias-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+    .alias-row{display:flex;align-items:center;gap:8px}
+    .alias-val{flex:1;font-size:17px;font-weight:800;color:var(--text);font-family:'SF Mono','Fira Code',monospace;letter-spacing:.5px;word-break:break-all}
+    .btn-alias-copy{padding:8px 16px;background:var(--accent);color:#FFF;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .2s;flex-shrink:0}
+    .btn-alias-copy:active{background:var(--accent-hover)}
+    .btn-alias-copy.copied{background:var(--green)}
+    .sobre-qr{text-align:center;margin-bottom:14px}
+    .sobre-qr-box{display:inline-block;background:#FFF;padding:12px;border-radius:12px;border:1.5px solid var(--border)}
+    .sobre-qr-label{font-size:10px;color:var(--text-muted);margin-top:6px}
+    .sobre-mp{display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(0,177,234,.07);border:1.5px solid rgba(0,177,234,.2);border-radius:12px;margin-bottom:14px;cursor:pointer;text-decoration:none;transition:background .2s}
+    .sobre-mp:hover{background:rgba(0,177,234,.12)}
+    .sobre-mp-ico{width:32px;height:32px;background:#00B1EA;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:800;font-size:16px;flex-shrink:0}
+    .sobre-mp-text{font-size:13px;font-weight:600;color:var(--text)}
+    .sobre-mp-sub{font-size:10px;color:var(--text-muted);margin-top:1px}
+    .sobre-cbu{margin-bottom:14px}
+    .sobre-cbu-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+    .sobre-cbu-val{flex:1;font-size:12px;font-family:monospace;color:var(--text-sub);word-break:break-all}
+    .sobre-progress{margin-bottom:16px}
+    .sobre-progress-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+    .sobre-progress-goal{font-size:13px;font-weight:700;color:var(--text)}
+    .sobre-progress-pct{font-size:12px;font-weight:700;color:var(--green)}
+    .sobre-progress-bar{height:10px;background:var(--border-light);border-radius:5px;overflow:hidden}
+    .sobre-progress-fill{height:100%;background:var(--green);border-radius:5px;transition:width 1s ease}
+    .sobre-progress-detail{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px}
+    .mural-section{margin-bottom:14px}
+    .mural-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+    .mural-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px}
+    .mural-author{font-size:12px;font-weight:700;color:var(--text)}
+    .mural-body{font-size:12px;color:var(--text-sub);margin-top:3px;line-height:1.4}
+    .mural-time{font-size:9px;color:var(--text-muted);margin-top:4px}
+    .mural-form{background:var(--surface-warm);border:1.5px solid var(--border);border-radius:14px;padding:14px}
+    .mural-form-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
+    .mural-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);resize:none;min-height:60px;margin-bottom:8px;box-sizing:border-box}
+    .mural-input::placeholder{color:var(--text-muted)}
+    .mural-name{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;font-family:inherit;background:var(--surface);color:var(--text);margin-bottom:8px;box-sizing:border-box}
+    .mural-name::placeholder{color:var(--text-muted)}
+    .mural-send{width:100%;padding:10px;background:var(--accent);color:#FFF;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s}
+    .mural-send:active{background:var(--accent-hover)}
+    .mural-send:disabled{opacity:.6;cursor:default}
   </style>
 </head>
 <body>
@@ -667,6 +725,9 @@
       }
     }
 
+    // ── SOBRE DIGITAL (all states) ──
+    html += '<div id="sobre-section"></div>';
+
     // ── CTA (all states) ──
     html += '<div class="cta-book" style="background:' + heroColor + '">';
     html += '<div class="cta-book-glow"></div>';
@@ -716,6 +777,210 @@
         vpSection.style.display = "";
       }).catch(function(){});
     }
+
+    // ── SOBRE DIGITAL ──
+    (function loadSobre() {
+      var sobreEl = $("sobre-section");
+      if (!sobreEl) return;
+      supaRpc("public_obtener_sobre", { p_share_token: token }).then(function(cfg) {
+        if (!cfg || !cfg.activo || !cfg.alias) return;
+        var sh = '';
+        sh += '<div class="sobre-section">';
+        sh += '<div class="sobre-closed" id="sobre-closed" onclick="window._openSobre()">';
+        sh += '<div class="sobre-flap" id="sobre-flap"></div>';
+        sh += '<div class="sobre-body"><div class="sobre-label">💝 Sobre Digital</div><div class="sobre-tap">Tocá para abrir</div></div>';
+        sh += '</div>';
+        sh += '<div id="sobre-content" style="display:none">';
+
+        // Message card
+        sh += '<div class="sobre-card"><div class="sobre-emoji">💝</div>';
+        if (cfg.mensaje) {
+          sh += '<div class="sobre-msg">' + esc(cfg.mensaje) + '</div>';
+        }
+        sh += '</div>';
+
+        // Progress bar
+        if (cfg.mostrarProgreso && cfg.metaMonto > 0) {
+          var pct = Math.min(100, Math.round((cfg.montoJuntado || 0) / cfg.metaMonto * 100));
+          sh += '<div class="sobre-progress">';
+          sh += '<div class="sobre-progress-header"><span class="sobre-progress-goal">' + (cfg.metaNombre ? '✈️ ' + esc(cfg.metaNombre) : '🎯 Meta') + '</span><span class="sobre-progress-pct">' + pct + '%</span></div>';
+          sh += '<div class="sobre-progress-bar"><div class="sobre-progress-fill" id="sobre-progress-fill" style="width:0%"></div></div>';
+          sh += '<div class="sobre-progress-detail"><span>$' + (cfg.montoJuntado || 0).toLocaleString("es-AR") + ' juntados</span><span>Meta: $' + cfg.metaMonto.toLocaleString("es-AR") + '</span></div>';
+          sh += '</div>';
+        }
+
+        // Alias
+        sh += '<div class="alias-box"><div class="alias-label">Alias</div>';
+        sh += '<div class="alias-row"><span class="alias-val">' + esc(cfg.alias) + '</span>';
+        sh += '<button class="btn-alias-copy" id="btn-alias-copy" onclick="window._copyAlias()">Copiar</button>';
+        sh += '</div></div>';
+
+        // QR
+        sh += '<div class="sobre-qr"><div class="sobre-qr-box"><canvas id="sobre-qr-canvas" width="120" height="120" style="border-radius:4px;image-rendering:pixelated"></canvas></div>';
+        sh += '<div class="sobre-qr-label">Escaneá con tu app del banco</div></div>';
+
+        // MercadoPago link
+        if (cfg.mpLink) {
+          sh += '<a class="sobre-mp" href="' + esc(cfg.mpLink) + '" target="_blank" rel="noopener">';
+          sh += '<div class="sobre-mp-ico">MP</div><div><div class="sobre-mp-text">Pagar con MercadoPago</div><div class="sobre-mp-sub">Se abre en la app de MP</div></div>';
+          sh += '</a>';
+        }
+
+        // CBU
+        if (cfg.cbu) {
+          sh += '<div class="sobre-cbu"><div class="alias-label">CBU</div>';
+          sh += '<div class="sobre-cbu-row"><span class="sobre-cbu-val">' + esc(cfg.cbu) + '</span>';
+          sh += '<button class="btn-alias-copy" onclick="window._copyCbu()">Copiar</button>';
+          sh += '</div></div>';
+        }
+
+        // Mural
+        if (cfg.muralActivo !== false) {
+          sh += '<div class="mural-section"><div class="mural-title">💬 Mensajes</div>';
+          sh += '<div id="mural-feed"></div>';
+          sh += '<div class="mural-form"><div class="mural-form-title">✍️ Dejá tu mensaje</div>';
+          sh += '<input class="mural-name" id="mural-nombre" placeholder="Tu nombre">';
+          sh += '<textarea class="mural-input" id="mural-msg" placeholder="Escribí tu mensaje..."></textarea>';
+          sh += '<button class="mural-send" id="mural-send" onclick="window._sendMural()">Enviar mensaje 💌</button>';
+          sh += '</div></div>';
+        }
+
+        sh += '</div></div>';
+        sobreEl.innerHTML = sh;
+
+        // Store alias/cbu for copy
+        window._sobreAlias = cfg.alias;
+        window._sobreCbu = cfg.cbu || "";
+        window._sobrePct = (cfg.mostrarProgreso && cfg.metaMonto > 0) ? Math.min(100, Math.round((cfg.montoJuntado || 0) / cfg.metaMonto * 100)) : 0;
+
+        // Open sobre animation
+        window._openSobre = function() {
+          var flap = $("sobre-flap");
+          var closed = $("sobre-closed");
+          var content = $("sobre-content");
+          if (!flap || !closed || !content) return;
+          flap.style.transform = "rotateX(180deg)";
+          setTimeout(function() {
+            closed.style.transition = "all .4s ease";
+            closed.style.opacity = "0";
+            closed.style.height = "0";
+            closed.style.overflow = "hidden";
+          }, 500);
+          setTimeout(function() {
+            content.style.display = "block";
+            content.className = "sobre-open";
+            var pf = $("sobre-progress-fill");
+            if (pf) setTimeout(function() { pf.style.width = window._sobrePct + "%"; }, 200);
+          }, 800);
+        };
+
+        // Copy alias
+        window._copyAlias = function() {
+          var btn = $("btn-alias-copy");
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(window._sobreAlias).then(function() {
+              btn.textContent = "✓ Copiado";
+              btn.classList.add("copied");
+              setTimeout(function() { btn.textContent = "Copiar"; btn.classList.remove("copied"); }, 2000);
+            });
+          }
+        };
+
+        // Copy CBU
+        window._copyCbu = function() {
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(window._sobreCbu);
+            showToast("CBU copiado");
+          }
+        };
+
+        // Draw QR
+        (function drawSobreQR() {
+          var c = $("sobre-qr-canvas");
+          if (!c) return;
+          var ctx = c.getContext("2d");
+          var s = 120;
+          ctx.fillStyle = "#FFF";
+          ctx.fillRect(0, 0, s, s);
+          ctx.fillStyle = "#1C1C1E";
+          function drawFinder(x, y) {
+            ctx.fillRect(x, y, 28, 28);
+            ctx.fillStyle = "#FFF";
+            ctx.fillRect(x+4, y+4, 20, 20);
+            ctx.fillStyle = "#1C1C1E";
+            ctx.fillRect(x+8, y+8, 12, 12);
+          }
+          drawFinder(4, 4);
+          drawFinder(88, 4);
+          drawFinder(4, 88);
+          var alias = window._sobreAlias || "";
+          for (var y = 36; y < 84; y += 4) {
+            for (var x = 36; x < 84; x += 4) {
+              var ch = alias.charCodeAt((x + y * 7) % alias.length) || 42;
+              if ((ch * 31 + x * 17 + y * 13) % 3 !== 0) {
+                ctx.fillRect(x, y, 4, 4);
+              }
+            }
+          }
+          for (var i = 36; i < 88; i += 8) {
+            ctx.fillRect(i, 24, 4, 4);
+            ctx.fillRect(24, i, 4, 4);
+          }
+        })();
+
+        // Load mural messages
+        if (cfg.muralActivo !== false) {
+          supaRpc("public_obtener_mensajes", { p_share_token: token }).then(function(msgs) {
+            var feed = $("mural-feed");
+            if (!feed || !msgs || !msgs.length) return;
+            msgs.forEach(function(m) {
+              var ago = "";
+              if (m.creadoEn) {
+                var diff = Math.floor((Date.now() - new Date(m.creadoEn).getTime()) / 60000);
+                if (diff < 60) ago = "Hace " + diff + " min";
+                else if (diff < 1440) ago = "Hace " + Math.floor(diff / 60) + " hs";
+                else ago = "Hace " + Math.floor(diff / 1440) + " días";
+              }
+              feed.innerHTML += '<div class="mural-card"><div class="mural-author">' + esc(m.nombre) + '</div><div class="mural-body">' + esc(m.mensaje) + '</div><div class="mural-time">' + ago + '</div></div>';
+            });
+          }).catch(function(){});
+        }
+
+        // Send mural message
+        window._sendMural = function() {
+          var nombre = ($("mural-nombre") || {}).value || "";
+          var msg = ($("mural-msg") || {}).value || "";
+          if (!nombre.trim() || !msg.trim()) { showToast("Escribí tu nombre y mensaje"); return; }
+          var btn = $("mural-send");
+          btn.disabled = true;
+          btn.textContent = "Enviando...";
+          supaRpc("public_agregar_mensaje", { p_share_token: token, p_nombre: nombre.trim(), p_mensaje: msg.trim() }).then(function(res) {
+            if (res && res.ok) {
+              btn.textContent = "✓ Enviado!";
+              btn.style.background = "var(--green)";
+              var feed = $("mural-feed");
+              if (feed) {
+                var card = document.createElement("div");
+                card.className = "mural-card";
+                card.innerHTML = '<div class="mural-author">' + esc(nombre.trim()) + '</div><div class="mural-body">' + esc(msg.trim()) + '</div><div class="mural-time">Ahora</div>';
+                feed.insertBefore(card, feed.firstChild);
+              }
+              $("mural-nombre").value = "";
+              $("mural-msg").value = "";
+              setTimeout(function() { btn.textContent = "Enviar mensaje 💌"; btn.style.background = ""; btn.disabled = false; }, 2000);
+            } else {
+              btn.textContent = "Error, intentá de nuevo";
+              btn.disabled = false;
+              setTimeout(function() { btn.textContent = "Enviar mensaje 💌"; }, 2000);
+            }
+          }).catch(function() {
+            btn.textContent = "Error, intentá de nuevo";
+            btn.disabled = false;
+            setTimeout(function() { btn.textContent = "Enviar mensaje 💌"; }, 2000);
+          });
+        };
+      }).catch(function(){});
+    })();
 
     // ── POST-RENDER: EVENT HANDLERS ──
 

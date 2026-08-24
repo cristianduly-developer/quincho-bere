@@ -373,6 +373,7 @@
   var heroUrl = "";
   var nombreEvento = "";
   var heroUploading = false;
+  var sobreDigital = {activo:false,mensaje:"",alias:"",cbu:"",mpLink:"",metaNombre:"",metaMonto:0,montoJuntado:0,mostrarProgreso:false,muralActivo:true};
   var requestedExtras = JSON.parse(localStorage.getItem("portal_extras_" + token) || "{}");
   var weatherData = null;
 
@@ -675,6 +676,10 @@
     theme = data.reserva.share_theme || "verde";
     heroUrl = data.reserva.share_hero_url || "";
     nombreEvento = data.reserva.nombre_evento || "";
+    if (data.reserva.sobre_digital) {
+      var sd = data.reserva.sobre_digital;
+      sobreDigital = {activo:!!sd.activo,mensaje:sd.mensaje||"",alias:sd.alias||"",cbu:sd.cbu||"",mpLink:sd.mpLink||"",metaNombre:sd.metaNombre||"",metaMonto:sd.metaMonto||0,montoJuntado:sd.montoJuntado||0,mostrarProgreso:!!sd.mostrarProgreso,muralActivo:sd.muralActivo!==false};
+    }
     document.title = (nombreEvento || "Mi Evento") + " — " + (data.negocio.nombre_negocio || "");
     // Fetch clima si faltan <=2 dias
     var evD = new Date(data.reserva.fecha + "T12:00:00");
@@ -1012,6 +1017,41 @@
     }
     html += '</div>';
 
+    // ── SOBRE DIGITAL ──
+    if (sobreDigital.activo) {
+      html += '<div class="card" style="border:1.5px solid #F0D4C4;background:#FFF9F5">';
+      html += '<div class="card-title">💝 Sobre Digital</div>';
+      html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:12px;line-height:1.5">Configura un sobre digital para que tus invitados puedan colaborar con vos. Aparece en la pagina del evento.</div>';
+
+      html += '<div style="margin-bottom:10px"><div class="section-label">Mensaje para tus invitados</div>';
+      html += '<textarea class="input textarea" id="inp-sobre-msg" maxlength="300" placeholder="Ej: Gracias por venir! Con tu presencia nos basta, pero si queres colaborar...">' + esc(sobreDigital.mensaje) + '</textarea></div>';
+
+      html += '<div style="margin-bottom:10px"><div class="section-label">Alias bancario *</div>';
+      html += '<input class="input" type="text" id="inp-sobre-alias" value="' + esc(sobreDigital.alias) + '" placeholder="Ej: sofi.cumple.2025" maxlength="50" /></div>';
+
+      html += '<div style="margin-bottom:10px"><div class="section-label">Link de MercadoPago <span style="color:var(--text-muted);font-weight:400">(opcional)</span></div>';
+      html += '<input class="input" type="url" id="inp-sobre-mp" value="' + esc(sobreDigital.mpLink) + '" placeholder="https://mpago.la/..." /></div>';
+
+      html += '<div style="margin-bottom:10px"><div class="section-label">CBU <span style="color:var(--text-muted);font-weight:400">(opcional)</span></div>';
+      html += '<input class="input" type="text" id="inp-sobre-cbu" value="' + esc(sobreDigital.cbu) + '" placeholder="0000003100..." maxlength="22" /></div>';
+
+      // Progress toggle
+      html += '<label class="toggle-row"><input type="checkbox" id="chk-sobre-progreso" ' + (sobreDigital.mostrarProgreso ? "checked" : "") + ' /><span class="toggle-ico">📊</span><span class="toggle-label">Mostrar barra de progreso</span></label>';
+
+      html += '<div id="sobre-progress-fields" style="' + (sobreDigital.mostrarProgreso ? "" : "display:none;") + 'margin-top:8px">';
+      html += '<div style="display:flex;gap:8px">';
+      html += '<div style="flex:1"><div class="section-label">Nombre de la meta</div><input class="input" type="text" id="inp-sobre-meta" value="' + esc(sobreDigital.metaNombre) + '" placeholder="Ej: Luna de miel" maxlength="50" /></div>';
+      html += '<div style="width:110px"><div class="section-label">Meta $</div><input class="input" type="number" id="inp-sobre-meta-monto" value="' + (sobreDigital.metaMonto || "") + '" placeholder="300000" /></div>';
+      html += '<div style="width:110px"><div class="section-label">Juntado $</div><input class="input" type="number" id="inp-sobre-juntado" value="' + (sobreDigital.montoJuntado || "") + '" placeholder="0" /></div>';
+      html += '</div></div>';
+
+      // Mural toggle
+      html += '<label class="toggle-row" style="margin-top:8px"><input type="checkbox" id="chk-sobre-mural" ' + (sobreDigital.muralActivo ? "checked" : "") + ' /><span class="toggle-ico">💬</span><span class="toggle-label">Mural de mensajes</span></label>';
+      html += '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;margin-left:28px">Los invitados pueden dejarte un mensaje</div>';
+
+      html += '</div>';
+    }
+
     // Save button
     html += '<div class="btn-row">';
     html += '<button class="btn" id="btn-save" ' + (saving ? "disabled" : "") + '>' + (saving ? "Guardando..." : "💾 Guardar cambios") + '</button>';
@@ -1212,21 +1252,58 @@
       });
     }
 
+    // Sobre digital: progress toggle
+    var chkProgreso = $("chk-sobre-progreso");
+    if (chkProgreso) {
+      chkProgreso.addEventListener("change", function() {
+        sobreDigital.mostrarProgreso = chkProgreso.checked;
+        var pf = $("sobre-progress-fields");
+        if (pf) pf.style.display = chkProgreso.checked ? "" : "none";
+      });
+    }
+    var chkMural = $("chk-sobre-mural");
+    if (chkMural) {
+      chkMural.addEventListener("change", function() {
+        sobreDigital.muralActivo = chkMural.checked;
+      });
+    }
+
     // Save
     var btnSave = $("btn-save");
     if (btnSave) {
       btnSave.addEventListener("click", function() {
         if (saving) return;
+
+        // Read sobre fields before saving
+        if (sobreDigital.activo) {
+          var sm = $("inp-sobre-msg");
+          var sa = $("inp-sobre-alias");
+          var smp = $("inp-sobre-mp");
+          var scbu = $("inp-sobre-cbu");
+          var smeta = $("inp-sobre-meta");
+          var smetam = $("inp-sobre-meta-monto");
+          var sjunt = $("inp-sobre-juntado");
+          if (sm) sobreDigital.mensaje = sm.value;
+          if (sa) sobreDigital.alias = sa.value.trim();
+          if (smp) sobreDigital.mpLink = smp.value.trim();
+          if (scbu) sobreDigital.cbu = scbu.value.trim();
+          if (smeta) sobreDigital.metaNombre = smeta.value.trim();
+          if (smetam) sobreDigital.metaMonto = Number(smetam.value) || 0;
+          if (sjunt) sobreDigital.montoJuntado = Number(sjunt.value) || 0;
+        }
+
         saving = true;
         renderApp();
-        api("portal-save", {
+        var payload = {
           token: token,
           share_sections: sections,
           share_message: message,
           share_theme: theme,
           share_hero_url: heroUrl,
           nombre_evento: nombreEvento
-        }).then(function(r) {
+        };
+        if (sobreDigital.activo) payload.sobre_digital = sobreDigital;
+        api("portal-save", payload).then(function(r) {
           saving = false;
           if (r.ok) {
             showToast("Cambios guardados");
@@ -1235,6 +1312,7 @@
             DATA.reserva.share_theme = theme;
             DATA.reserva.share_hero_url = heroUrl;
             DATA.reserva.nombre_evento = nombreEvento;
+            if (sobreDigital.activo) DATA.reserva.sobre_digital = JSON.parse(JSON.stringify(sobreDigital));
           } else {
             showToast("Error al guardar");
           }

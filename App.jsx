@@ -957,6 +957,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   const [shareHeroUrl, setShareHeroUrl] = useState(reserva.shareHeroUrl || "");
   const [heroUploading, setHeroUploading] = useState(false);
   const [showRegaloPicker, setShowRegaloPicker] = useState(false);
+  const sobreActivo = !!(reserva.sobreDigital && reserva.sobreDigital.activo);
   const REGALO_OPTIONS = [
     {value:"15% OFF en un servicio extra",emoji:"🎉"},
     {value:"20% OFF en un servicio extra",emoji:"🔥"},
@@ -1327,6 +1328,21 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                       </button>
                     </div>
                   )}
+                </div>
+
+                {/* ── SOBRE DIGITAL ── */}
+                <div style={{marginTop:16,padding:14,background:"#FFF5F0",borderRadius:12,border:"1px solid #F0D4C4"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>💝 Sobre Digital</div>
+                      <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>Los invitados pueden colaborar y dejar mensajes</div>
+                    </div>
+                    <button onClick={async()=>{const next={...(reserva.sobreDigital||{activo:false,mensaje:"",alias:"",cbu:"",mpLink:"",metaNombre:"",metaMonto:0,montoJuntado:0,mostrarProgreso:false,muralActivo:true}),activo:!sobreActivo};await onSaveShareConfig({sobreDigital:next});}}
+                      style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:sobreActivo?"#16A34A":"#EDE0D0",color:sobreActivo?"#FFF":"#8B7355"}}>
+                      {sobreActivo?"✅ Activo":"Inactivo"}
+                    </button>
+                  </div>
+                  {sobreActivo && <div style={{fontSize:11,color:"#8B7355",marginTop:8,lineHeight:1.5}}>El cliente configura su alias, mensaje y opciones desde su portal (Mi Evento). Vos solo habilitás la función.</div>}
                 </div>
               </>
             )}
@@ -2517,7 +2533,7 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
   );
 });
 
-function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop, onOpenBriefing }) {
+function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, removeTarea, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop, onOpenBriefing }) {
   const today=toDateStr(new Date()), now=new Date();
   const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const curTimeDash=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -2575,7 +2591,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const toggleTarea=(id)=>{
     saveTareas(tareas.map(t=>t.id===id?{...t,estado:t.estado==="pendiente"?"completada":"pendiente"}:t));
   };
-  const deleteTarea=(id)=>{saveTareas(tareas.filter(t=>t.id!==id));supabase.from("tareas").delete().eq("id",id);};
+  const deleteTarea=(id)=>removeTarea(id);
 
   return (
     <div style={{padding: isDesktop ? "20px 28px 40px" : "16px 16px 100px"}}>
@@ -5310,7 +5326,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null,regaloDescuento:x.regalo_descuento||null,regaloEnviadoEn:x.regalo_enviado_en||null})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null,regaloDescuento:x.regalo_descuento||null,regaloEnviadoEn:x.regalo_enviado_en||null,sobreDigital:x.sobre_digital||null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",estadoCrm:x.estado_crm||null,origen:x.origen||null,creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
     if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||"",wifiPassword:cfgData.wifi_password||"",portalActivo:cfgData.portal_activo!==false,fotosLugar:cfgData.fotos_lugar||[]});
@@ -5390,6 +5406,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const saveG =async d=>{const prev=gastos;setGastos(d);const r=await sb.upsert("gastos",d.map(mapGasto));if(!r){setGastos(prev);showToast(getUltimoError()||"Error al guardar gasto. Intentá de nuevo.","error");}};
   const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);showToast(getUltimoError()||"Error al guardar extra. Intentá de nuevo.","error");}};
   const saveTareas=async d=>{const prev=tareas;setTareas(d);const r=await sb.upsert("tareas",d.map(mapTarea));if(!r){setTareas(prev);showToast(getUltimoError()||"Error al guardar tarea. Intentá de nuevo.","error");}};
+  const removeTarea=async(id)=>{setTareas(prev=>prev.filter(t=>t.id!==id));const r=await sb.remove("tareas",id);if(!r){showToast("Error al eliminar tarea","error");}};
   const saveBloqueos=async d=>{const prev=bloqueos;setBloqueos(d);const r=await sb.upsert("bloqueos",d.map(mapBloqueo));if(!r){setBloqueos(prev);showToast(getUltimoError()||"Error al guardar bloqueo. Intentá de nuevo.","error");}};
   const saveRecordatorios=async d=>{const prev=recordatorios;setRecordatorios(d);const r=await sb.upsert("recordatorios",d.map(mapRecordatorio));if(!r){setRecordatorios(prev);showToast(getUltimoError()||"Error al guardar recordatorio. Intentá de nuevo.","error");}};
 
@@ -5770,7 +5787,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       )}
 
       {/* Views */}
-      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} onOpenBriefing={()=>setShowBriefing(true)} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>{
+      {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} removeTarea={removeTarea} onOpenBriefing={()=>setShowBriefing(true)} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>{
   const filtro=ef||"all";
   if(filtro==="all"&&recursos.length>1){
     setEspacioPicker({date:ds,reservas:dr});
