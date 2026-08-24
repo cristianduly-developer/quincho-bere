@@ -18,8 +18,8 @@ export const TURNOS = {
 };
 
 export const PAYMENT_METHODS = ["Efectivo", "Transferencia", "Tarjeta"];
-export const EXPENSE_CATS = ["Mantenimiento", "Limpieza", "Servicios", "Insumos", "Otros"];
-export const CAT_COLORS = { Mantenimiento:"#6366F1", Limpieza:"#06B6D4", Servicios:"#F59E0B", Insumos:"#8B5CF6" };
+export const EXPENSE_CATS = ["Mantenimiento", "Limpieza", "Servicios", "Insumos", "Publicidad", "Otros"];
+export const CAT_COLORS = { Mantenimiento:"#6366F1", Limpieza:"#06B6D4", Servicios:"#F59E0B", Insumos:"#8B5CF6", Publicidad:"#EC4899" };
 
 export const DEFAULT_CONFIG = {
   precios: {
