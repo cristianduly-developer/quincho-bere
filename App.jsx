@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, memo, Component, Fra
 import { MONTHS, MONTHS_SHORT, DAYS_SHORT, STATUS, TURNOS, PAYMENT_METHODS, EXPENSE_CATS, CAT_COLORS, DEFAULT_CONFIG, PLAN_LIMITS, getPlanLimits } from "./src/lib/constants.js";
 import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, getTotalExtras, getTotalPagado, getSaldo } from "./src/lib/utils.js";
 import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor, mensajeErrorGuardado, getUltimoError } from "./src/lib/supabase.js";
-import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario } from "./src/lib/mappers.js";
+import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario, mapConsulta } from "./src/lib/mappers.js";
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
 import { Field, Input, Select, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
 import DailyBriefing, { shouldShowBriefing, markBriefingShown } from "./src/components/DailyBriefing.jsx";
@@ -35,7 +35,7 @@ function useIsDesktop() {
 }
 
 // ─── DESKTOP LEFT NAV ────────────────────────────────────
-function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGasto, onLogout }) {
+function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGasto, onNewConsulta, onLogout }) {
   const isAdmin = currentUser?.rol === "Administrador";
   const limits = getPlanLimits(currentUser?.plan);
   const NAV_ITEMS = [
@@ -62,6 +62,7 @@ function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGa
       <div style={{padding:"12px 14px",borderBottom:"1px solid #EDE0D0",display:"flex",gap:8}}>
         <button onClick={onNewCobro} style={{flex:1,padding:"7px 0",background:"#F0FDF4",border:"0.5px solid #BBF7D0",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#16A34A",fontFamily:"inherit"}}>+ Cobro</button>
         <button onClick={onNewGasto} style={{flex:1,padding:"7px 0",background:"#FEF2F2",border:"0.5px solid #FECACA",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#DC2626",fontFamily:"inherit"}}>+ Gasto</button>
+        <button onClick={onNewConsulta} style={{flex:1,padding:"7px 0",background:"#E0F2FE",border:"0.5px solid #BAE6FD",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#0284C7",fontFamily:"inherit"}}>+ Consultas</button>
       </div>
 
       {/* Nav items */}
@@ -845,6 +846,36 @@ function GastoModal({ onClose, onSave, gasto }) {
           onSave({...f,monto:Number(f.monto)});
         }}>{isEdit?"Guardar cambios":"Registrar gasto"}</Btn>
       </div>
+    </BottomModal>
+  );
+}
+
+const CANALES = ["Instagram","WhatsApp","Marketplace","Facebook","Otro"];
+function ConsultasModal({ onClose, onSave }) {
+  const [fecha,setFecha]=useState(toDateStr(new Date()));
+  const [counts,setCounts]=useState({});
+  const total = CANALES.reduce((s,c)=>s+(Number(counts[c])||0),0);
+  return (
+    <BottomModal title="Registrar Consultas" onClose={onClose}>
+      <Input label="Fecha" type="date" value={fecha} onChange={setFecha} />
+      <div style={{marginTop:8}}>
+        {CANALES.map(c=>(
+          <div key={c} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+            <span style={{flex:1,fontSize:14,fontWeight:600,color:"#1C1C1E"}}>{c}</span>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <button onClick={()=>setCounts(p=>({...p,[c]:Math.max(0,(Number(p[c])||0)-1)}))} style={{width:34,height:34,borderRadius:17,border:"1.5px solid #EDE0D0",background:"#FDF8F3",fontSize:18,cursor:"pointer",color:"#8B7355",fontFamily:"inherit"}}>−</button>
+              <input type="number" min="0" value={counts[c]||""} onChange={e=>setCounts(p=>({...p,[c]:e.target.value===""?"":Number(e.target.value)}))} placeholder="0" style={{width:50,textAlign:"center",fontSize:16,fontWeight:700,border:"1.5px solid #EDE0D0",borderRadius:8,padding:"6px 4px",fontFamily:"inherit",color:"#1C1C1E"}} />
+              <button onClick={()=>setCounts(p=>({...p,[c]:(Number(p[c])||0)+1}))} style={{width:34,height:34,borderRadius:17,border:"1.5px solid #C4602B",background:"#C4602B",fontSize:18,cursor:"pointer",color:"#FFF",fontFamily:"inherit"}}>+</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{textAlign:"center",fontSize:13,color:"#8B7355",marginTop:4,marginBottom:8}}>Total: <b style={{color:"#C4602B",fontSize:16}}>{total}</b> consultas</div>
+      <Btn onClick={()=>{
+        if(total===0) return;
+        const entries = CANALES.filter(c=>Number(counts[c])>0).map(c=>({id:genId(),fecha,canal:c,cantidad:Number(counts[c]),creadoEn:new Date().toISOString()}));
+        onSave(entries);
+      }}>Guardar consultas</Btn>
     </BottomModal>
   );
 }
@@ -4187,12 +4218,16 @@ function RecursosView({ recursos, setRecursos, serviciosExtras }) {
 
 // ─── FAB ─────────────────────────────────────────────────
 
-function FAB({ onNewPago, onNewGasto }) {
+function FAB({ onNewPago, onNewGasto, onNewConsulta }) {
   const [open,setOpen]=useState(false);
   return (
     <div style={{position:"fixed",bottom:82,right:20,zIndex:1500}}>
       {open && (
         <>
+          <div onClick={()=>{setOpen(false);onNewConsulta();}} style={{position:"absolute",bottom:188,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
+            <span style={{background:"#FFF",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:600,color:"#0284C7",boxShadow:"0 2px 10px rgba(0,0,0,0.12)",whiteSpace:"nowrap"}}>Registrar Consultas</span>
+            <div style={{width:48,height:48,borderRadius:24,background:"#0284C7",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(2,132,199,0.4)",fontSize:20,flexShrink:0}}>📩</div>
+          </div>
           <div onClick={()=>{setOpen(false);onNewGasto();}} style={{position:"absolute",bottom:130,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
             <span style={{background:"#FFF",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:600,color:"#DC2626",boxShadow:"0 2px 10px rgba(0,0,0,0.12)",whiteSpace:"nowrap"}}>Registrar Gasto</span>
             <div style={{width:48,height:48,borderRadius:24,background:"#DC2626",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(220,38,38,0.4)",fontSize:20,flexShrink:0}}>💸</div>
@@ -5058,6 +5093,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const [bloqueos,setBloqueos]=useState([]);
   const [recordatorios,setRecordatorios]=useState([]);
   const [comunicaciones,setComunicaciones]=useState([]);
+  const [consultas,setConsultas]=useState([]);
   const [bloqueoModal,setBloqueoModal]=useState(null);
   const [showBriefing,setShowBriefing]=useState(false);
   const [loaded,setLoaded]=useState(false);
@@ -5346,9 +5382,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       supabase.from("recordatorios").select("*").eq("org_id",orgId).neq("estado","Procesado").order("fecha_alerta",{ascending:true}).limit(200),
       supabase.from("temporadas_precio").select("*").eq("org_id",orgId).order("mes_desde",{ascending:true}).limit(100),
       supabase.from("comunicaciones").select("*").eq("org_id",orgId).order("creado_en",{ascending:false}).limit(500),
+      supabase.from("consultas").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:false}).limit(1000),
     ]).then(async _t2=>{
       const _t2d=(i)=>_t2[i].status==="fulfilled"?_t2[i].value?.data:null;
-      const [p,g,er,se,t,bl,rec,tmp,com]=[0,1,2,3,4,5,6,7,8].map(_t2d);
+      const [p,g,er,se,t,bl,rec,tmp,com,cns]=[0,1,2,3,4,5,6,7,8,9].map(_t2d);
       if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",comprobante:x.comprobante||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
@@ -5357,6 +5394,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
       if(com?.length) setComunicaciones(com.map(x=>({id:x.id,tipo:x.tipo||"",asunto:x.asunto||"",clienteId:x.cliente_id||"",reservaId:x.reserva_id||"",destino:x.destino||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
+      if(cns?.length) setConsultas(cns.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",canal:x.canal||"Otro",cantidad:x.cantidad||1,creadoEn:x.creado_en})));
       if(tmp?.length){
         setTemporadasPrecio(tmp.map(x=>({id:x.id,orgId:x.org_id,recursoId:x.recurso_id,nombre:x.nombre||"Temporada",mesDesde:x.mes_desde,diaDesde:x.dia_desde,mesHasta:x.mes_hasta,diaHasta:x.dia_hasta})));
         const {data:ptData}=await supabase.from("precios_temporada").select("*").in("temporada_id",tmp.map(t=>t.id));
@@ -5408,6 +5446,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const saveG =async d=>{const prev=gastos;setGastos(d);const r=await sb.upsert("gastos",d.map(mapGasto));if(!r){setGastos(prev);showToast(getUltimoError()||"Error al guardar gasto. Intentá de nuevo.","error");}};
   const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);showToast(getUltimoError()||"Error al guardar extra. Intentá de nuevo.","error");}};
   const saveTareas=async d=>{const prev=tareas;setTareas(d);const r=await sb.upsert("tareas",d.map(mapTarea));if(!r){setTareas(prev);showToast(getUltimoError()||"Error al guardar tarea. Intentá de nuevo.","error");}};
+  const saveCons=async d=>{const prev=consultas;setConsultas(d);const r=await sb.upsert("consultas",d.map(mapConsulta));if(!r){setConsultas(prev);showToast(getUltimoError()||"Error al guardar consultas. Intentá de nuevo.","error");}};
   const removeTarea=async(id)=>{setTareas(prev=>prev.filter(t=>t.id!==id));const r=await sb.remove("tareas",id);if(!r){showToast("Error al eliminar tarea","error");}};
   const saveBloqueos=async d=>{const prev=bloqueos;setBloqueos(d);const r=await sb.upsert("bloqueos",d.map(mapBloqueo));if(!r){setBloqueos(prev);showToast(getUltimoError()||"Error al guardar bloqueo. Intentá de nuevo.","error");}};
   const saveRecordatorios=async d=>{const prev=recordatorios;setRecordatorios(d);const r=await sb.upsert("recordatorios",d.map(mapRecordatorio));if(!r){setRecordatorios(prev);showToast(getUltimoError()||"Error al guardar recordatorio. Intentá de nuevo.","error");}};
@@ -5598,6 +5637,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     setGastos(gastos.filter(g=>g.id!==gasto.id));
     showToast("Gasto eliminado","info");
   };
+  const handleSaveConsultas=async(entries)=>{
+    await saveCons([...consultas,...entries]);
+    setModal(null);
+    showToast(entries.reduce((s,e)=>s+e.cantidad,0)+" consultas registradas","ok");
+  };
   const handleSaveExtra=async(data)=>{
     if(savingExtra) return;
     const res=reservas.find(r=>r.id===data.reservaId);
@@ -5692,7 +5736,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
   return (
     <div style={{fontFamily:"'DM Sans', sans-serif",background:"#FDF8F3",minHeight:"100vh", ...(isDesktop ? {display:"flex",flexDirection:"row"} : {maxWidth:480,margin:"0 auto",position:"relative"})}}>
-    {isDesktop && <DesktopNav negocio={negocio} onNavigate={setTab} tab={tab} currentUser={currentUser} onNewCobro={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onLogout={handleLogout} />}
+    {isDesktop && <DesktopNav negocio={negocio} onNavigate={setTab} tab={tab} currentUser={currentUser} onNewCobro={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onNewConsulta={()=>setModal("consultas")} onLogout={handleLogout} />}
     <div style={isDesktop ? {flex:1,minWidth:0,position:"relative",maxWidth:"calc(100% - 220px)"} : {}}>
       <style>{`
         /* fonts loaded via index.html preconnect + stylesheet link */
@@ -5805,7 +5849,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {tab==="miplan" && <MiPlanView currentUser={currentUser} onBack={()=>setTab("config")} />}
       {tab==="recordatorios" && <Suspense fallback={<ViewLoader/>}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
-      {tab==="reportes" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} recursos={recursos} bloqueos={bloqueos} tareas={tareas} /></Suspense></ErrorBoundary>}
+      {tab==="reportes" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} recursos={recursos} bloqueos={bloqueos} tareas={tareas} consultas={consultas} /></Suspense></ErrorBoundary>}
 
       {/* Bottom Tab Bar — oculto en desktop, la nav está en el sidebar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:isDesktop?"none":"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
@@ -5819,7 +5863,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       </div>
 
       {/* FAB — solo en mobile */}
-      {!isDesktop && <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} />}
+      {!isDesktop && <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onNewConsulta={()=>setModal("consultas")} />}
 
       {/* Side Menu */}
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} negocio={negocio} />
@@ -5830,6 +5874,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} recursos={recursos} turnosRecurso={turnosRecurso} />}
       {modal==="gasto" && <GastoModal onClose={()=>{setModal(null);setEditGasto(null);}} onSave={handleSaveGasto} gasto={editGasto} />}
       {modal==="extra" && <ExtrasModal onClose={()=>{setModal(null);setExtraReservaId(null);}} onSave={handleSaveExtra} servicios={serviciosExtras} reservaId={extraReservaId} />}
+      {modal==="consultas" && <ConsultasModal onClose={()=>setModal(null)} onSave={handleSaveConsultas} />}
 
       {/* Detail Panels */}
       {detailReserva && <ReservaDetail

@@ -4,7 +4,7 @@ import { fmtCurrency, fmtDate, escHtml, toDateStr, getSaldo, getTotalExtras } fr
 import { card } from "../lib/styles.js";
 import { supabase } from "../lib/supabase.js";
 
-export default function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio, turnosRecurso, recursos, bloqueos, tareas }) {
+export default function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio, turnosRecurso, recursos, bloqueos, tareas, consultas }) {
   const getTurnoNombre = (r) => {
     if(r.turnoId) {
       const t=(turnosRecurso||[]).find(x=>x.id===r.turnoId);
@@ -689,6 +689,67 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#8B7355"}}><div style={{width:10,height:10,background:"#DC2626",borderRadius:2}} />Gastos</div>
         </div>
       </div>
+
+      {(()=>{
+        const consRango = (consultas||[]).filter(c => enRango(c.fecha));
+        const totalCons = consRango.reduce((s,c) => s + c.cantidad, 0);
+        if (totalCons === 0) return null;
+        const reservasRango = reservas.filter(r => enRango(r.fecha) && r.estado !== "cancelada").length;
+        const conversion = totalCons > 0 ? Math.round((reservasRango / totalCons) * 100) : 0;
+        const porCanal = {};
+        consRango.forEach(c => { porCanal[c.canal] = (porCanal[c.canal] || 0) + c.cantidad; });
+        const canales = Object.entries(porCanal).sort((a,b) => b[1] - a[1]);
+        const gastoPub = gastos.filter(g => enRangoPago(g.fecha) && g.categoria === "Publicidad").reduce((s,g) => s + g.monto, 0);
+        const costoPorConsulta = totalCons > 0 && gastoPub > 0 ? Math.round(gastoPub / totalCons) : 0;
+        const costoPorReserva = reservasRango > 0 && gastoPub > 0 ? Math.round(gastoPub / reservasRango) : 0;
+
+        return (
+          <div style={{...card,padding:"14px 16px",marginTop:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📩 Embudo de consultas</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+              <div style={{textAlign:"center",background:"#E0F2FE",borderRadius:10,padding:"10px 6px",border:"1px solid #BAE6FD"}}>
+                <div style={{fontSize:22,fontWeight:800,color:"#0284C7"}}>{totalCons}</div>
+                <div style={{fontSize:10,fontWeight:600,color:"#0284C7"}}>Consultas</div>
+              </div>
+              <div style={{textAlign:"center",background:"#F0FDF4",borderRadius:10,padding:"10px 6px",border:"1px solid #BBF7D0"}}>
+                <div style={{fontSize:22,fontWeight:800,color:"#16A34A"}}>{reservasRango}</div>
+                <div style={{fontSize:10,fontWeight:600,color:"#16A34A"}}>Reservas</div>
+              </div>
+              <div style={{textAlign:"center",background:"#FDF8F3",borderRadius:10,padding:"10px 6px",border:"1px solid #EDE0D0"}}>
+                <div style={{fontSize:22,fontWeight:800,color:"#C4602B"}}>{conversion}%</div>
+                <div style={{fontSize:10,fontWeight:600,color:"#C4602B"}}>Conversión</div>
+              </div>
+            </div>
+            {gastoPub > 0 && (
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
+                <div style={{textAlign:"center",background:"#FCE7F3",borderRadius:10,padding:"8px 6px",border:"1px solid #FBCFE8"}}>
+                  <div style={{fontSize:16,fontWeight:800,color:"#EC4899"}}>{fmtCurrency(costoPorConsulta)}</div>
+                  <div style={{fontSize:10,fontWeight:600,color:"#EC4899"}}>Costo/consulta</div>
+                </div>
+                <div style={{textAlign:"center",background:"#FCE7F3",borderRadius:10,padding:"8px 6px",border:"1px solid #FBCFE8"}}>
+                  <div style={{fontSize:16,fontWeight:800,color:"#EC4899"}}>{fmtCurrency(costoPorReserva)}</div>
+                  <div style={{fontSize:10,fontWeight:600,color:"#EC4899"}}>Costo/reserva</div>
+                </div>
+              </div>
+            )}
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:8}}>POR CANAL</div>
+            {canales.map(([canal, cnt]) => {
+              const pct = Math.round((cnt / totalCons) * 100);
+              return (
+                <div key={canal} style={{marginBottom:6}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                    <span style={{fontSize:12,color:"#1C1C1E"}}>{canal}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:"#0284C7"}}>{cnt} ({pct}%)</span>
+                  </div>
+                  <div style={{height:6,background:"#EDE0D0",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:pct+"%",background:"#0284C7",borderRadius:3}} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
       </>}
 
       {subtab==="portal" && (

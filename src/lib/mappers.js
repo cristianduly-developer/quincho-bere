@@ -20,6 +20,10 @@ export function mapExtra(e){
   const org = e.orgId || getCurrentOrgId();
   return {id:e.id,org_id:org,reserva_id:e.reservaId,servicio_id:e.servicioId||null,descripcion:e.descripcion||"",cantidad:e.cantidad||1,precio_historico:e.precioHistorico||0,creado_en:e.creadoEn||new Date().toISOString()};
 }
+export function mapConsulta(c){
+  const org = c.orgId || getCurrentOrgId();
+  return {id:c.id,org_id:org,fecha:c.fecha,canal:c.canal||"Otro",cantidad:c.cantidad||1,creado_en:c.creadoEn||new Date().toISOString()};
+}
 export function mapBloqueo(b){
   const org = b.orgId || getCurrentOrgId();
   return {id:b.id,org_id:org,fecha:b.fecha,turno:b.turno,motivo:b.motivo||"",creado_por:b.creadoPor||"",creado_en:b.creadoEn||new Date().toISOString()};
