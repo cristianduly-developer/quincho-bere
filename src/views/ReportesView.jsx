@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MONTHS, EXPENSE_CATS, TURNOS } from "../lib/constants.js";
 import { fmtCurrency, fmtDate, escHtml, toDateStr, getSaldo, getTotalExtras } from "../lib/utils.js";
 import { card } from "../lib/styles.js";
+import { supabase } from "../lib/supabase.js";
 
-export default function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio, turnosRecurso, recursos, bloqueos }) {
+export default function ReportesView({ pagos, gastos, reservas, extrasReserva, serviciosExtras, clientes, negocio, turnosRecurso, recursos, bloqueos, tareas }) {
   const getTurnoNombre = (r) => {
     if(r.turnoId) {
       const t=(turnosRecurso||[]).find(x=>x.id===r.turnoId);
@@ -110,6 +111,40 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   const [desde, setDesde] = useState(toDateStr(new Date(now.getFullYear(), 0, 1))); // 1 ene año actual
   const [hasta, setHasta] = useState(toDateStr(now));
 
+  const [subtab, setSubtab] = useState("financiero");
+  const [portalData, setPortalData] = useState(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  useEffect(() => {
+    if (subtab !== "portal" || portalData) return;
+    let cancelled = false;
+    const load = async () => {
+      setPortalLoading(true);
+      try {
+        const portalIds = reservas.filter(r => r.shareToken).map(r => r.id);
+        if (!portalIds.length) { setPortalData({ rsvp: [], fotos: [] }); setPortalLoading(false); return; }
+        let allRsvp = [], allFotos = [];
+        for (let i = 0; i < portalIds.length; i += 200) {
+          const chunk = portalIds.slice(i, i + 200);
+          const [rRes, fRes] = await Promise.all([
+            supabase.from("evento_rsvp").select("reserva_id, nombre, cantidad, estado, creado_en").in("reserva_id", chunk),
+            supabase.from("evento_fotos").select("reserva_id, creado_en").in("reserva_id", chunk),
+          ]);
+          if (rRes.data) allRsvp = allRsvp.concat(rRes.data);
+          if (fRes.data) allFotos = allFotos.concat(fRes.data);
+        }
+        if (!cancelled) setPortalData({ rsvp: allRsvp, fotos: allFotos });
+      } catch (err) {
+        console.error("Portal fetch error:", err);
+        if (!cancelled) setPortalData({ rsvp: [], fotos: [] });
+      } finally {
+        if (!cancelled) setPortalLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [subtab]);
+
   // Filtro unificado según modo
   const enRango = (fecha) => {
     if (!fecha) return false;
@@ -189,7 +224,11 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   return (
     <div style={{padding:"16px 16px 100px"}}>
 
-      <button onClick={generarPDF} style={{width:"100%",padding:"13px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>📄 Generar PDF / Imprimir reporte</button>
+      <div style={{display:"flex",gap:0,marginBottom:14,borderBottom:"1px solid #EDE0D0",background:"#FDF8F3",borderRadius:"10px 10px 0 0",overflow:"hidden"}}>
+        {[{v:"financiero",l:"💰 Financiero"},{v:"portal",l:"📱 Portal"}].map(o=>(
+          <button key={o.v} onClick={()=>setSubtab(o.v)} style={{flex:1,padding:"11px 0",fontWeight:600,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:"transparent",color:subtab===o.v?"#C4602B":"#8B7355",borderBottom:"2px solid "+(subtab===o.v?"#C4602B":"transparent"),transition:"all 0.15s"}}>{o.l}</button>
+        ))}
+      </div>
 
       {/* Selector de modo */}
       <div style={{display:"flex",gap:0,marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0"}}>
@@ -222,6 +261,9 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           </div>
         </div>
       )}
+
+      {subtab==="financiero" && <>
+      <button onClick={generarPDF} style={{width:"100%",padding:"13px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>📄 Generar PDF / Imprimir reporte</button>
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
         <div style={{...card,padding:"14px 16px"}}>
@@ -645,6 +687,201 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#8B7355"}}><div style={{width:10,height:10,background:"#DC2626",borderRadius:2}} />Gastos</div>
         </div>
       </div>
+      </>}
+
+      {subtab==="portal" && (
+        portalLoading ? (
+          <div style={{...card,padding:"40px 20px",textAlign:"center"}}>
+            <div style={{fontSize:32,marginBottom:12}}>📱</div>
+            <div style={{fontSize:14,color:"#8B7355",fontWeight:600}}>Cargando datos del portal...</div>
+          </div>
+        ) : (()=>{
+          const portalRes = reservas.filter(r => r.shareToken && enRango(r.fecha) && r.estado !== "cancelada");
+          const totalPortales = portalRes.length;
+          const allNoCancel = reservas.filter(r => enRango(r.fecha) && r.estado !== "cancelada");
+          const pctAdopcion = allNoCancel.length > 0 ? Math.round((totalPortales / allNoCancel.length) * 100) : 0;
+
+          const portalIds = new Set(portalRes.map(r => r.id));
+          const rsvpData = (portalData?.rsvp || []).filter(r => portalIds.has(r.reserva_id));
+          const fotosData = (portalData?.fotos || []).filter(f => portalIds.has(f.reserva_id));
+          const totalRsvps = rsvpData.length;
+          const rsvpConfirmados = rsvpData.filter(r => r.estado === "confirmado").length;
+          const totalFotos = fotosData.length;
+
+          const parseSobre = (r) => { try { return typeof r.sobreDigital === "string" ? JSON.parse(r.sobreDigital) : r.sobreDigital; } catch { return null; } };
+          const sobresActivos = portalRes.filter(r => parseSobre(r)?.activo).length;
+
+          const secciones = [
+            {key:"rsvp",label:"RSVP"},{key:"countdown",label:"Cuenta regresiva"},{key:"mensaje",label:"Mensaje"},
+            {key:"amenities",label:"Amenities"},{key:"wifi",label:"WiFi"},{key:"fotos_lugar",label:"Fotos del lugar"},
+            {key:"fotos_evento",label:"Fotos del evento"},{key:"sobre_digital",label:"Sobre digital"},
+          ];
+          const sectionCounts = {};
+          secciones.forEach(s => {
+            sectionCounts[s.key] = portalRes.filter(r => {
+              const ss = r.shareSections;
+              if (!ss) return s.key !== "sobre_digital";
+              return !!ss[s.key];
+            }).length;
+          });
+
+          const conFoto = portalRes.filter(r => r.shareHeroUrl).length;
+          const conMensaje = portalRes.filter(r => r.shareMessage && r.shareMessage.trim()).length;
+          const conNombre = portalRes.filter(r => r.nombreEvento && r.nombreEvento.trim()).length;
+
+          const solicitudes = (tareas || []).filter(t => t.descripcion && t.descripcion.startsWith("📦 Solicitud:"));
+          const solicPendientes = solicitudes.filter(t => t.estado === "pendiente");
+          const solicPorServicio = {};
+          solicitudes.forEach(t => {
+            const match = t.descripcion.match(/📦 Solicitud: (.+?) —/);
+            if (match) solicPorServicio[match[1]] = (solicPorServicio[match[1]] || 0) + 1;
+          });
+
+          const eventosConPortal = portalRes.map(r => {
+            const c = clientes.find(x => x.id === r.clienteId);
+            const rsvps = rsvpData.filter(rv => rv.reserva_id === r.id);
+            const fotos = fotosData.filter(f => f.reserva_id === r.id);
+            const rsvpConf = rsvps.filter(rv => rv.estado === "confirmado").reduce((s, rv) => s + (rv.cantidad || 1), 0);
+            const sd = parseSobre(r);
+            const score = rsvps.length + fotos.length + (sd?.activo ? 1 : 0) + (r.shareHeroUrl ? 1 : 0) + (r.shareMessage ? 1 : 0);
+            return { id:r.id, nombre:r.nombreEvento||r.tipoEvento||"Evento", fecha:r.fecha, cliente:c?(c.nombre+" "+c.apellido).trim():"—", cantInvitados:r.cantInvitados||0, rsvpTotal:rsvps.length, rsvpConfirmados:rsvpConf, fotosCount:fotos.length, sobreActivo:!!sd?.activo, score };
+          }).sort((a, b) => b.score - a.score);
+
+          const todayStr2 = toDateStr(now);
+          const in7days = toDateStr(new Date(now.getTime() + 7 * 86400000));
+          const alertas = [];
+
+          portalRes.filter(r => r.fecha >= todayStr2 && r.fecha <= in7days).forEach(r => {
+            const rsvps = rsvpData.filter(rv => rv.reserva_id === r.id);
+            const conf = rsvps.filter(rv => rv.estado === "confirmado").reduce((s, rv) => s + (rv.cantidad || 1), 0);
+            if (conf < (r.cantInvitados || 0) * 0.5) {
+              alertas.push({ tipo:"rsvp", msg:(r.nombreEvento||r.tipoEvento||"Evento")+" ("+fmtDate(r.fecha)+") tiene "+conf+"/"+r.cantInvitados+" confirmados", accion:"Sugerí al cliente mandar recordatorio" });
+            }
+          });
+
+          const sinPersonalizar = portalRes.filter(r => !r.shareHeroUrl && !r.shareMessage && !r.nombreEvento && r.fecha >= todayStr2);
+          if (sinPersonalizar.length > 0) alertas.push({ tipo:"personalizar", msg:sinPersonalizar.length+" portal"+(sinPersonalizar.length>1?"es":"")+" sin personalizar", accion:"Sugeriles poner foto, mensaje y nombre del evento" });
+          if (solicPendientes.length > 0) alertas.push({ tipo:"solicitud", msg:solicPendientes.length+" solicitud"+(solicPendientes.length>1?"es":"")+" de extras pendiente"+(solicPendientes.length>1?"s":""), accion:"Revisá las tareas pendientes" });
+          if (totalPortales > 0 && sobresActivos < totalPortales * 0.2) alertas.push({ tipo:"sobre", msg:"Solo "+sobresActivos+" de "+totalPortales+" portales usan sobre digital", accion:"Ofrecelo al momento de la venta" });
+
+          if (totalPortales === 0) return (
+            <div style={{...card,padding:"40px 20px",textAlign:"center"}}>
+              <div style={{fontSize:40,marginBottom:12}}>📱</div>
+              <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E",marginBottom:8}}>Sin portales en este período</div>
+              <div style={{fontSize:13,color:"#8B7355"}}>Cuando generes portales para tus reservas, acá vas a ver las métricas de uso</div>
+            </div>
+          );
+
+          return <>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+              <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Portales activos</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif"}}>{totalPortales}</div>
+                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{pctAdopcion}% de reservas</div>
+              </div>
+              <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>RSVPs recibidos</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#7C3AED",fontFamily:"'Playfair Display',serif"}}>{totalRsvps}</div>
+                <div style={{fontSize:11,color:"#16A34A",marginTop:2}}>{rsvpConfirmados} confirmados</div>
+              </div>
+              <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Fotos subidas</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#3B82F6",fontFamily:"'Playfair Display',serif"}}>{totalFotos}</div>
+                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>por invitados</div>
+              </div>
+              <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Sobres digitales</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#D97706",fontFamily:"'Playfair Display',serif"}}>{sobresActivos}</div>
+                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>activos</div>
+              </div>
+            </div>
+
+            {alertas.length > 0 && (
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#D97706",textTransform:"uppercase",marginBottom:8}}>⚡ Acciones sugeridas</div>
+                {alertas.map((a, i) => (
+                  <div key={i} style={{...card,padding:"12px 16px",marginBottom:8,borderLeft:"4px solid #D97706"}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>{a.msg}</div>
+                    <div style={{fontSize:12,color:"#D97706",fontWeight:600}}>{a.accion}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Adopción de funciones</div>
+              {secciones.map(s => {
+                const cnt = sectionCounts[s.key];
+                const pct = Math.round((cnt / totalPortales) * 100);
+                return (
+                  <div key={s.key} style={{marginBottom:8}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                      <span style={{fontSize:12,color:"#1C1C1E"}}>{s.label}</span>
+                      <span style={{fontSize:12,fontWeight:700,color:pct>=50?"#16A34A":pct>=20?"#D97706":"#DC2626"}}>{pct}% ({cnt})</span>
+                    </div>
+                    <div style={{height:6,background:"#EDE0D0",borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:pct+"%",background:pct>=50?"#16A34A":pct>=20?"#D97706":"#DC2626",borderRadius:3,transition:"width .3s"}} />
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{borderTop:"1px solid #EDE0D0",paddingTop:10,marginTop:4}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:8}}>PERSONALIZACIÓN</div>
+                {[{l:"Foto de portada",c:conFoto},{l:"Mensaje personalizado",c:conMensaje},{l:"Nombre del evento",c:conNombre}].map(it => {
+                  const pct = Math.round((it.c / totalPortales) * 100);
+                  return (
+                    <div key={it.l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                      <span style={{fontSize:12,color:"#1C1C1E"}}>{it.l}</span>
+                      <span style={{fontSize:12,fontWeight:700,color:pct>=50?"#16A34A":"#D97706"}}>{pct}% ({it.c})</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {eventosConPortal.length > 0 && (
+              <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📱 Engagement por evento</div>
+                {eventosConPortal.slice(0, 10).map(ev => (
+                  <div key={ev.id} style={{padding:"10px 0",borderBottom:"1px solid #EDE0D0"}}>
+                    <div style={{marginBottom:4}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E"}}>{ev.nombre}</div>
+                      <div style={{fontSize:11,color:"#8B7355"}}>{fmtDate(ev.fecha)} · {ev.cliente}</div>
+                    </div>
+                    <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                      <span style={{fontSize:11,color:"#7C3AED",fontWeight:600}}>📋 {ev.rsvpConfirmados}/{ev.cantInvitados} RSVP</span>
+                      <span style={{fontSize:11,color:"#3B82F6",fontWeight:600}}>📸 {ev.fotosCount} fotos</span>
+                      {ev.sobreActivo && <span style={{fontSize:11,color:"#D97706",fontWeight:600}}>💝 Sobre activo</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {solicitudes.length > 0 && (
+              <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>📦 Extras solicitados desde portal</div>
+                <div style={{display:"flex",gap:10,marginBottom:12}}>
+                  <div style={{flex:1,background:"#EFF6FF",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid #BFDBFE"}}>
+                    <div style={{fontSize:18,fontWeight:800,color:"#2563EB"}}>{solicitudes.length}</div>
+                    <div style={{fontSize:10,color:"#2563EB",fontWeight:600}}>Total solicitudes</div>
+                  </div>
+                  <div style={{flex:1,background:solicPendientes.length>0?"#FEF3C7":"#F0FDF4",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid "+(solicPendientes.length>0?"#FDE68A":"#BBF7D0")}}>
+                    <div style={{fontSize:18,fontWeight:800,color:solicPendientes.length>0?"#D97706":"#16A34A"}}>{solicPendientes.length}</div>
+                    <div style={{fontSize:10,color:solicPendientes.length>0?"#D97706":"#16A34A",fontWeight:600}}>Pendientes</div>
+                  </div>
+                </div>
+                {Object.entries(solicPorServicio).sort((a,b)=>b[1]-a[1]).map(([srv,cnt]) => (
+                  <div key={srv} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #EDE0D0"}}>
+                    <span style={{fontSize:13,color:"#1C1C1E"}}>{srv}</span>
+                    <span style={{fontWeight:700,color:"#C4602B",fontSize:14}}>{cnt}x</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>;
+        })()
+      )}
 
     </div>
   );
