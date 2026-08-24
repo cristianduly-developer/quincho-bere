@@ -286,10 +286,10 @@
     .photos-notice{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--gold-bg);border:1px solid var(--gold-border);border-radius:10px;margin-bottom:12px;font-size:12px;color:var(--gold);font-weight:600}
 
     /* ── SOBRE DIGITAL ── */
-    .sobre-section{margin:16px;perspective:600px}
+    .sobre-section{margin:20px 16px;perspective:600px}
     .sobre-closed{position:relative;width:100%;height:180px;cursor:pointer;transition:transform .3s}
     .sobre-closed:hover{transform:translateY(-3px)}
-    .sobre-body{position:absolute;bottom:0;width:100%;height:140px;background:#D4A574;border-radius:4px 4px 14px 14px;box-shadow:0 4px 16px rgba(180,140,90,0.25);overflow:hidden}
+    .sobre-body{position:absolute;bottom:0;width:100%;height:140px;background:linear-gradient(135deg,#D4A574,#C49660);border-radius:4px 4px 14px 14px;box-shadow:0 4px 20px rgba(180,140,90,0.3);overflow:hidden}
     .sobre-body::after{content:'';position:absolute;top:0;left:0;right:0;height:60px;background:#E8C9A0;clip-path:polygon(0 0,50% 55%,100% 0)}
     .sobre-flap{position:absolute;top:0;width:100%;height:100px;background:#C49660;clip-path:polygon(0 40px,50% 100%,100% 40px,100% 0,0 0);transform-origin:top center;transition:transform .5s;z-index:2}
     .sobre-flap::before{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.3)}
@@ -298,11 +298,16 @@
     @keyframes sobrePulse{0%,100%{opacity:.5}50%{opacity:1}}
     .sobre-open{animation:sobreSlideUp .4s ease}
     @keyframes sobreSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    .sobre-card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
-    .sobre-emoji{font-size:32px;text-align:center;margin-bottom:10px}
-    .sobre-msg{font-size:14px;color:var(--text-sub);line-height:1.6;text-align:center;margin-bottom:16px}
-    .sobre-msg strong{color:var(--text)}
-    .alias-box{background:var(--surface-warm);border:1.5px dashed var(--accent);border-radius:12px;padding:14px;margin-bottom:14px}
+    .sobre-wrapper{background:linear-gradient(135deg,#FDF8F3,#F9F0E7);border:1.5px solid #E8D5C4;border-radius:18px;padding:24px 20px;box-shadow:0 4px 20px rgba(180,140,90,0.12)}
+    .sobre-header{text-align:center;margin-bottom:16px}
+    .sobre-header-ico{font-size:36px;margin-bottom:6px}
+    .sobre-header-title{font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:var(--text)}
+    .sobre-header-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+    @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .sobre-wrapper{background:linear-gradient(135deg,#2A2118,#251D14);border-color:#3D3228}}
+    :root[data-theme="dark"] .sobre-wrapper{background:linear-gradient(135deg,#2A2118,#251D14);border-color:#3D3228}
+    .sobre-msg{font-size:14px;color:var(--text-sub);line-height:1.6;text-align:center;margin-bottom:16px;font-style:italic}
+    .sobre-divider{height:1px;background:linear-gradient(to right,transparent,var(--border),transparent);margin:16px 0}
+    .alias-box{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
     .alias-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
     .alias-row{display:flex;align-items:center;gap:8px}
     .alias-val{flex:1;font-size:17px;font-weight:800;color:var(--text);font-family:'SF Mono','Fira Code',monospace;letter-spacing:.5px;word-break:break-all}
@@ -310,30 +315,31 @@
     .btn-alias-copy:active{background:var(--accent-hover)}
     .btn-alias-copy.copied{background:var(--green)}
     .sobre-qr{text-align:center;margin-bottom:14px}
-    .sobre-qr-box{display:inline-block;background:#FFF;padding:12px;border-radius:12px;border:1.5px solid var(--border)}
+    .sobre-qr-box{display:inline-block;background:#FFF;padding:10px;border-radius:12px;border:1.5px solid var(--border)}
     .sobre-qr-label{font-size:10px;color:var(--text-muted);margin-top:6px}
-    .sobre-mp{display:flex;align-items:center;gap:10px;padding:12px 14px;background:rgba(0,177,234,.07);border:1.5px solid rgba(0,177,234,.2);border-radius:12px;margin-bottom:14px;cursor:pointer;text-decoration:none;transition:background .2s}
+    .sobre-actions{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+    .sobre-mp{display:flex;align-items:center;gap:10px;padding:14px 16px;background:rgba(0,177,234,.07);border:1.5px solid rgba(0,177,234,.2);border-radius:12px;cursor:pointer;text-decoration:none;transition:background .2s}
     .sobre-mp:hover{background:rgba(0,177,234,.12)}
-    .sobre-mp-ico{width:32px;height:32px;background:#00B1EA;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:800;font-size:16px;flex-shrink:0}
-    .sobre-mp-text{font-size:13px;font-weight:600;color:var(--text)}
-    .sobre-mp-sub{font-size:10px;color:var(--text-muted);margin-top:1px}
-    .sobre-cbu{margin-bottom:14px}
+    .sobre-mp-ico{width:36px;height:36px;background:#00B1EA;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:800;font-size:16px;flex-shrink:0}
+    .sobre-mp-text{font-size:14px;font-weight:600;color:var(--text)}
+    .sobre-mp-sub{font-size:11px;color:var(--text-muted);margin-top:1px}
+    .sobre-cbu{margin-bottom:0}
     .sobre-cbu-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
     .sobre-cbu-val{flex:1;font-size:12px;font-family:monospace;color:var(--text-sub);word-break:break-all}
-    .sobre-progress{margin-bottom:16px}
+    .sobre-progress{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
     .sobre-progress-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
     .sobre-progress-goal{font-size:13px;font-weight:700;color:var(--text)}
     .sobre-progress-pct{font-size:12px;font-weight:700;color:var(--green)}
     .sobre-progress-bar{height:10px;background:var(--border-light);border-radius:5px;overflow:hidden}
     .sobre-progress-fill{height:100%;background:var(--green);border-radius:5px;transition:width 1s ease}
     .sobre-progress-detail{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px}
-    .mural-section{margin-bottom:14px}
-    .mural-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+    .mural-section{margin-top:16px}
+    .mural-title{font-family:'Playfair Display',Georgia,serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px}
     .mural-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px}
     .mural-author{font-size:12px;font-weight:700;color:var(--text)}
     .mural-body{font-size:12px;color:var(--text-sub);margin-top:3px;line-height:1.4}
     .mural-time{font-size:9px;color:var(--text-muted);margin-top:4px}
-    .mural-form{background:var(--surface-warm);border:1.5px solid var(--border);border-radius:14px;padding:14px}
+    .mural-form{background:var(--surface-warm);border:1.5px solid var(--border);border-radius:14px;padding:14px;margin-top:10px}
     .mural-form-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
     .mural-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);resize:none;min-height:60px;margin-bottom:8px;box-sizing:border-box}
     .mural-input::placeholder{color:var(--text-muted)}
@@ -615,6 +621,9 @@
         html += '<div class="wifi locked"><div class="wifi-ico">🔒</div><div><div class="wifi-lbl">WiFi del lugar</div><div class="wifi-val">Disponible el dia del evento</div><div class="wifi-hint">Se desbloquea el ' + fmtEvt + '</div></div></div>';
       }
 
+      // SOBRE DIGITAL (above conditions)
+      html += '<div id="sobre-section"></div>';
+
       // CONDITIONS
       html += '<div class="section"><div class="section-head">Condiciones del lugar</div><div class="rules">';
       RULES.forEach(function(r) { html += '<div class="rule-row"><span>' + r.icon + '</span><span>' + esc(r.text) + '</span></div>'; });
@@ -725,8 +734,10 @@
       }
     }
 
-    // ── SOBRE DIGITAL (all states) ──
-    html += '<div id="sobre-section"></div>';
+    // ── SOBRE DIGITAL for live/post states ──
+    if (state !== "pre") {
+      html += '<div id="sobre-section"></div>';
+    }
 
     // ── CTA (all states) ──
     html += '<div class="cta-book" style="background:' + heroColor + '">';
@@ -791,13 +802,21 @@
         sh += '<div class="sobre-body"><div class="sobre-label">💝 Sobre Digital</div><div class="sobre-tap">Tocá para abrir</div></div>';
         sh += '</div>';
         sh += '<div id="sobre-content" style="display:none">';
+        sh += '<div class="sobre-wrapper">';
 
-        // Message card
-        sh += '<div class="sobre-card"><div class="sobre-emoji">💝</div>';
-        if (cfg.mensaje) {
-          sh += '<div class="sobre-msg">' + esc(cfg.mensaje) + '</div>';
-        }
+        // Header
+        sh += '<div class="sobre-header">';
+        sh += '<div class="sobre-header-ico">💝</div>';
+        sh += '<div class="sobre-header-title">Sobre Digital</div>';
+        sh += '<div class="sobre-header-sub">Si querés colaborar, acá te dejamos las opciones</div>';
         sh += '</div>';
+
+        // Message
+        if (cfg.mensaje) {
+          sh += '<div class="sobre-msg">"' + esc(cfg.mensaje) + '"</div>';
+        }
+
+        sh += '<div class="sobre-divider"></div>';
 
         // Progress bar
         if (cfg.mostrarProgreso && cfg.metaMonto > 0) {
@@ -810,14 +829,14 @@
         }
 
         // Alias
-        sh += '<div class="alias-box"><div class="alias-label">Alias</div>';
+        sh += '<div class="alias-box"><div class="alias-label">Alias para transferir</div>';
         sh += '<div class="alias-row"><span class="alias-val">' + esc(cfg.alias) + '</span>';
         sh += '<button class="btn-alias-copy" id="btn-alias-copy" onclick="window._copyAlias()">Copiar</button>';
         sh += '</div></div>';
 
-        // QR
-        sh += '<div class="sobre-qr"><div class="sobre-qr-box"><canvas id="sobre-qr-canvas" width="120" height="120" style="border-radius:4px;image-rendering:pixelated"></canvas></div>';
-        sh += '<div class="sobre-qr-label">Escaneá con tu app del banco</div></div>';
+        // Payment actions
+        var hasActions = cfg.mpLink || cfg.cbu;
+        if (hasActions) sh += '<div class="sobre-actions">';
 
         // MercadoPago link
         if (cfg.mpLink) {
@@ -834,14 +853,18 @@
           sh += '</div></div>';
         }
 
-        // Mural
+        if (hasActions) sh += '</div>';
+
+        sh += '</div>'; // end sobre-wrapper
+
+        // Mural (outside wrapper for visual separation)
         if (cfg.muralActivo !== false) {
           sh += '<div class="mural-section"><div class="mural-title">💬 Mensajes</div>';
           sh += '<div id="mural-feed"></div>';
-          sh += '<div class="mural-form"><div class="mural-form-title">✍️ Dejá tu mensaje</div>';
+          sh += '<div class="mural-form"><div class="mural-form-title">Dejá tu mensaje</div>';
           sh += '<input class="mural-name" id="mural-nombre" placeholder="Tu nombre">';
           sh += '<textarea class="mural-input" id="mural-msg" placeholder="Escribí tu mensaje..."></textarea>';
-          sh += '<button class="mural-send" id="mural-send" onclick="window._sendMural()">Enviar mensaje 💌</button>';
+          sh += '<button class="mural-send" id="mural-send" onclick="window._sendMural()">Enviar mensaje</button>';
           sh += '</div></div>';
         }
 
@@ -894,39 +917,7 @@
           }
         };
 
-        // Draw QR
-        (function drawSobreQR() {
-          var c = $("sobre-qr-canvas");
-          if (!c) return;
-          var ctx = c.getContext("2d");
-          var s = 120;
-          ctx.fillStyle = "#FFF";
-          ctx.fillRect(0, 0, s, s);
-          ctx.fillStyle = "#1C1C1E";
-          function drawFinder(x, y) {
-            ctx.fillRect(x, y, 28, 28);
-            ctx.fillStyle = "#FFF";
-            ctx.fillRect(x+4, y+4, 20, 20);
-            ctx.fillStyle = "#1C1C1E";
-            ctx.fillRect(x+8, y+8, 12, 12);
-          }
-          drawFinder(4, 4);
-          drawFinder(88, 4);
-          drawFinder(4, 88);
-          var alias = window._sobreAlias || "";
-          for (var y = 36; y < 84; y += 4) {
-            for (var x = 36; x < 84; x += 4) {
-              var ch = alias.charCodeAt((x + y * 7) % alias.length) || 42;
-              if ((ch * 31 + x * 17 + y * 13) % 3 !== 0) {
-                ctx.fillRect(x, y, 4, 4);
-              }
-            }
-          }
-          for (var i = 36; i < 88; i += 8) {
-            ctx.fillRect(i, 24, 4, 4);
-            ctx.fillRect(24, i, 4, 4);
-          }
-        })();
+        // QR removed — alias copy button is the primary UX
 
         // Load mural messages
         if (cfg.muralActivo !== false) {
