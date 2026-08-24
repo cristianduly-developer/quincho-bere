@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     if (action === 'portal-data') {
       const { data: reserva, error: rErr } = await supa
         .from('reservas')
-        .select('id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, share_sections, share_message, share_theme, share_hero_url, regalo_descuento, regalo_enviado_en')
+        .select('id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, share_sections, share_message, share_theme, share_hero_url, regalo_descuento, regalo_enviado_en, sobre_digital')
         .eq('share_token', tkn)
         .single()
 
