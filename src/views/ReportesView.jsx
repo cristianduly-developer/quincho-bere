@@ -760,23 +760,6 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             return { id:r.id, nombre:r.nombreEvento||r.tipoEvento||"Evento", fecha:r.fecha, cliente:c?(c.nombre+" "+c.apellido).trim():"—", cantInvitados:r.cantInvitados||0, rsvpTotal:rsvps.length, rsvpConfirmados:rsvpConf, fotosCount:fotos.length, sobreActivo:!!sd?.activo, visitasInv, visitasCli, score };
           }).sort((a, b) => b.score - a.score);
 
-          const todayStr2 = toDateStr(now);
-          const in7days = toDateStr(new Date(now.getTime() + 7 * 86400000));
-          const alertas = [];
-
-          portalRes.filter(r => r.fecha >= todayStr2 && r.fecha <= in7days).forEach(r => {
-            const rsvps = rsvpData.filter(rv => rv.reserva_id === r.id);
-            const conf = rsvps.filter(rv => rv.estado === "confirmado").reduce((s, rv) => s + (rv.cantidad || 1), 0);
-            if (conf < (r.cantInvitados || 0) * 0.5) {
-              alertas.push({ tipo:"rsvp", msg:(r.nombreEvento||r.tipoEvento||"Evento")+" ("+fmtDate(r.fecha)+") tiene "+conf+"/"+r.cantInvitados+" confirmados", accion:"Sugerí al cliente mandar recordatorio" });
-            }
-          });
-
-          const sinPersonalizar = portalRes.filter(r => !r.shareHeroUrl && !r.shareMessage && !r.nombreEvento && r.fecha >= todayStr2);
-          if (sinPersonalizar.length > 0) alertas.push({ tipo:"personalizar", msg:sinPersonalizar.length+" portal"+(sinPersonalizar.length>1?"es":"")+" sin personalizar", accion:"Sugeriles poner foto, mensaje y nombre del evento" });
-          if (solicPendientes.length > 0) alertas.push({ tipo:"solicitud", msg:solicPendientes.length+" solicitud"+(solicPendientes.length>1?"es":"")+" de extras pendiente"+(solicPendientes.length>1?"s":""), accion:"Revisá las tareas pendientes" });
-          if (totalPortales > 0 && sobresActivos < totalPortales * 0.2) alertas.push({ tipo:"sobre", msg:"Solo "+sobresActivos+" de "+totalPortales+" portales usan sobre digital", accion:"Ofrecelo al momento de la venta" });
-
           if (totalPortales === 0) return (
             <div style={{...card,padding:"40px 20px",textAlign:"center"}}>
               <div style={{fontSize:40,marginBottom:12}}>📱</div>
@@ -828,18 +811,6 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>desde sobre digital</div>
               </div>
             </div>
-
-            {alertas.length > 0 && (
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#D97706",textTransform:"uppercase",marginBottom:8}}>⚡ Acciones sugeridas</div>
-                {alertas.map((a, i) => (
-                  <div key={i} style={{...card,padding:"12px 16px",marginBottom:8,borderLeft:"4px solid #D97706"}}>
-                    <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>{a.msg}</div>
-                    <div style={{fontSize:12,color:"#D97706",fontWeight:600}}>{a.accion}</div>
-                  </div>
-                ))}
-              </div>
-            )}
 
             <div style={{...card,padding:"14px 16px",marginBottom:10}}>
               <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Adopción de funciones</div>
