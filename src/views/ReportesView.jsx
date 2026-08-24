@@ -735,11 +735,16 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:8}}>POR CANAL</div>
             {canales.map(([canal, cnt]) => {
               const pct = Math.round((cnt / totalCons) * 100);
+              const resCanal = reservas.filter(r => {
+                if (!enRango(r.fecha) || r.estado === "cancelada") return false;
+                const cli = clientes.find(x => x.id === r.clienteId);
+                return cli?.origen === canal;
+              }).length;
               return (
-                <div key={canal} style={{marginBottom:6}}>
+                <div key={canal} style={{marginBottom:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
                     <span style={{fontSize:12,color:"#1C1C1E"}}>{canal}</span>
-                    <span style={{fontSize:12,fontWeight:700,color:"#0284C7"}}>{cnt} ({pct}%)</span>
+                    <span style={{fontSize:12,fontWeight:700,color:"#0284C7"}}>{cnt} consultas → {resCanal} reservas</span>
                   </div>
                   <div style={{height:6,background:"#EDE0D0",borderRadius:3,overflow:"hidden"}}>
                     <div style={{height:"100%",width:pct+"%",background:"#0284C7",borderRadius:3}} />

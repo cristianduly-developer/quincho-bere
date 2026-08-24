@@ -694,7 +694,7 @@ function ClienteModal({ onClose, onSave, cliente, clientes }) {
         <Select label="Estado" value={f.estadoCrm} onChange={set("estadoCrm")}
           options={[{value:"",label:"— Sin definir —"},{value:"Potencial",label:"🟡 Potencial"},{value:"Cliente",label:"🟢 Cliente"}]} />
         <Select label="Origen" value={f.origen} onChange={set("origen")}
-          options={[{value:"",label:"— Sin definir —"},{value:"Instagram",label:"📸 Instagram"},{value:"Marketplace",label:"🛒 Marketplace"},{value:"Meta",label:"📣 Meta"},{value:"Recomendación",label:"🤝 Recomendación"},{value:"Otro",label:"📌 Otro"}]} />
+          options={[{value:"",label:"— Sin definir —"},{value:"Instagram",label:"📸 Instagram"},{value:"WhatsApp",label:"💬 WhatsApp"},{value:"Marketplace",label:"🛒 Marketplace"},{value:"Facebook",label:"📘 Facebook"},{value:"Recomendación",label:"🤝 Recomendación"},{value:"Otro",label:"📌 Otro"}]} />
       </div>
       <TextArea label="Notas internas" value={f.notasInternas} onChange={set("notasInternas")} placeholder="Comportamiento, preferencias..." rows={2} />
       {dupes && dupes.length>0 && (
