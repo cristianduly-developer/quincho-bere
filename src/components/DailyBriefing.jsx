@@ -40,9 +40,11 @@ function useWeather() {
     const start = toISO(hoy);
     const fin = new Date(hoy); fin.setDate(fin.getDate() + 2);
     const end = toISO(fin);
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=-38.0055&longitude=-57.5426&current=temperature_2m,weathercode,relative_humidity_2m,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=America/Argentina/Buenos_Aires&start_date=${start}&end_date=${end}`;
-    fetch(url).then(r => r.json()).then(data => {
-      if (!data?.current || !data?.daily) return;
+    const url = "https://api.open-meteo.com/v1/forecast?latitude=-38.0055&longitude=-57.5426&current=temperature_2m,weathercode,relative_humidity_2m,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=America/Argentina/Buenos_Aires&start_date=" + start + "&end_date=" + end;
+    console.log("[CLIMA] fetching:", url);
+    fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+      console.log("[CLIMA] response:", data);
+      if (!data || !data.current || !data.daily) { console.log("[CLIMA] missing current/daily"); return; }
       setWeather({
         now: {
           temp: Math.round(data.current.temperature_2m),
@@ -50,15 +52,15 @@ function useWeather() {
           humidity: data.current.relative_humidity_2m,
           wind: Math.round(data.current.wind_speed_10m),
         },
-        days: data.daily.time.map((t, i) => ({
+        days: data.daily.time.map(function(t, i) { return {
           date: t,
           max: Math.round(data.daily.temperature_2m_max[i]),
           min: Math.round(data.daily.temperature_2m_min[i]),
           rain: data.daily.precipitation_probability_max[i],
           code: data.daily.weathercode[i],
-        })),
+        }; }),
       });
-    }).catch(() => {});
+    }).catch(function(err) { console.error("[CLIMA] error:", err); });
   }, []);
   return weather;
 }
