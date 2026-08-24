@@ -1241,13 +1241,15 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
 
       {/* Panel Evento Compartido */}
       {showSharePanel && (()=>{
-        const portalUrl=reserva.shareToken ? (window.location.origin+"/mi-evento/"+reserva.shareToken) : null;
+        const portalUrl=reserva.editToken ? (window.location.origin+"/mi-evento/"+reserva.editToken) : (reserva.shareToken ? (window.location.origin+"/mi-evento/"+reserva.shareToken) : null);
         const shareUrl=reserva.shareToken ? (window.location.origin+"/evento/"+reserva.shareToken) : null;
         const handleGenerate=async()=>{
           setShareSaving(true);
           let token=reserva.shareToken;
           if(!token){ token=genId(); }
-          await onSaveShareConfig({shareToken:token,shareSections:{rsvp:true,countdown:true,mensaje:false,amenities:true,wifi:true,fotos_lugar:true,fotos_evento:true},shareMessage:"",shareTheme:"verde",shareHeroUrl:null});
+          let eToken=reserva.editToken;
+          if(!eToken){ eToken=genId(); }
+          await onSaveShareConfig({shareToken:token,editToken:eToken,shareSections:{rsvp:true,countdown:true,mensaje:false,amenities:true,wifi:true,fotos_lugar:true,fotos_evento:true},shareMessage:"",shareTheme:"verde",shareHeroUrl:null});
           setShareSaving(false);
         };
         return (
@@ -5326,7 +5328,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null,regaloDescuento:x.regalo_descuento||null,regaloEnviadoEn:x.regalo_enviado_en||null,sobreDigital:x.sobre_digital||null})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null,regaloDescuento:x.regalo_descuento||null,regaloEnviadoEn:x.regalo_enviado_en||null,sobreDigital:x.sobre_digital||null,editToken:x.edit_token||null})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",estadoCrm:x.estado_crm||null,origen:x.origen||null,creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
     if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||"",wifiPassword:cfgData.wifi_password||"",portalActivo:cfgData.portal_activo!==false,fotosLugar:cfgData.fotos_lugar||[]});
@@ -5449,7 +5451,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(editReserva){
         await saveR(reservas.map(r=>r.id===editReserva.id?{...r,...data}:r));
       } else {
-        const nuevaReserva={id:genId(),...data,shareToken:genId(),creadoEn:new Date().toISOString(),fechaCreacion:toDateStr(new Date()),creadoPor:currentUser?.nombre||"",recordatorioEnviado:false,postEventoProcesado:false};
+        const nuevaReserva={id:genId(),...data,shareToken:genId(),editToken:genId(),creadoEn:new Date().toISOString(),fechaCreacion:toDateStr(new Date()),creadoPor:currentUser?.nombre||"",recordatorioEnviado:false,postEventoProcesado:false};
         const {error:insErr}=await supabase.from("reservas").insert(mapReserva(nuevaReserva));
         if(insErr){
           if(insErr.code==="23505") return showToast("⚠️ Ya existe una reserva en ese espacio, día y turno. Alguien más acaba de tomarlo.","warn");

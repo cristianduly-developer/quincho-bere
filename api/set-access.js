@@ -25,11 +25,20 @@ export default async function handler(req, res) {
 
     // ── portal-data: devuelve toda la info del portal ──
     if (action === 'portal-data') {
-      const { data: reserva, error: rErr } = await supa
-        .from('reservas')
-        .select('id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, share_sections, share_message, share_theme, share_hero_url, regalo_descuento, regalo_enviado_en, sobre_digital')
-        .eq('share_token', tkn)
-        .single()
+      const editMode = req.body?.edit_mode === true
+      const selectCols = 'id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, edit_token, share_sections, share_message, share_theme, share_hero_url, regalo_descuento, regalo_enviado_en, sobre_digital'
+      let reserva, rErr
+      if (editMode) {
+        const r1 = await supa.from('reservas').select(selectCols).eq('edit_token', tkn).single()
+        if (r1.data) { reserva = r1.data; rErr = null }
+        else {
+          const r2 = await supa.from('reservas').select(selectCols).eq('share_token', tkn).single()
+          reserva = r2.data; rErr = r2.error
+        }
+      } else {
+        const r0 = await supa.from('reservas').select(selectCols).eq('share_token', tkn).single()
+        reserva = r0.data; rErr = r0.error
+      }
 
       if (rErr || !reserva) return res.status(404).json({ ok: false, error: 'not_found' })
 
@@ -61,6 +70,7 @@ export default async function handler(req, res) {
           estado: reserva.estado,
           tipo_evento: reserva.tipo_evento,
           nombre_evento: reserva.nombre_evento,
+          share_token: reserva.share_token || null,
           share_sections: reserva.share_sections,
           share_message: reserva.share_message || '',
           share_theme: reserva.share_theme || 'verde',
@@ -86,8 +96,16 @@ export default async function handler(req, res) {
 
     // ── portal-save: guarda config del evento compartido ──
     if (action === 'portal-save') {
-      const { data: reserva } = await supa
-        .from('reservas').select('id').eq('share_token', tkn).single()
+      const editSave = req.body?.edit_mode === true
+      let reserva
+      if (editSave) {
+        const r1 = await supa.from('reservas').select('id').eq('edit_token', tkn).single()
+        if (r1.data) { reserva = r1.data }
+        else { const r2 = await supa.from('reservas').select('id').eq('share_token', tkn).single(); reserva = r2.data }
+      } else {
+        const r0 = await supa.from('reservas').select('id').eq('share_token', tkn).single()
+        reserva = r0.data
+      }
       if (!reserva) return res.status(404).json({ ok: false, error: 'not_found' })
 
       const b = req.body
@@ -111,8 +129,16 @@ export default async function handler(req, res) {
       const { servicio_id, notas } = req.body
       if (!servicio_id) return res.status(400).json({ ok: false, error: 'servicio_id required' })
 
-      const { data: reserva } = await supa
-        .from('reservas').select('id, org_id, fecha, cliente_id, regalo_descuento').eq('share_token', tkn).single()
+      const editExtra = req.body?.edit_mode === true
+      let reserva
+      if (editExtra) {
+        const r1 = await supa.from('reservas').select('id, org_id, fecha, cliente_id, regalo_descuento').eq('edit_token', tkn).single()
+        if (r1.data) { reserva = r1.data }
+        else { const r2 = await supa.from('reservas').select('id, org_id, fecha, cliente_id, regalo_descuento').eq('share_token', tkn).single(); reserva = r2.data }
+      } else {
+        const r0 = await supa.from('reservas').select('id, org_id, fecha, cliente_id, regalo_descuento').eq('share_token', tkn).single()
+        reserva = r0.data
+      }
       if (!reserva) return res.status(404).json({ ok: false, error: 'not_found' })
 
       const [srvRes, cliRes] = await Promise.all([
@@ -174,7 +200,7 @@ export default async function handler(req, res) {
         await supa.from('evento_fotos').delete().eq('reserva_id', r.id)
       }
       await supa.from('evento_rsvp').delete().eq('reserva_id', r.id)
-      await supa.from('reservas').update({ share_token: null, share_sections: null, share_message: null, share_hero_url: null }).eq('id', r.id)
+      await supa.from('reservas').update({ share_token: null, edit_token: null, share_sections: null, share_message: null, share_hero_url: null, sobre_digital: null }).eq('id', r.id)
       cleaned++
     }
     console.log(`[evento-cleanup] Cleaned ${cleaned} expired events`)
