@@ -466,6 +466,17 @@
     return supa("POST", "rpc/" + fn, params);
   }
 
+  var _trackCtx = null;
+  var _tracked = {};
+  function track(evento) {
+    if (!_trackCtx || _tracked[evento]) return;
+    _tracked[evento] = true;
+    supa("POST", "portal_eventos", {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
+      org_id: _trackCtx.org_id, reserva_id: _trackCtx.id, evento: evento
+    }).catch(function(){});
+  }
+
   // ─── GET TOKEN FROM URL ───
   var pathParts = window.location.pathname.split("/").filter(Boolean);
   var token = pathParts.length >= 2 ? pathParts[pathParts.length - 1] : null;
@@ -488,7 +499,9 @@
     }
 
     document.title = (data.nombre_evento || "Evento") + " — " + ((data.negocio || {}).nombre || "");
+    _trackCtx = { org_id: data.org_id, id: data.id };
     render(data);
+    track("vista_invitado");
   }).catch(function() {
     $("app").innerHTML = '<div class="error-page"><h2>Error de conexion</h2><p>No pudimos cargar el evento. Intenta de nuevo.</p></div>';
   });
@@ -753,7 +766,7 @@
     // ── INSTAGRAM ──
     if (neg.instagram_url) {
       html += '<div style="text-align:center;margin:8px 16px 0">';
-      html += '<a href="' + esc(neg.instagram_url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;padding:14px 24px;border-radius:14px;background:linear-gradient(135deg,#fdf2f8,#fef3e6);border:1.5px solid #e8c9d4;width:100%;max-width:400px;box-sizing:border-box">';
+      html += '<a href="' + esc(neg.instagram_url) + '" target="_blank" rel="noopener" onclick="track(\'click_instagram\')" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;padding:14px 24px;border-radius:14px;background:linear-gradient(135deg,#fdf2f8,#fef3e6);border:1.5px solid #e8c9d4;width:100%;max-width:400px;box-sizing:border-box">';
       html += '<span style="font-size:24px">📸</span>';
       html += '<div style="flex:1;text-align:left"><div style="font-size:14px;font-weight:700;color:#1C1C1E">Seguinos en Instagram</div><div style="font-size:12px;color:#C4602B">No te pierdas las novedades</div></div>';
       html += '<span style="font-size:13px;font-weight:700;color:#FFF;background:linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);padding:7px 16px;border-radius:8px;white-space:nowrap">Seguir</span>';
@@ -878,6 +891,7 @@
 
         // Open sobre animation
         window._openSobre = function() {
+          track("abrir_sobre");
           var flap = $("sobre-flap");
           var closed = $("sobre-closed");
           var content = $("sobre-content");
@@ -947,6 +961,7 @@
           btn.textContent = "Enviando...";
           supaRpc("public_agregar_mensaje", { p_share_token: token, p_nombre: nombre.trim(), p_mensaje: msg.trim() }).then(function(res) {
             if (res && res.ok) {
+              track("enviar_mural");
               btn.textContent = "✓ Enviado!";
               btn.style.background = "var(--green)";
               var feed = $("mural-feed");
@@ -1348,6 +1363,7 @@
               var publicUrl = SUPA_URL + "/storage/v1/object/public/evento-fotos/" + fileName;
               return supa("POST", "evento_fotos", { org_id: ev.org_id, share_token: tkn, reserva_id: ev.id, url: publicUrl, subido_por: "Invitado" });
             }).then(function() {
+              track("subir_foto");
               var grid = document.getElementById("event-photos");
               if (grid) {
                 var publicUrl = SUPA_URL + "/storage/v1/object/public/evento-fotos/" + fileName;

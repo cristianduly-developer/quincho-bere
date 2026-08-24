@@ -355,6 +355,13 @@
     });
   }
 
+  var _miTracked = false;
+  function trackMi(evento) {
+    if (_miTracked) return;
+    _miTracked = true;
+    api("portal-track", { token: token, edit_mode: true, evento: evento }, 0).catch(function(){});
+  }
+
   // ── GET TOKEN ──
   var pathParts = window.location.pathname.split("/").filter(Boolean);
   var token = pathParts.length >= 2 ? pathParts[pathParts.length - 1] : null;
@@ -691,6 +698,7 @@
     var daysL = Math.ceil((evD.getTime() - nowD.getTime()) / 86400000);
     if (daysL >= 0 && daysL <= 2 && !weatherData) fetchWeather(data.reserva.fecha);
     renderApp();
+    trackMi("vista_cliente");
   }).catch(function() {
     $("app").innerHTML = '<div class="error-page"><h2>Error de conexion</h2><p>No pudimos cargar los datos. Intenta de nuevo.</p></div>';
   });

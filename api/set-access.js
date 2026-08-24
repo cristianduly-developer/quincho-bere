@@ -165,6 +165,28 @@ export default async function handler(req, res) {
       return res.json({ ok: true })
     }
 
+    // ── portal-track: registra evento de analytics ──
+    if (action === 'portal-track') {
+      const evento = req.body?.evento
+      if (!evento || typeof evento !== 'string') return res.status(400).json({ ok: false, error: 'evento required' })
+
+      const editTrack = req.body?.edit_mode === true
+      let reserva
+      if (editTrack) {
+        const r1 = await supa.from('reservas').select('id, org_id').eq('edit_token', tkn).single()
+        if (r1.data) { reserva = r1.data }
+        else { const r2 = await supa.from('reservas').select('id, org_id').eq('share_token', tkn).single(); reserva = r2.data }
+      } else {
+        const r0 = await supa.from('reservas').select('id, org_id').eq('share_token', tkn).single()
+        reserva = r0.data
+      }
+      if (!reserva) return res.status(404).json({ ok: false, error: 'not_found' })
+
+      const evtId = Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
+      await supa.from('portal_eventos').insert({ id: evtId, org_id: reserva.org_id, reserva_id: reserva.id, evento })
+      return res.json({ ok: true })
+    }
+
     return res.status(400).json({ ok: false, error: 'unknown portal action' })
   }
 
@@ -200,6 +222,7 @@ export default async function handler(req, res) {
         await supa.from('evento_fotos').delete().eq('reserva_id', r.id)
       }
       await supa.from('evento_rsvp').delete().eq('reserva_id', r.id)
+      await supa.from('portal_eventos').delete().eq('reserva_id', r.id)
       await supa.from('reservas').update({ share_token: null, edit_token: null, share_sections: null, share_message: null, share_hero_url: null, sobre_digital: null }).eq('id', r.id)
       cleaned++
     }

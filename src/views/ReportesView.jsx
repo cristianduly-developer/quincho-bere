@@ -122,21 +122,23 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
       setPortalLoading(true);
       try {
         const portalIds = reservas.filter(r => r.shareToken).map(r => r.id);
-        if (!portalIds.length) { setPortalData({ rsvp: [], fotos: [] }); setPortalLoading(false); return; }
-        let allRsvp = [], allFotos = [];
+        if (!portalIds.length) { setPortalData({ rsvp: [], fotos: [], eventos: [] }); setPortalLoading(false); return; }
+        let allRsvp = [], allFotos = [], allEventos = [];
         for (let i = 0; i < portalIds.length; i += 200) {
           const chunk = portalIds.slice(i, i + 200);
-          const [rRes, fRes] = await Promise.all([
+          const [rRes, fRes, eRes] = await Promise.all([
             supabase.from("evento_rsvp").select("reserva_id, nombre, cantidad, estado, creado_en").in("reserva_id", chunk),
             supabase.from("evento_fotos").select("reserva_id, creado_en").in("reserva_id", chunk),
+            supabase.from("portal_eventos").select("reserva_id, evento, creado_en").in("reserva_id", chunk),
           ]);
           if (rRes.data) allRsvp = allRsvp.concat(rRes.data);
           if (fRes.data) allFotos = allFotos.concat(fRes.data);
+          if (eRes.data) allEventos = allEventos.concat(eRes.data);
         }
-        if (!cancelled) setPortalData({ rsvp: allRsvp, fotos: allFotos });
+        if (!cancelled) setPortalData({ rsvp: allRsvp, fotos: allFotos, eventos: allEventos });
       } catch (err) {
         console.error("Portal fetch error:", err);
-        if (!cancelled) setPortalData({ rsvp: [], fotos: [] });
+        if (!cancelled) setPortalData({ rsvp: [], fotos: [], eventos: [] });
       } finally {
         if (!cancelled) setPortalLoading(false);
       }
@@ -704,9 +706,17 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           const portalIds = new Set(portalRes.map(r => r.id));
           const rsvpData = (portalData?.rsvp || []).filter(r => portalIds.has(r.reserva_id));
           const fotosData = (portalData?.fotos || []).filter(f => portalIds.has(f.reserva_id));
+          const eventosData = (portalData?.eventos || []).filter(e => portalIds.has(e.reserva_id));
           const totalRsvps = rsvpData.length;
           const rsvpConfirmados = rsvpData.filter(r => r.estado === "confirmado").length;
           const totalFotos = fotosData.length;
+
+          const countEvento = (tipo) => eventosData.filter(e => e.evento === tipo).length;
+          const visitasCliente = countEvento("vista_cliente");
+          const visitasInvitado = countEvento("vista_invitado");
+          const clicksInstagram = countEvento("click_instagram");
+          const sobresAbiertos = countEvento("abrir_sobre");
+          const mensajesMural = countEvento("enviar_mural");
 
           const parseSobre = (r) => { try { return typeof r.sobreDigital === "string" ? JSON.parse(r.sobreDigital) : r.sobreDigital; } catch { return null; } };
           const sobresActivos = portalRes.filter(r => parseSobre(r)?.activo).length;
@@ -741,10 +751,13 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             const c = clientes.find(x => x.id === r.clienteId);
             const rsvps = rsvpData.filter(rv => rv.reserva_id === r.id);
             const fotos = fotosData.filter(f => f.reserva_id === r.id);
+            const evts = eventosData.filter(e => e.reserva_id === r.id);
             const rsvpConf = rsvps.filter(rv => rv.estado === "confirmado").reduce((s, rv) => s + (rv.cantidad || 1), 0);
             const sd = parseSobre(r);
-            const score = rsvps.length + fotos.length + (sd?.activo ? 1 : 0) + (r.shareHeroUrl ? 1 : 0) + (r.shareMessage ? 1 : 0);
-            return { id:r.id, nombre:r.nombreEvento||r.tipoEvento||"Evento", fecha:r.fecha, cliente:c?(c.nombre+" "+c.apellido).trim():"—", cantInvitados:r.cantInvitados||0, rsvpTotal:rsvps.length, rsvpConfirmados:rsvpConf, fotosCount:fotos.length, sobreActivo:!!sd?.activo, score };
+            const visitasInv = evts.filter(e => e.evento === "vista_invitado").length;
+            const visitasCli = evts.filter(e => e.evento === "vista_cliente").length;
+            const score = visitasInv + visitasCli + rsvps.length + fotos.length + (sd?.activo ? 1 : 0) + (r.shareHeroUrl ? 1 : 0) + (r.shareMessage ? 1 : 0);
+            return { id:r.id, nombre:r.nombreEvento||r.tipoEvento||"Evento", fecha:r.fecha, cliente:c?(c.nombre+" "+c.apellido).trim():"—", cantInvitados:r.cantInvitados||0, rsvpTotal:rsvps.length, rsvpConfirmados:rsvpConf, fotosCount:fotos.length, sobreActivo:!!sd?.activo, visitasInv, visitasCli, score };
           }).sort((a, b) => b.score - a.score);
 
           const todayStr2 = toDateStr(now);
@@ -780,8 +793,23 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{pctAdopcion}% de reservas</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Visitas clientes</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#059669",fontFamily:"'Playfair Display',serif"}}>{visitasCliente}</div>
+                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>aperturas mi-evento</div>
+              </div>
+              <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Visitas invitados</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#7C3AED",fontFamily:"'Playfair Display',serif"}}>{visitasInvitado}</div>
+                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>aperturas link compartido</div>
+              </div>
+              <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Clicks Instagram</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#E1306C",fontFamily:"'Playfair Display',serif"}}>{clicksInstagram}</div>
+                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>desde portales</div>
+              </div>
+              <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>RSVPs recibidos</div>
-                <div style={{fontSize:28,fontWeight:800,color:"#7C3AED",fontFamily:"'Playfair Display',serif"}}>{totalRsvps}</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#3B82F6",fontFamily:"'Playfair Display',serif"}}>{totalRsvps}</div>
                 <div style={{fontSize:11,color:"#16A34A",marginTop:2}}>{rsvpConfirmados} confirmados</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
@@ -790,9 +818,14 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>por invitados</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Sobres digitales</div>
-                <div style={{fontSize:28,fontWeight:800,color:"#D97706",fontFamily:"'Playfair Display',serif"}}>{sobresActivos}</div>
-                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>activos</div>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Sobres abiertos</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#D97706",fontFamily:"'Playfair Display',serif"}}>{sobresAbiertos}</div>
+                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>de {sobresActivos} activos</div>
+              </div>
+              <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Mensajes mural</div>
+                <div style={{fontSize:28,fontWeight:800,color:"#9333EA",fontFamily:"'Playfair Display',serif"}}>{mensajesMural}</div>
+                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>desde sobre digital</div>
               </div>
             </div>
 
@@ -849,6 +882,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                       <div style={{fontSize:11,color:"#8B7355"}}>{fmtDate(ev.fecha)} · {ev.cliente}</div>
                     </div>
                     <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+                      <span style={{fontSize:11,color:"#059669",fontWeight:600}}>👁 {ev.visitasInv + ev.visitasCli} visitas</span>
                       <span style={{fontSize:11,color:"#7C3AED",fontWeight:600}}>📋 {ev.rsvpConfirmados}/{ev.cantInvitados} RSVP</span>
                       <span style={{fontSize:11,color:"#3B82F6",fontWeight:600}}>📸 {ev.fotosCount} fotos</span>
                       {ev.sobreActivo && <span style={{fontSize:11,color:"#D97706",fontWeight:600}}>💝 Sobre activo</span>}
