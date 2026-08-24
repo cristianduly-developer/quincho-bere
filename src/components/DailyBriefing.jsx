@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { clientName, fmtDate, fmtCurrency, getSaldo } from "../lib/utils.js";
 import { TURNOS } from "../lib/constants.js";
 
@@ -6,6 +6,62 @@ const STORAGE_KEY = "quincho_briefing_date";
 const toISO = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const DIAS_FULL = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+
+function weatherIcon(code) {
+  if (code <= 1) return "☀️";
+  if (code <= 3) return "⛅";
+  if (code <= 48) return "🌫️";
+  if (code <= 57) return "🌧️";
+  if (code <= 67) return "🌧️";
+  if (code <= 77) return "🌨️";
+  if (code <= 82) return "🌧️";
+  if (code <= 86) return "🌨️";
+  if (code <= 99) return "⛈️";
+  return "🌤️";
+}
+
+function weatherLabel(code) {
+  if (code <= 1) return "Despejado";
+  if (code <= 3) return "Parcialmente nublado";
+  if (code <= 48) return "Nublado";
+  if (code <= 57) return "Llovizna";
+  if (code <= 67) return "Lluvia";
+  if (code <= 77) return "Nieve";
+  if (code <= 82) return "Lluvia fuerte";
+  if (code <= 86) return "Nieve fuerte";
+  if (code <= 99) return "Tormenta";
+  return "Variable";
+}
+
+function useWeather() {
+  const [weather, setWeather] = useState(null);
+  useEffect(() => {
+    const hoy = new Date();
+    const start = toISO(hoy);
+    const fin = new Date(hoy); fin.setDate(fin.getDate() + 2);
+    const end = toISO(fin);
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=-38.0055&longitude=-57.5426&current=temperature_2m,weathercode,relative_humidity_2m,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode&timezone=America/Argentina/Buenos_Aires&start_date=${start}&end_date=${end}`;
+    fetch(url).then(r => r.json()).then(data => {
+      if (!data?.current || !data?.daily) return;
+      setWeather({
+        now: {
+          temp: Math.round(data.current.temperature_2m),
+          code: data.current.weathercode,
+          humidity: data.current.relative_humidity_2m,
+          wind: Math.round(data.current.wind_speed_10m),
+        },
+        days: data.daily.time.map((t, i) => ({
+          date: t,
+          max: Math.round(data.daily.temperature_2m_max[i]),
+          min: Math.round(data.daily.temperature_2m_min[i]),
+          rain: data.daily.precipitation_probability_max[i],
+          code: data.daily.weathercode[i],
+        })),
+      });
+    }).catch(() => {});
+  }, []);
+  return weather;
+}
 
 export function shouldShowBriefing() {
   const hora = new Date().getHours();
@@ -293,6 +349,8 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
   const hora = hoy.getHours();
   const saludo = hora < 13 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
 
+  const weather = useWeather();
+
   const { alertasHoy, alertasSemana, oportunidades, totalEventos, visitasHoy } = useMemo(() =>
     generarAlertas({ reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso }),
     [reservas, clientes, pagos, extrasReserva, recursos, servicios, turnosRecurso]
@@ -336,10 +394,50 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
 
         {/* Contenido scrolleable */}
         <div style={{overflowY:"auto",padding:"16px 20px",flex:1}}>
-          {!hayAlgo && (
+          {weather && (
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#0284C7",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>🌤️ Clima en Mar del Plata</div>
+              <div style={{background:"linear-gradient(135deg,#E0F2FE,#F0F9FF)",border:"1px solid #BAE6FD",borderRadius:12,padding:"14px 16px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                  <span style={{fontSize:36}}>{weatherIcon(weather.now.code)}</span>
+                  <div>
+                    <div style={{fontSize:28,fontWeight:800,color:"#0C4A6E"}}>{weather.now.temp}°</div>
+                    <div style={{fontSize:12,color:"#0369A1",fontWeight:600}}>{weatherLabel(weather.now.code)}</div>
+                  </div>
+                  <div style={{marginLeft:"auto",textAlign:"right",fontSize:11,color:"#0369A1",lineHeight:1.6}}>
+                    <div>💨 {weather.now.wind} km/h</div>
+                    <div>💧 {weather.now.humidity}%</div>
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:`repeat(${weather.days.length},1fr)`,gap:8}}>
+                  {weather.days.map((d,i) => {
+                    const dt = new Date(d.date+"T12:00:00");
+                    const label = i === 0 ? "Hoy" : i === 1 ? "Mañana" : DIAS[dt.getDay()];
+                    return (
+                      <div key={d.date} style={{background:"rgba(255,255,255,0.7)",borderRadius:8,padding:"8px 6px",textAlign:"center"}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#0369A1",marginBottom:4}}>{label}</div>
+                        <div style={{fontSize:18}}>{weatherIcon(d.code)}</div>
+                        <div style={{fontSize:12,fontWeight:700,color:"#0C4A6E",marginTop:2}}>{d.max}° / {d.min}°</div>
+                        {d.rain > 30 && <div style={{fontSize:10,color:d.rain>60?"#DC2626":"#D97706",fontWeight:600,marginTop:2}}>🌧 {d.rain}%</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!hayAlgo && !weather && (
             <div style={{textAlign:"center",padding:"32px 0",color:"#8B7355"}}>
               <div style={{fontSize:40,marginBottom:8}}>✅</div>
               <div style={{fontWeight:600}}>Todo tranquilo por hoy</div>
+            </div>
+          )}
+
+          {!hayAlgo && weather && !recHoy.length && !tareasPendientes.length && !visitasHoy.length && (
+            <div style={{textAlign:"center",padding:"16px 0",color:"#8B7355"}}>
+              <div style={{fontSize:28,marginBottom:4}}>✅</div>
+              <div style={{fontWeight:600,fontSize:13}}>Sin alertas por hoy</div>
             </div>
           )}
 
