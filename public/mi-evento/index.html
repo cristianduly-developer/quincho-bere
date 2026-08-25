@@ -341,6 +341,44 @@
     setTimeout(function() { t.classList.remove("show"); }, 2500);
   }
 
+  window._pedirProducto = function(prodId) {
+    var prod = null;
+    for (var i = 0; i < (DATA.mercado || []).length; i++) {
+      if (DATA.mercado[i].id === prodId) { prod = DATA.mercado[i]; break; }
+    }
+    if (!prod) return;
+    var btn = event.target;
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+    api("portal-pedido", {
+      token: token,
+      edit_mode: true,
+      producto_id: prod.id,
+      producto_nombre: prod.nombre,
+      producto_emoji: prod.emoji || "📦",
+      cantidad: 1,
+      precio_unitario: prod.precio
+    }).then(function(r) {
+      if (r.ok) {
+        var msgEl = document.getElementById("mercado-msg");
+        if (msgEl) {
+          msgEl.style.display = "block";
+          msgEl.innerHTML = "✅ Pedido enviado: " + (prod.emoji || "📦") + " " + prod.nombre;
+          setTimeout(function() { msgEl.style.display = "none"; }, 4000);
+        }
+        showToast("Pedido enviado!");
+      } else {
+        showToast("Error al pedir, intenta de nuevo");
+      }
+      btn.disabled = false;
+      btn.textContent = "Pedir";
+    }).catch(function() {
+      showToast("Error de conexion");
+      btn.disabled = false;
+      btn.textContent = "Pedir";
+    });
+  };
+
   function api(action, body, retries) {
     if (retries === undefined) retries = 2;
     return fetch("/api/set-access?action=" + action, {
@@ -518,9 +556,34 @@
     var now = new Date(); now.setHours(0,0,0,0);
     var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
 
-    if (dLeft < -10 || dLeft > 2) return "";
+    if (dLeft < -10 || dLeft > 10) return "";
 
     var neg = d.negocio;
+
+    // ════════════════════════════════════
+    // SEMANA PREVIA (4 a 10 dias)
+    // ════════════════════════════════════
+    if (dLeft >= 3) {
+      var html = '<div style="margin:0 16px 16px;padding:18px 16px;background:linear-gradient(135deg,var(--gold-bg),var(--surface-warm));border-radius:var(--radius);border:1.5px solid var(--gold-border);text-align:center">';
+      html += '<div style="font-size:36px;margin-bottom:8px">🎊</div>';
+      if (dLeft === 7) {
+        html += '<div style="font-weight:700;font-size:16px;color:var(--text);font-family:\'Playfair Display\',Georgia,serif">¡Una semana para tu evento!</div>';
+        html += '<div style="font-size:13px;color:var(--text-sub);margin-top:6px;line-height:1.5">Ya estamos preparando todo para que sea un dia inolvidable. Aprovecha estos dias para ultimar detalles.</div>';
+      } else if (dLeft > 7) {
+        html += '<div style="font-weight:700;font-size:16px;color:var(--text);font-family:\'Playfair Display\',Georgia,serif">Faltan ' + dLeft + ' dias para tu evento</div>';
+        html += '<div style="font-size:13px;color:var(--text-sub);margin-top:6px;line-height:1.5">Ya empezo la cuenta regresiva. Desde aca podes gestionar todo lo que necesites.</div>';
+      } else {
+        html += '<div style="font-weight:700;font-size:16px;color:var(--text);font-family:\'Playfair Display\',Georgia,serif">¡' + dLeft + ' dias y contando!</div>';
+        html += '<div style="font-size:13px;color:var(--text-sub);margin-top:6px;line-height:1.5">Tu evento esta cada vez mas cerca. Revisa que tus invitados hayan confirmado y que tengas todo listo.</div>';
+      }
+      var conf = rsvpList.filter(function(r) { return r.estado === "confirmado"; });
+      var totalConf = conf.reduce(function(s, r) { return s + r.cantidad; }, 0);
+      if (totalConf > 0) {
+        html += '<div style="margin-top:12px;padding:8px 12px;background:var(--green-bg);border-radius:8px;border:1px solid var(--green-border);font-size:13px;color:var(--green);font-weight:600">👥 ' + totalConf + ' persona' + (totalConf !== 1 ? 's' : '') + ' confirmada' + (totalConf !== 1 ? 's' : '') + '</div>';
+      }
+      html += '</div>';
+      return html;
+    }
 
     // ════════════════════════════════════
     // POST-EVENTO (dia siguiente hasta 10 dias despues)
@@ -810,6 +873,36 @@
 
     // Tips pre-evento (48hs antes)
     html += renderTipsPanel(d);
+
+    // Mercado del evento (solo si está activo y el evento es hoy o ya empezó)
+    if (d.reserva.mercado_activo && d.mercado && d.mercado.length > 0) {
+      var evStartMs = new Date(d.reserva.fecha + "T" + (d.reserva.horario || "00:00") + ":00").getTime();
+      var evEndMs = new Date(d.reserva.fecha + "T" + (d.reserva.horario_fin || "23:59") + ":00").getTime();
+      var nowMerc = Date.now();
+      if (nowMerc >= evStartMs - 3600000 && nowMerc <= evEndMs + 3600000) {
+        html += '<div style="margin:0 16px 16px;padding:16px;background:var(--surface);border-radius:var(--radius);border:2px solid var(--green-border);box-shadow:var(--shadow-sm)">';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">';
+        html += '<span style="font-size:22px">🛒</span>';
+        html += '<div><div style="font-weight:700;font-size:15px;color:var(--text)">Mercado del evento</div>';
+        html += '<div style="font-size:12px;color:var(--text-sub)">Pedí lo que necesites directo desde acá</div></div>';
+        html += '</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:8px" id="mercado-items">';
+        for (var mi = 0; mi < d.mercado.length; mi++) {
+          var prod = d.mercado[mi];
+          html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-warm);border-radius:10px;border:1px solid var(--border)">';
+          html += '<span style="font-size:24px">' + esc(prod.emoji || "📦") + '</span>';
+          html += '<div style="flex:1;min-width:0">';
+          html += '<div style="font-weight:600;font-size:14px;color:var(--text)">' + esc(prod.nombre) + '</div>';
+          html += '<div style="font-size:13px;color:var(--text-sub)">$' + Number(prod.precio).toLocaleString("es-AR") + '</div>';
+          html += '</div>';
+          html += '<button onclick="_pedirProducto(\'' + esc(prod.id) + '\')" style="padding:6px 14px;background:var(--accent);color:#FFF;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">Pedir</button>';
+          html += '</div>';
+        }
+        html += '</div>';
+        html += '<div id="mercado-msg" style="display:none;margin-top:10px;padding:10px;background:var(--green-bg);border-radius:8px;border:1px solid var(--green-border);font-size:13px;color:var(--green);font-weight:600;text-align:center"></div>';
+        html += '</div>';
+      }
+    }
 
     if (activeTab === "reserva") html += renderReservaTab(d);
     if (activeTab === "evento") html += renderEventoTab(d);

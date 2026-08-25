@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback, memo, Component, Fra
 import { MONTHS, MONTHS_SHORT, DAYS_SHORT, STATUS, TURNOS, PAYMENT_METHODS, EXPENSE_CATS, CAT_COLORS, DEFAULT_CONFIG, PLAN_LIMITS, getPlanLimits } from "./src/lib/constants.js";
 import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, getTotalExtras, getTotalPagado, getSaldo } from "./src/lib/utils.js";
 import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor, mensajeErrorGuardado, getUltimoError } from "./src/lib/supabase.js";
-import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario, mapConsulta } from "./src/lib/mappers.js";
+import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario, mapConsulta, mapMercadoProducto, mapMercadoPedido } from "./src/lib/mappers.js";
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
 import { Field, Input, Select, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
 import DailyBriefing, { shouldShowBriefing, markBriefingShown } from "./src/components/DailyBriefing.jsx";
@@ -2566,7 +2566,7 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
   );
 });
 
-function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, removeTarea, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop, onOpenBriefing }) {
+function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, removeTarea, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop, onOpenBriefing, mercadoProductos, mercadoPedidos, toggleMercadoReserva, toggleMercadoProducto }) {
   const today=toDateStr(new Date()), now=new Date();
   const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const curTimeDash=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -2844,6 +2844,59 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           })}
         </div>
       )}
+
+      {/* ── Mercado del Evento ── */}
+      {(mercadoProductos||[]).length>0 && (() => {
+        const todayEvts = reservas.filter(r=>r.fecha===today&&(r.estado==="confirmada"||r.estado==="senada"));
+        if(todayEvts.length===0) return null;
+        return todayEvts.map(r => {
+          const c = clientes.find(x=>x.id===r.clienteId);
+          const pedidosEvt = (mercadoPedidos||[]).filter(p=>p.reservaId===r.id);
+          const totalPedidos = pedidosEvt.reduce((s,p)=>s+p.total,0);
+          return (
+            <div key={"merc-"+r.id} style={{...card,padding:"14px 16px",marginBottom:12,border:r.mercadoActivo?"2px solid #16A34A":"1.5px solid #EDE0D0"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>🛒 Mercado</div>
+                  <div style={{fontSize:12,color:"#8B7355",marginTop:1}}>{clientName(c)} · {r.horario||"--"}</div>
+                </div>
+                <button onClick={()=>toggleMercadoReserva(r.id,!r.mercadoActivo)}
+                  style={{padding:"6px 16px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",
+                    background:r.mercadoActivo?"#16A34A":"#EF4444",color:"#FFF",transition:"background 0.2s"}}>
+                  {r.mercadoActivo?"🟢 Abierto":"🔴 Cerrado"}
+                </button>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {(mercadoProductos||[]).map(p=>(
+                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:p.activo?"#F0FDF4":"#FEF2F2",borderRadius:8,border:`1px solid ${p.activo?"#BBF7D0":"#FECACA"}`}}>
+                    <span style={{fontSize:18}}>{p.emoji||"📦"}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{p.nombre}</div>
+                      <div style={{fontSize:11,color:"#8B7355"}}>${(p.precio||0).toLocaleString("es-AR")}</div>
+                    </div>
+                    <button onClick={()=>toggleMercadoProducto(p.id,!p.activo)}
+                      style={{padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",
+                        background:p.activo?"#16A34A":"#D1D5DB",color:p.activo?"#FFF":"#6B7280",transition:"background 0.2s"}}>
+                      {p.activo?"Disponible":"Agotado"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {pedidosEvt.length>0 && (
+                <div style={{marginTop:10,padding:"8px 10px",background:"#FDF8F3",borderRadius:8,border:"1px solid #EDE0D0"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#5C4033",marginBottom:4}}>📋 Pedidos ({pedidosEvt.length}) · ${totalPedidos.toLocaleString("es-AR")}</div>
+                  {pedidosEvt.slice(0,5).map(ped=>(
+                    <div key={ped.id} style={{fontSize:12,color:"#1C1C1E",padding:"3px 0",borderBottom:"1px solid #F5EDE4"}}>
+                      {ped.productoEmoji} {ped.productoNombre} x{ped.cantidad} · ${ped.total.toLocaleString("es-AR")} · <span style={{color:ped.estado==="pagado"?"#16A34A":"#F59E0B",fontWeight:600}}>{ped.estado}</span>
+                    </div>
+                  ))}
+                  {pedidosEvt.length>5 && <div style={{fontSize:11,color:"#8B7355",marginTop:4}}>+{pedidosEvt.length-5} más...</div>}
+                </div>
+              )}
+            </div>
+          );
+        });
+      })()}
 
       {/* ── Tareas del Quincho ── */}
       <div style={{...card,padding:"14px 16px"}}>
@@ -3737,7 +3790,7 @@ function MiPlanView({ currentUser, onBack }) {
   );
 }
 
-function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio, setPreciosTemporada, onGoMiPlan }) {
+function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, recursos, setRecursos, usuarios, setUsuarios, currentUser, removeUsuario, perfilesUsuarios, setPerfilesUsuarios, negocio, setNegocio, turnosRecurso, setTurnosRecurso, setTemporadasPrecio, setPreciosTemporada, onGoMiPlan, mercadoProductos, saveMercadoProductos, removeMercadoProducto }) {
   const [negForm, setNegForm] = useState({ nombreNegocio: negocio?.nombreNegocio||"", ciudad: negocio?.ciudad||"", direccion: negocio?.direccion||"", telefono: negocio?.telefono||"", logoUrl: negocio?.logoUrl||"", msgRecordatorio: negocio?.msgRecordatorio||"", msgPostEvento: negocio?.msgPostEvento||"", recordatorioActivo: negocio?.recordatorioActivo!==false, postEventoActivo: negocio?.postEventoActivo!==false, condicionesEmail: negocio?.condicionesEmail||"", googleReviewUrl: negocio?.googleReviewUrl||"", wifiPassword: negocio?.wifiPassword||"", portalActivo: negocio?.portalActivo!==false, fotosLugar: negocio?.fotosLugar||[] });
   const [negSaved, setNegSaved] = useState(false);
   const [showMsgs, setShowMsgs] = useState(false);
@@ -3967,6 +4020,29 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
         )}
       </div>
 
+      {/* 5b ── MERCADO DEL EVENTO ── */}
+      <div style={{...card, padding:16}}>
+        <SectionHeader id="mercado" icon="🛒" title="Mercado del Evento" subtitle={`${(mercadoProductos||[]).length} producto${(mercadoProductos||[]).length!==1?"s":""}`} />
+        {open==="mercado" && (
+          <div style={{marginTop:16}}>
+            <div style={{fontSize:12,color:"#8B7355",marginBottom:14,lineHeight:1.5}}>Configurá los productos que ofrecés durante los eventos (bebidas, comidas, extras). Máximo 10 productos. Se activan individualmente desde el panel del día.</div>
+            {(mercadoProductos||[]).map(p=>(
+              <MercadoProductoRow key={p.id} p={p} onUpdate={async(changes)=>{
+                const updated=(mercadoProductos||[]).map(x=>x.id===p.id?{...x,...changes}:x);
+                saveMercadoProductos(updated);
+              }} onDelete={()=>{
+                if(!window.confirm(`¿Eliminás "${p.emoji} ${p.nombre}"?`)) return;
+                removeMercadoProducto(p.id);
+              }} />
+            ))}
+            {(mercadoProductos||[]).length<10 && <AddMercadoProductoForm productos={mercadoProductos||[]} onAdd={(nuevo)=>{
+              saveMercadoProductos([...(mercadoProductos||[]),nuevo]);
+            }} />}
+            {(mercadoProductos||[]).length>=10 && <div style={{textAlign:"center",fontSize:12,color:"#9CA3AF",padding:8}}>🔒 Máximo 10 productos alcanzado</div>}
+          </div>
+        )}
+      </div>
+
       {/* 6 ── SERVICIOS EXTRAS ── */}
       <div style={{...card, padding:16, opacity:planLimits.serviciosExtras===false?0.7:1}}>
         <SectionHeader id="extras" icon="✨" title="Servicios Extras" subtitle={planLimits.serviciosExtras===false?"No disponible en tu plan":`${serviciosExtras.length} servicio${serviciosExtras.length!==1?"s":""}`} />
@@ -4124,6 +4200,68 @@ function ServicioExtraRow({ s, onDelete, onUpdate }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function MercadoProductoRow({ p, onUpdate, onDelete }) {
+  const [editando, setEditando] = useState(false);
+  const [form, setForm] = useState({nombre:p.nombre,emoji:p.emoji||"📦",precio:String(p.precio)});
+  const inpS2 = {padding:"7px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
+  if(editando) return (
+    <div style={{padding:12,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0",marginBottom:8}}>
+      <div style={{display:"flex",gap:6,marginBottom:8}}>
+        <input style={{...inpS2,width:50,textAlign:"center"}} value={form.emoji} onChange={e=>setForm(f=>({...f,emoji:e.target.value}))} maxLength={2} placeholder="📦" />
+        <input style={{...inpS2,flex:1}} value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Nombre" />
+        <input type="number" style={{...inpS2,width:80}} value={form.precio} onChange={e=>setForm(f=>({...f,precio:e.target.value}))} placeholder="Precio" />
+      </div>
+      <div style={{display:"flex",gap:6}}>
+        <button onClick={()=>setEditando(false)} style={{flex:1,padding:"8px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Cancelar</button>
+        <button onClick={()=>{
+          if(!form.nombre.trim()) return;
+          onUpdate({nombre:form.nombre.trim(),emoji:form.emoji||"📦",precio:Number(form.precio)||0});
+          setEditando(false);
+        }} style={{flex:2,padding:"8px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700}}>Guardar</button>
+      </div>
+    </div>
+  );
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#F9F6F2",borderRadius:10,border:"1px solid #EDE0D0",marginBottom:8}}>
+      <span style={{fontSize:22}}>{p.emoji||"📦"}</span>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>{p.nombre}</div>
+        <div style={{fontSize:12,color:"#8B7355"}}>${(p.precio||0).toLocaleString("es-AR")}</div>
+      </div>
+      <button onClick={()=>setEditando(true)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:4}} title="Editar">✏️</button>
+      <button onClick={onDelete} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:4}} title="Eliminar">🗑️</button>
+    </div>
+  );
+}
+
+function AddMercadoProductoForm({ productos, onAdd }) {
+  const [show, setShow] = useState(false);
+  const [form, setForm] = useState({nombre:"",emoji:"📦",precio:""});
+  const inpS2 = {padding:"7px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
+  if(!show) return (
+    <button onClick={()=>setShow(true)} style={{marginTop:4,width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar producto</button>
+  );
+  return (
+    <div style={{marginTop:4,padding:12,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
+      <div style={{display:"flex",gap:6,marginBottom:8}}>
+        <input style={{...inpS2,width:50,textAlign:"center"}} value={form.emoji} onChange={e=>setForm(f=>({...f,emoji:e.target.value}))} maxLength={2} placeholder="📦" />
+        <input style={{...inpS2,flex:1}} value={form.nombre} onChange={e=>setForm(f=>({...f,nombre:e.target.value}))} placeholder="Ej: Fernet con Coca" />
+        <input type="number" style={{...inpS2,width:80}} value={form.precio} onChange={e=>setForm(f=>({...f,precio:e.target.value}))} placeholder="Precio" />
+      </div>
+      <div style={{display:"flex",gap:6}}>
+        <button onClick={()=>{setShow(false);setForm({nombre:"",emoji:"📦",precio:""});}} style={{flex:1,padding:"8px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Cancelar</button>
+        <button onClick={()=>{
+          if(!form.nombre.trim()){showToast("Ponele un nombre al producto","warn");return;}
+          if(!Number(form.precio)){showToast("Poné un precio válido","warn");return;}
+          onAdd({id:genId(),nombre:form.nombre.trim(),emoji:form.emoji||"📦",precio:Number(form.precio),orden:productos.length,activo:true,orgId:getCurrentOrgId(),creadoEn:new Date().toISOString()});
+          setForm({nombre:"",emoji:"📦",precio:""});setShow(false);
+          showToast("Producto agregado","ok");
+        }} style={{flex:2,padding:"8px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700}}>Agregar</button>
+      </div>
     </div>
   );
 }
@@ -5094,6 +5232,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const [recordatorios,setRecordatorios]=useState([]);
   const [comunicaciones,setComunicaciones]=useState([]);
   const [consultas,setConsultas]=useState([]);
+  const [mercadoProductos,setMercadoProductos]=useState([]);
+  const [mercadoPedidos,setMercadoPedidos]=useState([]);
   const [bloqueoModal,setBloqueoModal]=useState(null);
   const [showBriefing,setShowBriefing]=useState(false);
   const [loaded,setLoaded]=useState(false);
@@ -5364,7 +5504,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const [rc,tr,r,c,cfgRaw]=[0,1,2,3,4].map(_t1d);
     if(rc?.length) setRecursos(rc.map(x=>({id:x.id,nombre:x.nombre||"",capacidadMax:x.capacidad_max||0,modo:x.modo||"fijo",slotDuracionMin:x.slot_duracion_min||60,slotHoraInicio:x.slot_hora_inicio||"08:00",slotHoraFin:x.slot_hora_fin||"22:00",slotIntervaloMin:x.slot_intervalo_min||0,calificacionActiva:x.calificacion_activa!==false,orgId:x.org_id})));
     if(tr?.length) setTurnosRecurso(tr.map(x=>({id:x.id,recursoId:x.recurso_id,orgId:x.org_id,nombre:x.nombre||"",icono:x.icono||"📌",horaInicio:x.hora_inicio||"",horaFin:x.hora_fin||"",precioSemana:Number(x.precio_semana)||0,precioFinde:Number(x.precio_finde)||0,activo:x.activo!==false})));
-    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null,regaloDescuento:x.regalo_descuento||null,regaloEnviadoEn:x.regalo_enviado_en||null,sobreDigital:x.sobre_digital||null,editToken:x.edit_token||null})));
+    if(r?.length) setReservas(r.map(x=>({id:x.id,clienteId:x.cliente_id||"",recursoId:x.recurso_id||"",turnoId:x.turno_id||null,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"",horario:x.horario||"",horarioFin:x.horario_fin||"",cantInvitados:x.cant_invitados||35,montoPactado:Number(x.monto_pactado)||0,estado:x.estado||"pendiente",notas:x.notas||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en,fechaCreacion:x.fecha_creacion||"",recordatorioEnviado:!!x.recordatorio_enviado,postEventoProcesado:!!x.post_evento_procesado,calificacion:x.calificacion||null,proximoPagoFecha:x.proximo_pago_fecha||null,proximoPagoMonto:x.proximo_pago_monto?Number(x.proximo_pago_monto):null,tipoEvento:x.tipo_evento||null,fechaVisita:x.fecha_visita||null,horaVisita:x.hora_visita||null,seguimientoDescartado:!!x.seguimiento_descartado,motivoNoConcreto:x.motivo_no_concreto||null,nombreEvento:x.nombre_evento||null,shareToken:x.share_token||null,shareSections:x.share_sections||null,shareMessage:x.share_message||null,shareTheme:x.share_theme||"verde",shareHeroUrl:x.share_hero_url||null,regaloDescuento:x.regalo_descuento||null,regaloEnviadoEn:x.regalo_enviado_en||null,sobreDigital:x.sobre_digital||null,editToken:x.edit_token||null,mercadoActivo:!!x.mercado_activo})));
     if(c?.length) setClientes(c.map(x=>({id:x.id,nombre:x.nombre||"",apellido:x.apellido||"",whatsapp:x.whatsapp||"",email:x.email||"",localidad:x.localidad||"",notasInternas:x.notas_internas||"",estadoCrm:x.estado_crm||null,origen:x.origen||null,creadoEn:x.creado_en})));
     const cfgData=cfgRaw && !Array.isArray(cfgRaw)?cfgRaw:null;
     if(cfgData) setNegocio({nombreNegocio:cfgData.nombre_negocio||"",ciudad:cfgData.ciudad||"",direccion:cfgData.direccion||"",telefono:cfgData.telefono||"",logoUrl:cfgData.logo_url||"",msgRecordatorio:cfgData.msg_recordatorio||MSG_REC_DEFAULT,msgPostEvento:cfgData.msg_post_evento||MSG_POST_DEFAULT,recordatorioActivo:cfgData.recordatorio_activo!==false,postEventoActivo:cfgData.post_evento_activo!==false,condicionesEmail:cfgData.condiciones_email||"",googleReviewUrl:cfgData.google_review_url||"",wifiPassword:cfgData.wifi_password||"",portalActivo:cfgData.portal_activo!==false,fotosLugar:cfgData.fotos_lugar||[]});
@@ -5383,9 +5523,11 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       supabase.from("temporadas_precio").select("*").eq("org_id",orgId).order("mes_desde",{ascending:true}).limit(100),
       supabase.from("comunicaciones").select("*").eq("org_id",orgId).order("creado_en",{ascending:false}).limit(500),
       supabase.from("consultas").select("*").eq("org_id",orgId).gte("fecha",cutoffStr).order("fecha",{ascending:false}).limit(1000),
+      supabase.from("mercado_productos").select("*").eq("org_id",orgId).order("orden",{ascending:true}).limit(10),
+      supabase.from("mercado_pedidos").select("*").eq("org_id",orgId).gte("creado_en",cutoffStr).order("creado_en",{ascending:false}).limit(500),
     ]).then(async _t2=>{
       const _t2d=(i)=>_t2[i].status==="fulfilled"?_t2[i].value?.data:null;
-      const [p,g,er,se,t,bl,rec,tmp,com,cns]=[0,1,2,3,4,5,6,7,8,9].map(_t2d);
+      const [p,g,er,se,t,bl,rec,tmp,com,cns,mprod,mped]=[0,1,2,3,4,5,6,7,8,9,10,11].map(_t2d);
       if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",comprobante:x.comprobante||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
@@ -5395,6 +5537,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
       if(com?.length) setComunicaciones(com.map(x=>({id:x.id,tipo:x.tipo||"",asunto:x.asunto||"",clienteId:x.cliente_id||"",reservaId:x.reserva_id||"",destino:x.destino||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(cns?.length) setConsultas(cns.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",canal:x.canal||"Otro",cantidad:x.cantidad||1,creadoEn:x.creado_en})));
+      if(mprod?.length) setMercadoProductos(mprod.map(x=>({id:x.id,nombre:x.nombre||"",emoji:x.emoji||"📦",precio:Number(x.precio)||0,orden:x.orden||0,activo:x.activo!==false,creadoEn:x.creado_en})));
+      if(mped?.length) setMercadoPedidos(mped.map(x=>({id:x.id,reservaId:x.reserva_id||"",productoNombre:x.producto_nombre||"",productoEmoji:x.producto_emoji||"📦",cantidad:x.cantidad||1,precioUnitario:Number(x.precio_unitario)||0,total:Number(x.total)||0,estado:x.estado||"pendiente",creadoEn:x.creado_en})));
       if(tmp?.length){
         setTemporadasPrecio(tmp.map(x=>({id:x.id,orgId:x.org_id,recursoId:x.recurso_id,nombre:x.nombre||"Temporada",mesDesde:x.mes_desde,diaDesde:x.dia_desde,mesHasta:x.mes_hasta,diaHasta:x.dia_hasta})));
         const {data:ptData}=await supabase.from("precios_temporada").select("*").in("temporada_id",tmp.map(t=>t.id));
@@ -5447,6 +5591,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   const saveER=async d=>{const prev=extrasReserva;setExtrasReserva(d);const r=await sb.upsert("extras_reserva",d.map(mapExtra));if(!r){setExtrasReserva(prev);showToast(getUltimoError()||"Error al guardar extra. Intentá de nuevo.","error");}};
   const saveTareas=async d=>{const prev=tareas;setTareas(d);const r=await sb.upsert("tareas",d.map(mapTarea));if(!r){setTareas(prev);showToast(getUltimoError()||"Error al guardar tarea. Intentá de nuevo.","error");}};
   const saveCons=async d=>{const prev=consultas;setConsultas(d);const r=await sb.upsert("consultas",d.map(mapConsulta));if(!r){setConsultas(prev);showToast(getUltimoError()||"Error al guardar consultas. Intentá de nuevo.","error");}};
+  const saveMercadoProductos=async d=>{const prev=mercadoProductos;setMercadoProductos(d);const r=await sb.upsert("mercado_productos",d.map(mapMercadoProducto));if(!r){setMercadoProductos(prev);showToast(getUltimoError()||"Error al guardar productos.","error");}};
+  const removeMercadoProducto=async(id)=>{setMercadoProductos(prev=>prev.filter(p=>p.id!==id));const r=await sb.remove("mercado_productos",id);if(!r){showToast("Error al eliminar producto","error");}};
+  const toggleMercadoReserva=async(reservaId,activo)=>{setReservas(prev=>prev.map(r=>r.id===reservaId?{...r,mercadoActivo:activo}:r));await supabase.from("reservas").update({mercado_activo:activo}).eq("id",reservaId);};
+  const toggleMercadoProducto=async(prodId,activo)=>{setMercadoProductos(prev=>prev.map(p=>p.id===prodId?{...p,activo}:p));await supabase.from("mercado_productos").update({activo}).eq("id",prodId);};
   const removeTarea=async(id)=>{setTareas(prev=>prev.filter(t=>t.id!==id));const r=await sb.remove("tareas",id);if(!r){showToast("Error al eliminar tarea","error");}};
   const saveBloqueos=async d=>{const prev=bloqueos;setBloqueos(d);const r=await sb.upsert("bloqueos",d.map(mapBloqueo));if(!r){setBloqueos(prev);showToast(getUltimoError()||"Error al guardar bloqueo. Intentá de nuevo.","error");}};
   const saveRecordatorios=async d=>{const prev=recordatorios;setRecordatorios(d);const r=await sb.upsert("recordatorios",d.map(mapRecordatorio));if(!r){setRecordatorios(prev);showToast(getUltimoError()||"Error al guardar recordatorio. Intentá de nuevo.","error");}};
@@ -5840,12 +5988,12 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   } else {
     setDayModal({date:ds,reservas:dr,espacioFiltro:filtro});
   }
-}} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} isDesktop={isDesktop} />}
+}} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} isDesktop={isDesktop} mercadoProductos={mercadoProductos} mercadoPedidos={mercadoPedidos} toggleMercadoReserva={toggleMercadoReserva} toggleMercadoProducto={toggleMercadoProducto} />}
       {tab==="reservas" && <Suspense fallback={<ViewLoader/>}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} turnosRecurso={turnosRecurso} extrasReserva={extrasReserva} bloqueos={bloqueos} onReservaClick={r=>setDetailReserva(r)} onNewReserva={(fecha)=>{setEditReserva(null);if(fecha)setInitDate(fecha);setModal("reserva");}} onCobrar={r=>{setPagoReservaId(r.id);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="clientes" && <Suspense fallback={<ViewLoader/>}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} recursos={recursos} negocio={negocio} onDescartarSeguimiento={(r)=>{const updated={...r,seguimientoDescartado:true};saveR(reservas.map(x=>x.id===r.id?updated:x));showToast("Potencial descartado del seguimiento","info");}} /></Suspense>}
       {tab==="gastos" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><GastosViewLazy gastos={gastos} onNewGasto={()=>{setEditGasto(null);setModal("gasto");}} onEditGasto={(g)=>{setEditGasto(g);setModal("gasto");}} onDeleteGasto={handleDeleteGasto} /></Suspense></ErrorBoundary>}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} />}
-      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} setTemporadasPrecio={setTemporadasPrecio} setPreciosTemporada={setPreciosTemporada} onGoMiPlan={()=>setTab("miplan")} />}
+      {tab==="config" && <ConfigView config={config} saveConfig={saveConfig} serviciosExtras={serviciosExtras} setServiciosExtras={setServiciosExtras} recursos={recursos} setRecursos={setRecursos} usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} removeUsuario={removeUsuario} perfilesUsuarios={perfilesUsuarios} setPerfilesUsuarios={setPerfilesUsuarios} negocio={negocio} setNegocio={setNegocio} turnosRecurso={turnosRecurso} setTurnosRecurso={setTurnosRecurso} setTemporadasPrecio={setTemporadasPrecio} setPreciosTemporada={setPreciosTemporada} onGoMiPlan={()=>setTab("miplan")} mercadoProductos={mercadoProductos} saveMercadoProductos={saveMercadoProductos} removeMercadoProducto={removeMercadoProducto} />}
       {tab==="miplan" && <MiPlanView currentUser={currentUser} onBack={()=>setTab("config")} />}
       {tab==="recordatorios" && <Suspense fallback={<ViewLoader/>}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}

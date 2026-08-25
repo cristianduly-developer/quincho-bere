@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     // ── portal-data: devuelve toda la info del portal ──
     if (action === 'portal-data') {
       const editMode = req.body?.edit_mode === true
-      const selectCols = 'id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, edit_token, share_sections, share_message, share_theme, share_hero_url, regalo_descuento, regalo_enviado_en, sobre_digital'
+      const selectCols = 'id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, edit_token, share_sections, share_message, share_theme, share_hero_url, regalo_descuento, regalo_enviado_en, sobre_digital, mercado_activo'
       let reserva, rErr
       if (editMode) {
         const r1 = await supa.from('reservas').select(selectCols).eq('edit_token', tkn).single()
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
 
       if (rErr || !reserva) return res.status(404).json({ ok: false, error: 'not_found' })
 
-      const [configRes, rsvpRes, fotosRes, pagosRes, serviciosRes, extrasRes, clienteRes] = await Promise.all([
+      const [configRes, rsvpRes, fotosRes, pagosRes, serviciosRes, extrasRes, clienteRes, mercadoRes] = await Promise.all([
         supa.from('config').select('nombre_negocio, logo_url, telefono, direccion, wifi_password, google_review_url, condiciones_email, instagram_url').eq('org_id', reserva.org_id).single(),
         supa.from('evento_rsvp').select('nombre, cantidad, estado, creado_en').eq('reserva_id', reserva.id).order('creado_en'),
         supa.from('evento_fotos').select('url, creado_en').eq('reserva_id', reserva.id).order('creado_en'),
@@ -50,6 +50,7 @@ export default async function handler(req, res) {
         supa.from('servicios_extras').select('id, descripcion, precio_actual, detalle, foto_url').eq('org_id', reserva.org_id).eq('activo', true),
         supa.from('extras_reserva').select('id, servicio_id, descripcion, cantidad, precio_historico').eq('reserva_id', reserva.id),
         supa.from('clientes').select('nombre, apellido').eq('id', reserva.cliente_id).single(),
+        reserva.mercado_activo ? supa.from('mercado_productos').select('id, nombre, emoji, precio').eq('org_id', reserva.org_id).eq('activo', true).order('orden') : { data: [] },
       ])
 
       const pagos = pagosRes.data || []
@@ -78,6 +79,7 @@ export default async function handler(req, res) {
           regalo_descuento: reserva.regalo_descuento || null,
           regalo_enviado_en: reserva.regalo_enviado_en || null,
           sobre_digital: reserva.sobre_digital || null,
+          mercado_activo: !!reserva.mercado_activo,
         },
         negocio: configRes.data || {},
         cliente: clienteRes.data || {},
@@ -91,6 +93,7 @@ export default async function handler(req, res) {
         },
         servicios: (serviciosRes.data || []).map(s => ({ id: s.id, descripcion: s.descripcion, precio: Number(s.precio_actual), detalle: s.detalle || '', foto_url: s.foto_url || '' })),
         extras: extrasData.map(e => ({ id: e.id, descripcion: e.descripcion, cantidad: e.cantidad, precio: Number(e.precio_historico) })),
+        mercado: (mercadoRes.data || []).map(m => ({ id: m.id, nombre: m.nombre, emoji: m.emoji, precio: Number(m.precio) })),
       })
     }
 
@@ -163,6 +166,42 @@ export default async function handler(req, res) {
       })
 
       return res.json({ ok: true })
+    }
+
+    // ── portal-pedido: crea un pedido del mercado ──
+    if (action === 'portal-pedido') {
+      const { producto_id, producto_nombre, producto_emoji, cantidad, precio_unitario } = req.body || {}
+      if (!producto_nombre || !precio_unitario) return res.status(400).json({ ok: false, error: 'missing fields' })
+
+      const editPed = req.body?.edit_mode === true
+      let reserva
+      if (editPed) {
+        const r1 = await supa.from('reservas').select('id, org_id, mercado_activo').eq('edit_token', tkn).single()
+        if (r1.data) { reserva = r1.data }
+        else { const r2 = await supa.from('reservas').select('id, org_id, mercado_activo').eq('share_token', tkn).single(); reserva = r2.data }
+      } else {
+        const r0 = await supa.from('reservas').select('id, org_id, mercado_activo').eq('share_token', tkn).single()
+        reserva = r0.data
+      }
+      if (!reserva) return res.status(404).json({ ok: false, error: 'not_found' })
+      if (!reserva.mercado_activo) return res.status(400).json({ ok: false, error: 'mercado_closed' })
+
+      const cant = Math.max(1, Number(cantidad) || 1)
+      const precio = Number(precio_unitario) || 0
+      const pedidoId = Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
+      const { error: insErr } = await supa.from('mercado_pedidos').insert({
+        id: pedidoId,
+        org_id: reserva.org_id,
+        reserva_id: reserva.id,
+        producto_nombre,
+        producto_emoji: producto_emoji || '📦',
+        cantidad: cant,
+        precio_unitario: precio,
+        total: cant * precio,
+        estado: 'pendiente',
+      })
+      if (insErr) return res.status(500).json({ ok: false, error: insErr.message })
+      return res.json({ ok: true, pedido_id: pedidoId })
     }
 
     // ── portal-track: registra evento de analytics ──

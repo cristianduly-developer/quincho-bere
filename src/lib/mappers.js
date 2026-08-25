@@ -2,7 +2,7 @@ import { getCurrentOrgId } from "./supabase.js";
 
 export function mapReserva(r){
   const org = r.orgId || getCurrentOrgId();
-  return {id:r.id,org_id:org,cliente_id:r.clienteId,recurso_id:r.recursoId,turno_id:r.turnoId||null,fecha:r.fecha,turno:r.turno,horario:r.horario||"",horario_fin:r.horarioFin||"",cant_invitados:r.cantInvitados||35,monto_pactado:r.montoPactado||0,estado:r.estado||"pendiente",notas:r.notas||"",creado_por:r.creadoPor||"",creado_en:r.creadoEn||new Date().toISOString(),fecha_creacion:r.fechaCreacion||null,recordatorio_enviado:!!r.recordatorioEnviado,post_evento_procesado:!!r.postEventoProcesado,calificacion:r.calificacion||null,proximo_pago_fecha:r.proximoPagoFecha||null,proximo_pago_monto:r.proximoPagoMonto||null,tipo_evento:r.tipoEvento||null,fecha_visita:r.fechaVisita||null,hora_visita:r.horaVisita||null,seguimiento_descartado:!!r.seguimientoDescartado,motivo_no_concreto:r.motivoNoConcreto||null,nombre_evento:r.nombreEvento||null,share_token:r.shareToken||null,share_sections:r.shareSections||null,share_message:r.shareMessage||null,share_theme:r.shareTheme||"verde",share_hero_url:r.shareHeroUrl||null,regalo_descuento:r.regaloDescuento||null,regalo_enviado_en:r.regaloEnviadoEn||null,sobre_digital:r.sobreDigital||null,edit_token:r.editToken||null};
+  return {id:r.id,org_id:org,cliente_id:r.clienteId,recurso_id:r.recursoId,turno_id:r.turnoId||null,fecha:r.fecha,turno:r.turno,horario:r.horario||"",horario_fin:r.horarioFin||"",cant_invitados:r.cantInvitados||35,monto_pactado:r.montoPactado||0,estado:r.estado||"pendiente",notas:r.notas||"",creado_por:r.creadoPor||"",creado_en:r.creadoEn||new Date().toISOString(),fecha_creacion:r.fechaCreacion||null,recordatorio_enviado:!!r.recordatorioEnviado,post_evento_procesado:!!r.postEventoProcesado,calificacion:r.calificacion||null,proximo_pago_fecha:r.proximoPagoFecha||null,proximo_pago_monto:r.proximoPagoMonto||null,tipo_evento:r.tipoEvento||null,fecha_visita:r.fechaVisita||null,hora_visita:r.horaVisita||null,seguimiento_descartado:!!r.seguimientoDescartado,motivo_no_concreto:r.motivoNoConcreto||null,nombre_evento:r.nombreEvento||null,share_token:r.shareToken||null,share_sections:r.shareSections||null,share_message:r.shareMessage||null,share_theme:r.shareTheme||"verde",share_hero_url:r.shareHeroUrl||null,regalo_descuento:r.regaloDescuento||null,regalo_enviado_en:r.regaloEnviadoEn||null,sobre_digital:r.sobreDigital||null,edit_token:r.editToken||null,mercado_activo:!!r.mercadoActivo};
 }
 export function mapCliente(c){
   const org = c.orgId || getCurrentOrgId();
@@ -23,6 +23,14 @@ export function mapExtra(e){
 export function mapConsulta(c){
   const org = c.orgId || getCurrentOrgId();
   return {id:c.id,org_id:org,fecha:c.fecha,canal:c.canal||"Otro",cantidad:c.cantidad||1,creado_en:c.creadoEn||new Date().toISOString()};
+}
+export function mapMercadoProducto(p){
+  const org = p.orgId || getCurrentOrgId();
+  return {id:p.id,org_id:org,nombre:p.nombre||"",emoji:p.emoji||"📦",precio:p.precio||0,orden:p.orden||0,activo:p.activo!==false,creado_en:p.creadoEn||new Date().toISOString()};
+}
+export function mapMercadoPedido(p){
+  const org = p.orgId || getCurrentOrgId();
+  return {id:p.id,org_id:org,reserva_id:p.reservaId,producto_nombre:p.productoNombre||"",producto_emoji:p.productoEmoji||"📦",cantidad:p.cantidad||1,precio_unitario:p.precioUnitario||0,total:p.total||0,estado:p.estado||"pendiente",creado_en:p.creadoEn||new Date().toISOString()};
 }
 export function mapBloqueo(b){
   const org = b.orgId || getCurrentOrgId();
