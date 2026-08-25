@@ -988,7 +988,6 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   const [shareHeroUrl, setShareHeroUrl] = useState(reserva.shareHeroUrl || "");
   const [heroUploading, setHeroUploading] = useState(false);
   const [showRegaloPicker, setShowRegaloPicker] = useState(false);
-  const sobreActivo = !!(reserva.sobreDigital && reserva.sobreDigital.activo);
   const REGALO_OPTIONS = [
     {value:"15% OFF en un servicio extra",emoji:"🎉"},
     {value:"20% OFF en un servicio extra",emoji:"🔥"},
@@ -1363,20 +1362,6 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                   )}
                 </div>
 
-                {/* ── SOBRE DIGITAL ── */}
-                <div style={{marginTop:16,padding:14,background:"#FFF5F0",borderRadius:12,border:"1px solid #F0D4C4"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div>
-                      <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>💝 Sobre Digital</div>
-                      <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>Los invitados pueden colaborar y dejar mensajes</div>
-                    </div>
-                    <button onClick={async()=>{const next={...(reserva.sobreDigital||{activo:false,mensaje:"",alias:"",cbu:"",mpLink:"",metaNombre:"",metaMonto:0,montoJuntado:0,mostrarProgreso:false,muralActivo:true}),activo:!sobreActivo};await onSaveShareConfig({sobreDigital:next});}}
-                      style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",background:sobreActivo?"#16A34A":"#EDE0D0",color:sobreActivo?"#FFF":"#8B7355"}}>
-                      {sobreActivo?"✅ Activo":"Inactivo"}
-                    </button>
-                  </div>
-                  {sobreActivo && <div style={{fontSize:11,color:"#8B7355",marginTop:8,lineHeight:1.5}}>El cliente configura su alias, mensaje y opciones desde su portal (Mi Evento). Vos solo habilitás la función.</div>}
-                </div>
               </>
             )}
           </div>
