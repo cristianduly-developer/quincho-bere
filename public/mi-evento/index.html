@@ -978,6 +978,9 @@
     html += '<div class="welcome-sub">Desde aca podes ver los datos de tu reserva, armar la invitacion para tus invitados y solicitar extras.</div>';
     html += '</div>';
 
+    // Tips, checklist y mercado solo en solapa Reserva
+    if (activeTab === "reserva") {
+
     // Tips pre-evento (48hs antes)
     html += renderTipsPanel(d);
 
@@ -1013,6 +1016,8 @@
         html += '</div>';
       }
     }
+
+    } // fin if reserva (tips/checklist/mercado)
 
     if (activeTab === "reserva") html += renderReservaTab(d);
     if (activeTab === "evento") html += renderEventoTab(d);
