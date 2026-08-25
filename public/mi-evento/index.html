@@ -791,14 +791,16 @@
     var evDate = new Date(d.reserva.fecha + "T12:00:00");
     var now = new Date(); now.setHours(0,0,0,0);
     var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
-    if (dLeft > 10 || dLeft < -1) return "";
+    if (dLeft < -1) return "";
 
     if (!checklistInited) {
-      return '<div style="margin:0 16px 16px;text-align:center">'
+      return '<div style="margin:0 16px 16px">'
+        + '<div style="background:var(--surface);border-radius:var(--radius);border:1.5px dashed var(--accent);padding:20px 16px;text-align:center;box-shadow:var(--shadow-sm)">'
+        + '<div style="font-size:28px;margin-bottom:8px">📋</div>'
         + '<button id="btn-init-checklist" style="padding:12px 24px;background:var(--accent);color:#FFF;border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:var(--shadow-sm)">'
-        + '📋 Arma tu checklist</button>'
-        + '<div style="font-size:12px;color:var(--text-sub);margin-top:6px">Organiza lo que necesitas para el dia del evento</div>'
-        + '</div>';
+        + 'Arma tu checklist</button>'
+        + '<div style="font-size:12px;color:var(--text-sub);margin-top:8px;line-height:1.5">Para no olvidarte de nada!<br>Arma tu lista y anda tachando lo que ya tenes listo</div>'
+        + '</div></div>';
     }
 
     var done = checklist.filter(function(c) { return c.done; }).length;
