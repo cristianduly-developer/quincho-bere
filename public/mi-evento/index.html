@@ -903,7 +903,8 @@
     window.addEventListener("appinstalled", function() {
       api("portal-track", { token: token, edit_mode: true, evento: "pwa_instalada" }, 0).catch(function(){});
     });
-    if (window.matchMedia("(display-mode: standalone)").matches) {
+    if (window.matchMedia("(display-mode: standalone)").matches && !sessionStorage.getItem("mi_" + token + "_pwa")) {
+      sessionStorage.setItem("mi_" + token + "_pwa", "1");
       api("portal-track", { token: token, edit_mode: true, evento: "pwa_abierta" }, 0).catch(function(){});
     }
 
