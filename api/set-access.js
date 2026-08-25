@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     // ── portal-data: devuelve toda la info del portal ──
     if (action === 'portal-data') {
       const editMode = req.body?.edit_mode === true
-      const selectCols = 'id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, edit_token, share_sections, share_message, share_theme, share_hero_url, regalo_descuento, regalo_enviado_en, sobre_digital, mercado_activo'
+      const selectCols = 'id, org_id, cliente_id, fecha, horario, horario_fin, turno, cant_invitados, monto_pactado, estado, tipo_evento, nombre_evento, share_token, edit_token, share_sections, share_message, share_theme, share_hero_url, regalo_descuento, regalo_enviado_en, sobre_digital, mercado_activo, checklist'
       let reserva, rErr
       if (editMode) {
         const r1 = await supa.from('reservas').select(selectCols).eq('edit_token', tkn).single()
@@ -80,6 +80,7 @@ export default async function handler(req, res) {
           regalo_enviado_en: reserva.regalo_enviado_en || null,
           sobre_digital: reserva.sobre_digital || null,
           mercado_activo: !!reserva.mercado_activo,
+          checklist: reserva.checklist || null,
         },
         negocio: configRes.data || {},
         cliente: clienteRes.data || {},
@@ -119,6 +120,7 @@ export default async function handler(req, res) {
       if (b.share_hero_url !== undefined) update.share_hero_url = b.share_hero_url || null
       if (b.nombre_evento !== undefined) update.nombre_evento = (b.nombre_evento || '').slice(0, 100)
       if (b.sobre_digital !== undefined) update.sobre_digital = b.sobre_digital
+      if (b.checklist !== undefined) update.checklist = b.checklist
 
       if (!Object.keys(update).length) return res.json({ ok: true })
 

@@ -430,6 +430,8 @@
   var sobreDigital = {activo:false,mensaje:"",alias:"",cbu:"",mpLink:"",metaNombre:"",metaMonto:0,montoJuntado:0,mostrarProgreso:false,muralActivo:true};
   var shareToken = "";
   var requestedExtras = JSON.parse(localStorage.getItem("portal_extras_" + token) || "{}");
+  var checklist = [];
+  var checklistInited = false;
   var weatherData = null;
 
   function fetchWeather(fecha) {
@@ -683,6 +685,18 @@
     html += '<div class="tip-sub">Se devuelve al finalizar si el lugar queda en condiciones</div>';
     html += '</div></div>';
 
+    // 2b. CHECKLIST PENDIENTES (alerta solo dia anterior y dia del evento)
+    if (dLeft <= 1 && checklist.length > 0) {
+      var pendientes = checklist.filter(function(c) { return !c.done; });
+      if (pendientes.length > 0) {
+        html += '<div class="tip-card" style="border:1.5px solid var(--red);background:var(--red-bg)"><div class="tip-ico" style="background:var(--red-bg)">⚠️</div><div>';
+        html += '<div class="tip-label" style="color:var(--red)">Te quedan ' + pendientes.length + ' cosa' + (pendientes.length > 1 ? 's' : '') + ' pendiente' + (pendientes.length > 1 ? 's' : '') + '</div>';
+        html += '<div class="tip-text" style="color:var(--red)">' + pendientes.map(function(c) { return c.text; }).join(", ") + '</div>';
+        html += '<div class="tip-sub">Revisa tu checklist antes del evento</div>';
+        html += '</div></div>';
+      }
+    }
+
     // 3. RSVP
     var conf = rsvpList.filter(function(r) { return r.estado === "confirmado"; });
     var totalConf = conf.reduce(function(s, r) { return s + r.cantidad; }, 0);
@@ -751,6 +765,84 @@
     return html;
   }
 
+  var DEFAULT_CHECKLIST = [
+    { text: "Comprar bebidas", done: false },
+    { text: "Preparar la comida o encargar catering", done: false },
+    { text: "Retirar decoracion / globos", done: false },
+    { text: "Llevar hielo y vasos", done: false },
+    { text: "Armar playlist de musica", done: false }
+  ];
+
+  function clId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  function saveChecklist() {
+    api("portal-save", { token: token, edit_mode: true, checklist: checklist }).catch(function() {});
+  }
+
+  function initChecklist() {
+    if (checklistInited) return;
+    checklist = DEFAULT_CHECKLIST.map(function(c) { return { id: clId(), text: c.text, done: false }; });
+    checklistInited = true;
+    saveChecklist();
+    renderApp();
+  }
+
+  function renderChecklist(d) {
+    var evDate = new Date(d.reserva.fecha + "T12:00:00");
+    var now = new Date(); now.setHours(0,0,0,0);
+    var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
+    if (dLeft > 10 || dLeft < -1) return "";
+
+    if (!checklistInited) {
+      return '<div style="margin:0 16px 16px;text-align:center">'
+        + '<button id="btn-init-checklist" style="padding:12px 24px;background:var(--accent);color:#FFF;border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:var(--shadow-sm)">'
+        + '📋 Arma tu checklist</button>'
+        + '<div style="font-size:12px;color:var(--text-sub);margin-top:6px">Organiza lo que necesitas para el dia del evento</div>'
+        + '</div>';
+    }
+
+    var done = checklist.filter(function(c) { return c.done; }).length;
+    var total = checklist.length;
+
+    var html = '<div style="margin:0 16px 16px;background:var(--surface);border-radius:var(--radius);border:1.5px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden">';
+    html += '<div style="padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-light)">';
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    html += '<span style="font-size:18px">📋</span>';
+    html += '<div><div style="font-weight:700;font-size:14px;color:var(--text);font-family:\'Playfair Display\',Georgia,serif">Tu checklist</div>';
+    html += '<div style="font-size:11px;color:var(--text-sub)">Organiza todo para el gran dia</div></div>';
+    html += '</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:' + (done === total && total > 0 ? 'var(--green)' : 'var(--accent)') + ';background:' + (done === total && total > 0 ? 'var(--green-bg)' : '#FFF5F0') + ';padding:3px 10px;border-radius:12px">' + done + '/' + total + '</div>';
+    html += '</div>';
+
+    html += '<div style="padding:8px 12px">';
+    for (var i = 0; i < checklist.length; i++) {
+      var c = checklist[i];
+      if (c.done) {
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border-light)" data-cl-id="' + c.id + '">';
+        html += '<div data-cl-toggle="' + c.id + '" style="width:22px;height:22px;border-radius:6px;background:var(--green);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">';
+        html += '<span style="color:#FFF;font-size:14px;font-weight:700">✓</span></div>';
+        html += '<span style="flex:1;font-size:13px;color:var(--text-muted);text-decoration:line-through">' + esc(c.text) + '</span>';
+        html += '<button data-cl-remove="' + c.id + '" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;line-height:1">✕</button>';
+        html += '</div>';
+      } else {
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border-light)" data-cl-id="' + c.id + '">';
+        html += '<div data-cl-toggle="' + c.id + '" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--border);cursor:pointer;flex-shrink:0"></div>';
+        html += '<span style="flex:1;font-size:13px;color:var(--text)">' + esc(c.text) + '</span>';
+        html += '<button data-cl-remove="' + c.id + '" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;line-height:1">✕</button>';
+        html += '</div>';
+      }
+    }
+    html += '</div>';
+
+    html += '<div style="padding:8px 12px 12px;display:flex;gap:8px">';
+    html += '<input id="cl-new-input" type="text" placeholder="Agregar tarea..." maxlength="80" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;background:var(--surface-warm);color:var(--text);outline:none" />';
+    html += '<button id="btn-cl-add" style="padding:10px 14px;background:var(--accent);color:#FFF;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">+ Agregar</button>';
+    html += '</div>';
+
+    html += '</div>';
+    return html;
+  }
+
   // ── LOAD DATA ──
   api("portal-data", { token: token, edit_mode: true }).then(function(data) {
     if (!data || !data.reserva) {
@@ -767,6 +859,10 @@
     if (data.reserva.sobre_digital) {
       var sd = data.reserva.sobre_digital;
       sobreDigital = {activo:!!sd.activo,mensaje:sd.mensaje||"",alias:sd.alias||"",cbu:sd.cbu||"",mpLink:sd.mpLink||"",metaNombre:sd.metaNombre||"",metaMonto:sd.metaMonto||0,montoJuntado:sd.montoJuntado||0,mostrarProgreso:!!sd.mostrarProgreso,muralActivo:sd.muralActivo!==false};
+    }
+    if (data.reserva.checklist && Array.isArray(data.reserva.checklist)) {
+      checklist = data.reserva.checklist;
+      checklistInited = true;
     }
     document.title = (nombreEvento || "Mi Evento") + " — " + (data.negocio.nombre_negocio || "");
 
@@ -882,6 +978,9 @@
 
     // Tips pre-evento (48hs antes)
     html += renderTipsPanel(d);
+
+    // Checklist organizador (hasta 10 dias antes)
+    html += renderChecklist(d);
 
     // Mercado del evento (solo si está activo y el evento es hoy o ya empezó)
     if (d.reserva.mercado_activo && d.mercado && d.mercado.length > 0) {
@@ -1421,6 +1520,48 @@
         renderApp();
       });
     });
+
+    // Checklist: init button
+    var btnInit = $("btn-init-checklist");
+    if (btnInit) btnInit.addEventListener("click", initChecklist);
+
+    // Checklist: toggle items
+    document.querySelectorAll("[data-cl-toggle]").forEach(function(el) {
+      el.addEventListener("click", function() {
+        var id = el.getAttribute("data-cl-toggle");
+        for (var i = 0; i < checklist.length; i++) {
+          if (checklist[i].id === id) { checklist[i].done = !checklist[i].done; break; }
+        }
+        saveChecklist();
+        renderApp();
+      });
+    });
+
+    // Checklist: remove items
+    document.querySelectorAll("[data-cl-remove]").forEach(function(el) {
+      el.addEventListener("click", function() {
+        var id = el.getAttribute("data-cl-remove");
+        checklist = checklist.filter(function(c) { return c.id !== id; });
+        saveChecklist();
+        renderApp();
+      });
+    });
+
+    // Checklist: add item
+    var btnAdd = $("btn-cl-add");
+    var clInput = $("cl-new-input");
+    if (btnAdd && clInput) {
+      var addItem = function() {
+        var text = clInput.value.trim();
+        if (!text) return;
+        checklist.push({ id: clId(), text: text, done: false });
+        saveChecklist();
+        renderApp();
+        setTimeout(function() { var inp = $("cl-new-input"); if (inp) inp.focus(); }, 50);
+      };
+      btnAdd.addEventListener("click", addItem);
+      clInput.addEventListener("keydown", function(e) { if (e.key === "Enter") addItem(); });
+    }
 
     // Section toggles
     var checks = document.querySelectorAll("[data-section]");
