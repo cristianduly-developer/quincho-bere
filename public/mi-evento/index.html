@@ -1373,6 +1373,10 @@
   // ════════════════════════════════════════════
   function renderExtrasTab(d) {
     var html = '';
+    var evDateEx = new Date(d.reserva.fecha + "T12:00:00");
+    var nowEx = new Date(); nowEx.setHours(0,0,0,0);
+    var dLeftEx = Math.ceil((evDateEx.getTime() - nowEx.getTime()) / 86400000);
+    var extrasCerrados = dLeftEx <= 0;
 
     // Regalo
     html += renderRegaloSection(d);
@@ -1380,7 +1384,11 @@
     // Intro
     html += '<div class="tab-intro">';
     html += '<div class="tab-intro-title">✨ Extras para tu evento</div>';
-    html += '<div class="tab-intro-text">Podes agregar servicios adicionales para hacer tu evento todavia mejor. Al solicitar uno, nos llega el pedido y te confirmamos disponibilidad y precio por WhatsApp.</div>';
+    if (extrasCerrados) {
+      html += '<div class="tab-intro-text">Los extras ya no se pueden solicitar el dia del evento. Si necesitas algo, contactanos por WhatsApp.</div>';
+    } else {
+      html += '<div class="tab-intro-text">Podes agregar servicios adicionales para hacer tu evento todavia mejor. Al solicitar uno, nos llega el pedido y te confirmamos disponibilidad y precio por WhatsApp.</div>';
+    }
     html += '</div>';
 
     // Already contracted
@@ -1453,6 +1461,8 @@
             html += '<button class="extra-btn sent" disabled style="width:100%;margin-top:6px;padding:7px;font-size:11px;border-radius:8px">Contratado ✓</button>';
           } else if (isRequested) {
             html += '<button class="extra-btn sent" disabled style="width:100%;margin-top:6px;padding:7px;font-size:11px;border-radius:8px">Solicitado ✓</button>';
+          } else if (extrasCerrados) {
+            html += '<button class="extra-btn sent" disabled style="width:100%;margin-top:6px;padding:7px;font-size:11px;border-radius:8px">No disponible</button>';
           } else {
             html += '<button class="extra-btn" data-extra-id="' + esc(s.id) + '" style="width:100%;margin-top:6px;padding:7px;font-size:11px;border-radius:8px">Elegir</button>';
           }
@@ -1497,6 +1507,8 @@
             html += '<button class="extra-btn sent" disabled>Contratado ✓</button>';
           } else if (alreadyRequested) {
             html += '<button class="extra-btn sent" disabled>Solicitado ✓</button>';
+          } else if (extrasCerrados) {
+            html += '<button class="extra-btn sent" disabled>No disponible</button>';
           } else {
             html += '<button class="extra-btn" data-extra-id="' + esc(s.id) + '">Solicitar</button>';
           }
