@@ -766,9 +766,11 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             <div style={{fontSize:14,color:"#8B7355",fontWeight:600}}>Cargando datos del portal...</div>
           </div>
         ) : (()=>{
-          const portalRes = reservas.filter(r => r.shareToken && enRango(r.fecha) && r.estado !== "cancelada");
+          const hoy = new Date().toISOString().slice(0,10);
+          const hace30 = new Date(Date.now() - 30*86400000).toISOString().slice(0,10);
+          const portalRes = reservas.filter(r => r.shareToken && r.fecha >= hace30 && r.estado !== "cancelada");
           const totalPortales = portalRes.length;
-          const allNoCancel = reservas.filter(r => enRango(r.fecha) && r.estado !== "cancelada");
+          const allNoCancel = reservas.filter(r => r.fecha >= hace30 && r.estado !== "cancelada");
           const pctAdopcion = allNoCancel.length > 0 ? Math.round((totalPortales / allNoCancel.length) * 100) : 0;
 
           const portalIds = new Set(portalRes.map(r => r.id));
@@ -839,7 +841,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           if (totalPortales === 0) return (
             <div style={{...card,padding:"40px 20px",textAlign:"center"}}>
               <div style={{fontSize:40,marginBottom:12}}>📱</div>
-              <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E",marginBottom:8}}>Sin portales en este período</div>
+              <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E",marginBottom:8}}>Sin portales activos</div>
               <div style={{fontSize:13,color:"#8B7355"}}>Cuando generes portales para tus reservas, acá vas a ver las métricas de uso</div>
             </div>
           );
