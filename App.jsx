@@ -2566,7 +2566,7 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
   );
 });
 
-function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, removeTarea, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop, onOpenBriefing, mercadoProductos, mercadoPedidos, toggleMercadoReserva, toggleMercadoProducto }) {
+function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, removeTarea, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop, onOpenBriefing, mercadoProductos, mercadoPedidos, setMercadoPedidos, toggleMercadoReserva, toggleMercadoProducto }) {
   const today=toDateStr(new Date()), now=new Date();
   const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const curTimeDash=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -2615,6 +2615,27 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const tieneSlots=recursos?.some(r=>r.modo==="slot");
   const [vistaModo,setVistaModo]=useState(()=>{const s=lsGet("vistaModoInicio");if(s)return s;return tieneSlots?"dia":"mes";});
   const [diaVista,setDiaVista]=useState(today);
+
+  const mercadoAbierto=useMemo(()=>reservas.some(r=>r.fecha===today&&(r.estado==="confirmada"||r.estado==="senada")&&r.mercadoActivo),[reservas,today]);
+  const prevPedidosCount=useRef((mercadoPedidos||[]).length);
+  useEffect(()=>{
+    if(!mercadoAbierto||!setMercadoPedidos) return;
+    const poll=async()=>{
+      const {data}=await supabase.from("mercado_pedidos").select("*").eq("org_id",getCurrentOrgId()).order("creado_en",{ascending:false}).limit(100);
+      if(data){
+        const mapped=data.map(x=>({id:x.id,orgId:x.org_id,reservaId:x.reserva_id,productoNombre:x.producto_nombre,productoEmoji:x.producto_emoji,cantidad:x.cantidad,precioUnitario:x.precio_unitario,total:x.total,estado:x.estado,creadoEn:x.creado_en}));
+        if(mapped.length>prevPedidosCount.current&&prevPedidosCount.current>0){
+          const nuevo=mapped[0];
+          showToast(`🛒 Nuevo pedido: ${nuevo.productoEmoji} ${nuevo.productoNombre} x${nuevo.cantidad}`,"ok");
+        }
+        prevPedidosCount.current=mapped.length;
+        setMercadoPedidos(mapped);
+      }
+    };
+    poll();
+    const iv=setInterval(poll,30000);
+    return ()=>clearInterval(iv);
+  },[mercadoAbierto]);
 
   const addTarea=()=>{
     if(!newTarea.trim())return;
@@ -5988,7 +6009,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   } else {
     setDayModal({date:ds,reservas:dr,espacioFiltro:filtro});
   }
-}} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} isDesktop={isDesktop} mercadoProductos={mercadoProductos} mercadoPedidos={mercadoPedidos} toggleMercadoReserva={toggleMercadoReserva} toggleMercadoProducto={toggleMercadoProducto} />}
+}} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} isDesktop={isDesktop} mercadoProductos={mercadoProductos} mercadoPedidos={mercadoPedidos} setMercadoPedidos={setMercadoPedidos} toggleMercadoReserva={toggleMercadoReserva} toggleMercadoProducto={toggleMercadoProducto} />}
       {tab==="reservas" && <Suspense fallback={<ViewLoader/>}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} turnosRecurso={turnosRecurso} extrasReserva={extrasReserva} bloqueos={bloqueos} onReservaClick={r=>setDetailReserva(r)} onNewReserva={(fecha)=>{setEditReserva(null);if(fecha)setInitDate(fecha);setModal("reserva");}} onCobrar={r=>{setPagoReservaId(r.id);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="clientes" && <Suspense fallback={<ViewLoader/>}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} recursos={recursos} negocio={negocio} onDescartarSeguimiento={(r)=>{const updated={...r,seguimientoDescartado:true};saveR(reservas.map(x=>x.id===r.id?updated:x));showToast("Potencial descartado del seguimiento","info");}} /></Suspense>}
       {tab==="gastos" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><GastosViewLazy gastos={gastos} onNewGasto={()=>{setEditGasto(null);setModal("gasto");}} onEditGasto={(g)=>{setEditGasto(g);setModal("gasto");}} onDeleteGasto={handleDeleteGasto} /></Suspense></ErrorBoundary>}
