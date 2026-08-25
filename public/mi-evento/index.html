@@ -1314,13 +1314,14 @@
         html += '<div style="font-size:10px;color:var(--accent);background:rgba(196,96,43,0.1);padding:2px 8px;border-radius:6px;font-weight:700">elegi uno</div>';
         html += '</div>';
 
+        var gSlug = gName.replace(/[^a-zA-Z0-9]/g, '_');
         html += '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch">';
-        items.forEach(function(s) {
+        items.forEach(function(s, idx) {
           var isContracted = d.extras.some(function(e) { return e.descripcion === s.descripcion; });
           var isRequested = !!requestedExtras[s.id];
           var isSelected = isContracted || isRequested;
 
-          html += '<div style="flex:0 0 150px;background:var(--surface);border-radius:12px;border:2px solid ' + (isSelected ? 'var(--accent)' : 'var(--border)') + ';overflow:hidden;position:relative">';
+          html += '<div data-group-card="' + esc(gSlug) + '" data-card-name="' + esc(s.descripcion) + '" data-card-detail="' + esc(s.detalle || '') + '" style="flex:0 0 150px;background:var(--surface);border-radius:12px;border:2px solid ' + (isSelected ? 'var(--accent)' : 'var(--border)') + ';overflow:hidden;position:relative;cursor:pointer">';
 
           if (isSelected) {
             html += '<div style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#FFF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;z-index:2">✓</div>';
@@ -1334,10 +1335,7 @@
 
           html += '<div style="padding:10px 12px">';
           html += '<div style="font-size:12px;font-weight:700;color:var(--text-main);line-height:1.3;min-height:30px">' + esc(s.descripcion) + '</div>';
-          if (s.detalle) {
-            html += '<div style="font-size:10px;color:var(--text-sub);margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(s.detalle) + '</div>';
-          }
-          html += '<div style="font-size:15px;font-weight:700;color:var(--accent);margin-top:6px">' + fmtCurrency(s.precio) + '</div>';
+          html += '<div style="font-size:15px;font-weight:700;color:var(--accent);margin-top:4px">' + fmtCurrency(s.precio) + '</div>';
 
           if (isContracted) {
             html += '<button class="extra-btn sent" disabled style="width:100%;margin-top:6px;padding:7px;font-size:11px;border-radius:8px">Contratado ✓</button>';
@@ -1349,6 +1347,12 @@
 
           html += '</div></div>';
         });
+        html += '</div>';
+
+        // Detail panel that shows when tapping a card
+        html += '<div id="detail-' + esc(gSlug) + '" style="display:none;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-top:4px;margin-bottom:8px">';
+        html += '<div id="detail-' + esc(gSlug) + '-name" style="font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:4px"></div>';
+        html += '<div id="detail-' + esc(gSlug) + '-text" style="font-size:13px;color:var(--text-sub);line-height:1.5"></div>';
         html += '</div>';
       });
 
@@ -1616,6 +1620,27 @@
           showToast("Error de conexion");
           renderApp();
         });
+      });
+    });
+
+    // Group card detail toggle
+    document.querySelectorAll("[data-group-card]").forEach(function(card) {
+      card.addEventListener("click", function(e) {
+        if (e.target.closest("[data-extra-id]")) return;
+        var gSlug = card.getAttribute("data-group-card");
+        var name = card.getAttribute("data-card-name");
+        var detail = card.getAttribute("data-card-detail");
+        var panel = document.getElementById("detail-" + gSlug);
+        if (!panel) return;
+        var nameEl = document.getElementById("detail-" + gSlug + "-name");
+        var textEl = document.getElementById("detail-" + gSlug + "-text");
+        if (panel.style.display === "block" && nameEl.textContent === name) {
+          panel.style.display = "none";
+        } else {
+          if (nameEl) nameEl.textContent = name;
+          if (textEl) textEl.textContent = detail || "Sin descripcion adicional.";
+          panel.style.display = "block";
+        }
       });
     });
 
