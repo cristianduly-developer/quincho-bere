@@ -122,23 +122,25 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
       setPortalLoading(true);
       try {
         const portalIds = reservas.filter(r => r.shareToken).map(r => r.id);
-        if (!portalIds.length) { setPortalData({ rsvp: [], fotos: [], eventos: [] }); setPortalLoading(false); return; }
-        let allRsvp = [], allFotos = [], allEventos = [];
+        if (!portalIds.length) { setPortalData({ rsvp: [], fotos: [], eventos: [], pedidos: [] }); setPortalLoading(false); return; }
+        let allRsvp = [], allFotos = [], allEventos = [], allPedidos = [];
         for (let i = 0; i < portalIds.length; i += 200) {
           const chunk = portalIds.slice(i, i + 200);
-          const [rRes, fRes, eRes] = await Promise.all([
+          const [rRes, fRes, eRes, pRes] = await Promise.all([
             supabase.from("evento_rsvp").select("reserva_id, nombre, cantidad, estado, creado_en").in("reserva_id", chunk),
             supabase.from("evento_fotos").select("reserva_id, creado_en").in("reserva_id", chunk),
             supabase.from("portal_eventos").select("reserva_id, evento, creado_en").in("reserva_id", chunk),
+            supabase.from("mercado_pedidos").select("reserva_id, producto_nombre, producto_emoji, cantidad, total, estado, creado_en").in("reserva_id", chunk),
           ]);
           if (rRes.data) allRsvp = allRsvp.concat(rRes.data);
           if (fRes.data) allFotos = allFotos.concat(fRes.data);
           if (eRes.data) allEventos = allEventos.concat(eRes.data);
+          if (pRes.data) allPedidos = allPedidos.concat(pRes.data);
         }
-        if (!cancelled) setPortalData({ rsvp: allRsvp, fotos: allFotos, eventos: allEventos });
+        if (!cancelled) setPortalData({ rsvp: allRsvp, fotos: allFotos, eventos: allEventos, pedidos: allPedidos });
       } catch (err) {
         console.error("Portal fetch error:", err);
-        if (!cancelled) setPortalData({ rsvp: [], fotos: [], eventos: [] });
+        if (!cancelled) setPortalData({ rsvp: [], fotos: [], eventos: [], pedidos: [] });
       } finally {
         if (!cancelled) setPortalLoading(false);
       }
@@ -783,6 +785,12 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           const clicksInstagram = countEvento("click_instagram");
           const sobresAbiertos = countEvento("abrir_sobre");
           const mensajesMural = countEvento("enviar_mural");
+          const pwaInstaladas = countEvento("pwa_instalada");
+          const pwaAbiertas = countEvento("pwa_abierta");
+
+          const pedidosData = (portalData?.pedidos || []).filter(p => portalIds.has(p.reserva_id));
+          const totalPedidos = pedidosData.length;
+          const ingresosMercado = pedidosData.reduce((s, p) => s + (p.total || 0), 0);
 
           const parseSobre = (r) => { try { return typeof r.sobreDigital === "string" ? JSON.parse(r.sobreDigital) : r.sobreDigital; } catch { return null; } };
           const sobresActivos = portalRes.filter(r => parseSobre(r)?.activo).length;
@@ -822,8 +830,10 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             const sd = parseSobre(r);
             const visitasInv = evts.filter(e => e.evento === "vista_invitado").length;
             const visitasCli = evts.filter(e => e.evento === "vista_cliente").length;
-            const score = visitasInv + visitasCli + rsvps.length + fotos.length + (sd?.activo ? 1 : 0) + (r.shareHeroUrl ? 1 : 0) + (r.shareMessage ? 1 : 0);
-            return { id:r.id, nombre:r.nombreEvento||r.tipoEvento||"Evento", fecha:r.fecha, cliente:c?(c.nombre+" "+c.apellido).trim():"—", cantInvitados:r.cantInvitados||0, rsvpTotal:rsvps.length, rsvpConfirmados:rsvpConf, fotosCount:fotos.length, sobreActivo:!!sd?.activo, visitasInv, visitasCli, score };
+            const pedidos = pedidosData.filter(p => p.reserva_id === r.id);
+            const pedidosTotal = pedidos.reduce((s, p) => s + (p.total || 0), 0);
+            const score = visitasInv + visitasCli + rsvps.length + fotos.length + (sd?.activo ? 1 : 0) + (r.shareHeroUrl ? 1 : 0) + (r.shareMessage ? 1 : 0) + pedidos.length;
+            return { id:r.id, nombre:r.nombreEvento||r.tipoEvento||"Evento", fecha:r.fecha, cliente:c?(c.nombre+" "+c.apellido).trim():"—", cantInvitados:r.cantInvitados||0, rsvpTotal:rsvps.length, rsvpConfirmados:rsvpConf, fotosCount:fotos.length, sobreActivo:!!sd?.activo, visitasInv, visitasCli, pedidosCount:pedidos.length, pedidosTotal, score };
           }).sort((a, b) => b.score - a.score);
 
           if (totalPortales === 0) return (
@@ -878,6 +888,39 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               </div>
             </div>
 
+            {(pwaInstaladas > 0 || pwaAbiertas > 0 || totalPedidos > 0) && (
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+                {pwaInstaladas > 0 && (
+                  <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>PWA instalada</div>
+                    <div style={{fontSize:28,fontWeight:800,color:"#059669",fontFamily:"'Playfair Display',serif"}}>{pwaInstaladas}</div>
+                    <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>clientes la guardaron</div>
+                  </div>
+                )}
+                {pwaAbiertas > 0 && (
+                  <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>PWA aperturas</div>
+                    <div style={{fontSize:28,fontWeight:800,color:"#0891B2",fontFamily:"'Playfair Display',serif"}}>{pwaAbiertas}</div>
+                    <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>desde acceso directo</div>
+                  </div>
+                )}
+                {totalPedidos > 0 && (
+                  <>
+                    <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Pedidos mercado</div>
+                      <div style={{fontSize:28,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif"}}>{totalPedidos}</div>
+                      <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>desde portales</div>
+                    </div>
+                    <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Ingresos mercado</div>
+                      <div style={{fontSize:28,fontWeight:800,color:"#16A34A",fontFamily:"'Playfair Display',serif"}}>{fmtCurrency(ingresosMercado)}</div>
+                      <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>facturado day-of</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <div style={{...card,padding:"14px 16px",marginBottom:10}}>
               <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Adopción de funciones</div>
               {secciones.map(s => {
@@ -923,6 +966,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                       <span style={{fontSize:11,color:"#7C3AED",fontWeight:600}}>📋 {ev.rsvpConfirmados}/{ev.cantInvitados} RSVP</span>
                       <span style={{fontSize:11,color:"#3B82F6",fontWeight:600}}>📸 {ev.fotosCount} fotos</span>
                       {ev.sobreActivo && <span style={{fontSize:11,color:"#D97706",fontWeight:600}}>💝 Sobre activo</span>}
+                      {ev.pedidosCount > 0 && <span style={{fontSize:11,color:"#C4602B",fontWeight:600}}>🛒 {ev.pedidosCount} pedidos · {fmtCurrency(ev.pedidosTotal)}</span>}
                     </div>
                   </div>
                 ))}
