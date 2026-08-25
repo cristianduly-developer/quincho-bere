@@ -113,7 +113,7 @@ export default async function handler(req, res) {
           <div style="text-align:left;max-width:320px;margin:0 auto 14px;">
             <p style="font-size:13px;color:#3D2B1F;margin:4px 0;">📋 Revisa los datos de tu reserva y pagos</p>
             <p style="font-size:13px;color:#3D2B1F;margin:4px 0;">🔗 Arma la invitacion y compartila con tus invitados</p>
-            <p style="font-size:13px;color:#3D2B1F;margin:4px 0;">✨ Consulta extras disponibles (gazebo, fondo de fotos, etc.)</p>
+            <p style="font-size:13px;color:#3D2B1F;margin:4px 0;">✨ Consulta extras disponibles (inflables, fondo de fotos, etc.)</p>
           </div>
           <a href="${esc(eventoUrl.replace('/evento/', '/mi-evento/'))}" target="_blank" style="display:inline-block;padding:12px 28px;background:#C4602B;color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">Abrir mi portal</a>
         </div>` : ''}
