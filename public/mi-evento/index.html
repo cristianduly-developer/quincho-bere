@@ -877,7 +877,7 @@
     (function() {
       var link = document.createElement("link");
       link.rel = "manifest";
-      link.href = "/api/portal-manifest?token=" + encodeURIComponent(token);
+      link.href = "/api/set-access?action=manifest&token=" + encodeURIComponent(token);
       document.head.appendChild(link);
 
       var tipo = (data.reserva.tipo_evento || "").toLowerCase();

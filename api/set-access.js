@@ -6,13 +6,48 @@ export default async function handler(req, res) {
   if (origin === allowed || origin.endsWith('.vercel.app')) {
     res.setHeader('Access-Control-Allow-Origin', origin)
   }
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'content-type, x-app-key')
   if (req.method === 'OPTIONS') return res.status(200).end()
-  if (req.method !== 'POST') return res.status(405).json({ ok: false })
 
   const supa = createClient(process.env.VITE_SUPABASE_URL || process.env.VITE_SUPA_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
   const action = req.query.action
+
+  // ── manifest: GET para PWA (Chrome necesita URL real, no blob) ──
+  if (req.method === 'GET' && action === 'manifest') {
+    const tkn = req.query.token
+    if (!tkn || tkn.length < 8) return res.status(400).json({ error: 'token required' })
+    let reserva
+    const r1 = await supa.from('reservas').select('nombre_evento, tipo_evento, edit_token').eq('edit_token', tkn).single()
+    if (r1.data) { reserva = r1.data }
+    else { const r2 = await supa.from('reservas').select('nombre_evento, tipo_evento, edit_token').eq('share_token', tkn).single(); reserva = r2.data }
+    if (!reserva) return res.status(404).json({ error: 'not_found' })
+    const tipo = (reserva.tipo_evento || '').toLowerCase()
+    let emoji = '🎉'
+    if (tipo.includes('cumple') || tipo.includes('birthday')) emoji = '🎂'
+    else if (tipo.includes('casamiento') || tipo.includes('boda')) emoji = '💍'
+    else if (tipo.includes('bautismo')) emoji = '👼'
+    else if (tipo.includes('infantil') || tipo.includes('nene') || tipo.includes('nena')) emoji = '🎈'
+    else if (tipo.includes('empresa') || tipo.includes('corporate') || tipo.includes('after')) emoji = '🏢'
+    const appName = reserva.nombre_evento || 'Mi Evento'
+    const startToken = reserva.edit_token || tkn
+    res.setHeader('Content-Type', 'application/manifest+json')
+    res.setHeader('Cache-Control', 'no-cache')
+    return res.status(200).json({
+      name: emoji + ' ' + appName,
+      short_name: appName.length > 20 ? appName.slice(0, 18) + '…' : appName,
+      start_url: '/mi-evento/' + startToken,
+      display: 'standalone',
+      background_color: '#F6F2EC',
+      theme_color: '#C4602B',
+      icons: [
+        { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+        { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+      ]
+    })
+  }
+
+  if (req.method !== 'POST') return res.status(405).json({ ok: false })
 
   // ═══════════════════════════════════════════════════════
   // Portal del cliente (público, validado por share_token)
