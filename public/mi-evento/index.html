@@ -791,7 +791,7 @@
     var evDate = new Date(d.reserva.fecha + "T12:00:00");
     var now = new Date(); now.setHours(0,0,0,0);
     var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
-    if (dLeft < -1) return "";
+    if (dLeft > 10 || dLeft < -1) return "";
 
     if (!checklistInited) {
       return '<div style="margin:0 16px 16px">'
