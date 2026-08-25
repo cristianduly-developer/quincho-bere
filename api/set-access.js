@@ -47,7 +47,7 @@ export default async function handler(req, res) {
         supa.from('evento_rsvp').select('nombre, cantidad, estado, creado_en').eq('reserva_id', reserva.id).order('creado_en'),
         supa.from('evento_fotos').select('url, creado_en').eq('reserva_id', reserva.id).order('creado_en'),
         supa.from('pagos').select('monto, fecha, metodo').eq('reserva_id', reserva.id).order('fecha'),
-        supa.from('servicios_extras').select('id, descripcion, precio_actual, detalle, foto_url').eq('org_id', reserva.org_id).eq('activo', true),
+        supa.from('servicios_extras').select('id, descripcion, precio_actual, detalle, foto_url, grupo').eq('org_id', reserva.org_id).eq('activo', true),
         supa.from('extras_reserva').select('id, servicio_id, descripcion, cantidad, precio_historico').eq('reserva_id', reserva.id),
         supa.from('clientes').select('nombre, apellido').eq('id', reserva.cliente_id).single(),
         reserva.mercado_activo ? supa.from('mercado_productos').select('id, nombre, emoji, precio').eq('org_id', reserva.org_id).eq('activo', true).order('orden') : { data: [] },
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           saldo: Math.max(0, montoBase + totalExtras - totalPagado),
           detalle: pagos.map(p => ({ monto: Number(p.monto), fecha: p.fecha, metodo: p.metodo }))
         },
-        servicios: (serviciosRes.data || []).map(s => ({ id: s.id, descripcion: s.descripcion, precio: Number(s.precio_actual), detalle: s.detalle || '', foto_url: s.foto_url || '' })),
+        servicios: (serviciosRes.data || []).map(s => ({ id: s.id, descripcion: s.descripcion, precio: Number(s.precio_actual), detalle: s.detalle || '', foto_url: s.foto_url || '', grupo: s.grupo || '' })),
         extras: extrasData.map(e => ({ id: e.id, descripcion: e.descripcion, cantidad: e.cantidad, precio: Number(e.precio_historico) })),
         mercado: (mercadoRes.data || []).map(m => ({ id: m.id, nombre: m.nombre, emoji: m.emoji, precio: Number(m.precio) })),
       })

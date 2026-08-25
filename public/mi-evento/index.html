@@ -1281,35 +1281,112 @@
       html += '</div>';
     }
 
-    // Available extras
+    // Available extras — split into groups and singles
     if (d.servicios && d.servicios.length) {
-      html += '<div class="section-label" style="margin-top:8px;margin-bottom:12px">Servicios disponibles</div>';
+      var grupos = {};
+      var sueltos = [];
       d.servicios.forEach(function(s) {
-        var alreadyContracted = d.extras.some(function(e) { return e.descripcion === s.descripcion; });
-        var alreadyRequested = !!requestedExtras[s.id];
-
-        html += '<div class="extra-card">';
-        if (s.foto_url) {
-          html += '<img class="extra-img" src="' + esc(s.foto_url) + '" alt="" loading="lazy" />';
+        if (s.grupo) {
+          if (!grupos[s.grupo]) grupos[s.grupo] = [];
+          grupos[s.grupo].push(s);
         } else {
-          html += '<div class="extra-no-img">✨</div>';
+          sueltos.push(s);
         }
-        html += '<div class="extra-body">';
-        html += '<div class="extra-name">' + esc(s.descripcion) + '</div>';
-        if (s.detalle) {
-          html += '<div class="extra-detail">' + esc(s.detalle) + '</div>';
-        }
-        html += '<div class="extra-footer">';
-        html += '<div class="extra-price">' + fmtCurrency(s.precio) + '</div>';
-        if (alreadyContracted) {
-          html += '<button class="extra-btn sent" disabled>Contratado ✓</button>';
-        } else if (alreadyRequested) {
-          html += '<button class="extra-btn sent" disabled>Solicitado ✓</button>';
-        } else {
-          html += '<button class="extra-btn" data-extra-id="' + esc(s.id) + '">Solicitar</button>';
-        }
-        html += '</div></div></div>';
       });
+
+      var grupoNames = Object.keys(grupos);
+
+      // Render grouped extras
+      grupoNames.forEach(function(gName) {
+        var items = grupos[gName];
+        var groupContracted = items.filter(function(s) {
+          return d.extras.some(function(e) { return e.descripcion === s.descripcion; });
+        });
+        var selectedId = null;
+        if (groupContracted.length > 0) selectedId = groupContracted[0].id;
+        else {
+          var groupRequested = items.filter(function(s) { return !!requestedExtras[s.id]; });
+          if (groupRequested.length > 0) selectedId = groupRequested[0].id;
+        }
+
+        html += '<div style="margin-top:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px">';
+        html += '<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:16px;font-weight:700;color:var(--text-main)">' + esc(gName) + '</div>';
+        html += '<div style="font-size:10px;color:var(--accent);background:rgba(196,96,43,0.1);padding:2px 8px;border-radius:6px;font-weight:700">elegi uno</div>';
+        html += '</div>';
+
+        html += '<div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch">';
+        items.forEach(function(s) {
+          var isContracted = d.extras.some(function(e) { return e.descripcion === s.descripcion; });
+          var isRequested = !!requestedExtras[s.id];
+          var isSelected = isContracted || isRequested;
+
+          html += '<div style="flex:0 0 150px;background:var(--surface);border-radius:12px;border:2px solid ' + (isSelected ? 'var(--accent)' : 'var(--border)') + ';overflow:hidden;position:relative">';
+
+          if (isSelected) {
+            html += '<div style="position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#FFF;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;z-index:2">✓</div>';
+          }
+
+          if (s.foto_url) {
+            html += '<img src="' + esc(s.foto_url) + '" alt="" style="width:100%;height:90px;object-fit:cover;display:block" loading="lazy" />';
+          } else {
+            html += '<div style="width:100%;height:90px;background:linear-gradient(135deg,rgba(196,96,43,0.08),rgba(196,96,43,0.18));display:flex;align-items:center;justify-content:center;font-size:28px">✨</div>';
+          }
+
+          html += '<div style="padding:10px 12px">';
+          html += '<div style="font-size:12px;font-weight:700;color:var(--text-main);line-height:1.3;min-height:30px">' + esc(s.descripcion) + '</div>';
+          if (s.detalle) {
+            html += '<div style="font-size:10px;color:var(--text-sub);margin-top:2px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + esc(s.detalle) + '</div>';
+          }
+          html += '<div style="font-size:15px;font-weight:700;color:var(--accent);margin-top:6px">' + fmtCurrency(s.precio) + '</div>';
+
+          if (isContracted) {
+            html += '<button class="extra-btn sent" disabled style="width:100%;margin-top:6px;padding:7px;font-size:11px;border-radius:8px">Contratado ✓</button>';
+          } else if (isRequested) {
+            html += '<button class="extra-btn sent" disabled style="width:100%;margin-top:6px;padding:7px;font-size:11px;border-radius:8px">Solicitado ✓</button>';
+          } else {
+            html += '<button class="extra-btn" data-extra-id="' + esc(s.id) + '" style="width:100%;margin-top:6px;padding:7px;font-size:11px;border-radius:8px">Elegir</button>';
+          }
+
+          html += '</div></div>';
+        });
+        html += '</div>';
+      });
+
+      // Render single extras
+      if (sueltos.length > 0) {
+        if (grupoNames.length > 0) {
+          html += '<div style="margin-top:16px;margin-bottom:8px;font-family:\'Playfair Display\',Georgia,serif;font-size:16px;font-weight:700;color:var(--text-main)">Mas extras</div>';
+        } else {
+          html += '<div class="section-label" style="margin-top:8px;margin-bottom:12px">Servicios disponibles</div>';
+        }
+
+        sueltos.forEach(function(s) {
+          var alreadyContracted = d.extras.some(function(e) { return e.descripcion === s.descripcion; });
+          var alreadyRequested = !!requestedExtras[s.id];
+
+          html += '<div class="extra-card">';
+          if (s.foto_url) {
+            html += '<img class="extra-img" src="' + esc(s.foto_url) + '" alt="" loading="lazy" />';
+          } else {
+            html += '<div class="extra-no-img">✨</div>';
+          }
+          html += '<div class="extra-body">';
+          html += '<div class="extra-name">' + esc(s.descripcion) + '</div>';
+          if (s.detalle) {
+            html += '<div class="extra-detail">' + esc(s.detalle) + '</div>';
+          }
+          html += '<div class="extra-footer">';
+          html += '<div class="extra-price">' + fmtCurrency(s.precio) + '</div>';
+          if (alreadyContracted) {
+            html += '<button class="extra-btn sent" disabled>Contratado ✓</button>';
+          } else if (alreadyRequested) {
+            html += '<button class="extra-btn sent" disabled>Solicitado ✓</button>';
+          } else {
+            html += '<button class="extra-btn" data-extra-id="' + esc(s.id) + '">Solicitar</button>';
+          }
+          html += '</div></div></div>';
+        });
+      }
 
       html += '<div style="font-size:12px;color:var(--text-muted);margin-top:12px;line-height:1.5">Al solicitar un extra, le avisamos al lugar para que confirmen disponibilidad y precio. Te contactaran por WhatsApp.</div>';
     } else {
