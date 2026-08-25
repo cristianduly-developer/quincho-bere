@@ -305,8 +305,7 @@
     { key: "amenities",   label: "Que incluye el lugar",   icon: "🏊" },
     { key: "wifi",        label: "WiFi (dia del evento)",  icon: "📶" },
     { key: "fotos_lugar", label: "Fotos del lugar",        icon: "📷" },
-    { key: "fotos_evento",label: "Fotos del evento",       icon: "🎞️" },
-    { key: "sobre_digital",label: "Sobre digital",         icon: "💝" }
+    { key: "fotos_evento",label: "Fotos del evento",       icon: "🎞️" }
   ];
 
   var FIXED_SECTIONS = ["Condiciones del lugar", "Como llegar", "Reseña Google (post-evento)"];
@@ -1187,7 +1186,7 @@
     if (heroUrl) {
       html += '<div class="hero-preview"><img src="' + esc(heroUrl) + '" alt="" /><button class="hero-remove" id="hero-remove">✕ Quitar</button></div>';
     } else {
-      html += '<div class="hero-upload" id="hero-upload-btn"><span class="hero-upload-ico">' + (heroUploading ? "⏳" : "🖼️") + '</span><div><div class="hero-upload-text">' + (heroUploading ? "Subiendo..." : "Subir imagen") + '</div><div class="hero-upload-sub">JPG, PNG o WEBP · Max 3MB</div></div></div>';
+      html += '<div class="hero-upload" id="hero-upload-btn"><span class="hero-upload-ico">' + (heroUploading ? "⏳" : "🖼️") + '</span><div><div class="hero-upload-text">' + (heroUploading ? "Subiendo..." : "Subir imagen") + '</div><div class="hero-upload-sub">JPG, PNG o WEBP · Max 15MB</div></div></div>';
     }
     html += '</div>';
 
@@ -1468,7 +1467,7 @@
         if (!file) return;
         heroFile.value = "";
         if (!["image/jpeg","image/png","image/webp"].includes(file.type)) { showToast("Solo JPG, PNG o WEBP"); return; }
-        if (file.size > 3 * 1024 * 1024) { showToast("Max 3MB"); return; }
+        if (file.size > 15 * 1024 * 1024) { showToast("Max 15MB"); return; }
         heroUploading = true;
         renderApp();
         var img = new Image();

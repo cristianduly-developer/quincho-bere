@@ -3985,16 +3985,28 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                       const file=e.target.files?.[0]; if(!file) return;
                       const ALLOWED=["image/jpeg","image/png","image/webp"];
                       if(!ALLOWED.includes(file.type)){showToast("Solo JPG, PNG o WEBP.","error");e.target.value="";return;}
-                      if(file.size>3*1024*1024){showToast("Máximo 3MB por foto.","error");e.target.value="";return;}
-                      const ext=file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg";
-                      const path=`lugar/${getCurrentOrgId()}-${Date.now()}.${ext}`;
-                      const {error}=await supabase.storage.from("negocio-assets").upload(path,file,{upsert:true,contentType:file.type});
-                      if(error){showToast("Error al subir: "+error.message,"error");return;}
-                      const {data}=supabase.storage.from("negocio-assets").getPublicUrl(path);
-                      const url=data.publicUrl+"?t="+Date.now();
+                      if(file.size>15*1024*1024){showToast("Máximo 15MB por foto.","error");e.target.value="";return;}
                       const alt=file.name.replace(/\.[^.]+$/,"").replace(/[-_]/g," ");
-                      setNegForm(p=>({...p,fotosLugar:[...(p.fotosLugar||[]),{url,alt}]}));
-                      showToast("Foto agregada.","ok");
+                      const img=new Image();
+                      const objUrl=URL.createObjectURL(file);
+                      img.onload=async()=>{
+                        let w=img.width,h=img.height;
+                        if(w>1920){h=Math.round(h*1920/w);w=1920;}
+                        const canvas=document.createElement("canvas");
+                        canvas.width=w;canvas.height=h;
+                        canvas.getContext("2d").drawImage(img,0,0,w,h);
+                        URL.revokeObjectURL(objUrl);
+                        canvas.toBlob(async(blob)=>{
+                          const path=`lugar/${getCurrentOrgId()}-${Date.now()}.jpg`;
+                          const {error}=await supabase.storage.from("negocio-assets").upload(path,blob,{upsert:true,contentType:"image/jpeg"});
+                          if(error){showToast("Error al subir: "+error.message,"error");return;}
+                          const {data}=supabase.storage.from("negocio-assets").getPublicUrl(path);
+                          const url=data.publicUrl+"?t="+Date.now();
+                          setNegForm(p=>({...p,fotosLugar:[...(p.fotosLugar||[]),{url,alt}]}));
+                          showToast("Foto agregada.","ok");
+                        },"image/jpeg",0.85);
+                      };
+                      img.src=objUrl;
                       e.target.value="";
                     }} />
                   </label>
