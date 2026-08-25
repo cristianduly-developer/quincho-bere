@@ -470,7 +470,10 @@
   var _tracked = {};
   function track(evento) {
     if (!_trackCtx || _tracked[evento]) return;
+    var sk = "ev_" + _trackCtx.id + "_" + evento;
+    if (evento === "vista_invitado" && sessionStorage.getItem(sk)) return;
     _tracked[evento] = true;
+    if (evento === "vista_invitado") sessionStorage.setItem(sk, "1");
     supa("POST", "portal_eventos", {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,8),
       org_id: _trackCtx.org_id, reserva_id: _trackCtx.id, evento: evento

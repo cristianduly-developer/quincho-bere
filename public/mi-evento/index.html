@@ -404,7 +404,10 @@
   var _miTracked = false;
   function trackMi(evento) {
     if (_miTracked) return;
+    var sk = "mi_" + token + "_" + evento;
+    if (sessionStorage.getItem(sk)) return;
     _miTracked = true;
+    sessionStorage.setItem(sk, "1");
     api("portal-track", { token: token, edit_mode: true, evento: evento }, 0).catch(function(){});
   }
 
