@@ -676,7 +676,14 @@
       html += '</div></div>';
     }
 
-    // 2. RSVP
+    // 2. DEPOSITO DE GARANTIA
+    html += '<div class="tip-card"><div class="tip-ico" style="background:#FFF8E6">🏦</div><div>';
+    html += '<div class="tip-label">Deposito de garantia</div>';
+    html += '<div class="tip-text">Recorda traer el deposito de garantia el dia del evento</div>';
+    html += '<div class="tip-sub">Se devuelve al finalizar si el lugar queda en condiciones</div>';
+    html += '</div></div>';
+
+    // 3. RSVP
     var conf = rsvpList.filter(function(r) { return r.estado === "confirmado"; });
     var totalConf = conf.reduce(function(s, r) { return s + r.cantidad; }, 0);
     var totalInv = res.cant_invitados || 0;
