@@ -670,6 +670,11 @@
       html += '<div class="tip-label">Saldo pendiente</div>';
       html += '<div class="tip-text">Te queda un saldo de ' + fmtCurrency(pay.saldo) + '</div>';
       html += '<div class="tip-sub">Recorda que el saldo se abona antes o el dia del evento</div>';
+      if (d.negocio.telefono) {
+        var waNombre = (d.cliente.nombre || "") + " " + (d.cliente.apellido || "");
+        var waMsg = "Hola! Soy " + waNombre.trim() + ", mi evento es el " + fmtDate(res.fecha) + " y quiero coordinar para abonar mi saldo de " + fmtCurrency(pay.saldo) + ". Gracias!";
+        html += '<a href="https://wa.me/' + esc(d.negocio.telefono.replace(/\\D/g,"")) + '?text=' + encodeURIComponent(waMsg) + '" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;padding:8px 16px;background:#25D366;color:#FFF;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none">💬 Quiero abonar</a>';
+      }
       html += '</div></div>';
     } else if (pay.total > 0) {
       html += '<div class="tip-card"><div class="tip-ico tip-ico-rsvp">✅</div><div>';
@@ -1073,6 +1078,12 @@
       html += '</div>';
       html += '<div class="pay-bar"><div class="pay-bar-fill" style="width:' + pct + '%"></div></div>';
       html += '<div style="text-align:center;font-size:11px;color:var(--text-muted)">' + pct + '% abonado</div>';
+
+      if (pay.saldo > 0 && d.negocio.telefono) {
+        var waNombre2 = (d.cliente.nombre || "") + " " + (d.cliente.apellido || "");
+        var waMsg2 = "Hola! Soy " + waNombre2.trim() + ", mi evento es el " + fmtDate(d.reserva.fecha) + " (" + esc(d.reserva.tipo_evento || "evento") + ") y quiero coordinar para abonar mi saldo de " + fmtCurrency(pay.saldo) + ". Gracias!";
+        html += '<a href="https://wa.me/' + esc(d.negocio.telefono.replace(/\\D/g,"")) + '?text=' + encodeURIComponent(waMsg2) + '" target="_blank" rel="noopener" style="display:block;margin-top:12px;padding:12px;background:#25D366;color:#FFF;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;text-align:center">💬 Quiero abonar mi saldo</a>';
+      }
 
       if (pay.detalle && pay.detalle.length) {
         html += '<div class="pay-detail">';
