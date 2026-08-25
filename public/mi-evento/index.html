@@ -897,8 +897,8 @@
         background_color: "#F6F2EC",
         theme_color: "#C4602B",
         icons: [
-          { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icon-512.png", sizes: "512x512", type: "image/png" }
+          { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
         ]
       };
       var blob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
@@ -910,6 +910,10 @@
       document.querySelector('meta[name="apple-mobile-web-app-title"]') ||
         (function() { var m = document.createElement("meta"); m.name = "apple-mobile-web-app-title"; m.content = emoji + " " + appName; document.head.appendChild(m); })();
     })();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/mi-evento/sw.js").catch(function(){});
+    }
 
     // PWA tracking
     window.addEventListener("appinstalled", function() {
