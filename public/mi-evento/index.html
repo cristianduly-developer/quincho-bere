@@ -760,7 +760,6 @@
     if (data.reserva.sobre_digital) {
       var sd = data.reserva.sobre_digital;
       sobreDigital = {activo:!!sd.activo,mensaje:sd.mensaje||"",alias:sd.alias||"",cbu:sd.cbu||"",mpLink:sd.mpLink||"",metaNombre:sd.metaNombre||"",metaMonto:sd.metaMonto||0,montoJuntado:sd.montoJuntado||0,mostrarProgreso:!!sd.mostrarProgreso,muralActivo:sd.muralActivo!==false};
-      if (sd.activo) sections.sobre_digital = true;
     }
     document.title = (nombreEvento || "Mi Evento") + " — " + (data.negocio.nombre_negocio || "");
 
