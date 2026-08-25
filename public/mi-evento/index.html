@@ -873,8 +873,13 @@
     }
     document.title = (nombreEvento || "Mi Evento") + " — " + (data.negocio.nombre_negocio || "");
 
-    // PWA: manifest dinámico para "Agregar a inicio"
+    // PWA: manifest dinámico servido desde API
     (function() {
+      var link = document.createElement("link");
+      link.rel = "manifest";
+      link.href = "/api/portal-manifest?token=" + encodeURIComponent(token);
+      document.head.appendChild(link);
+
       var tipo = (data.reserva.tipo_evento || "").toLowerCase();
       var emoji = "🎉";
       if (tipo.indexOf("cumple") >= 0 || tipo.indexOf("birthday") >= 0) emoji = "🎂";
@@ -882,31 +887,7 @@
       else if (tipo.indexOf("bautismo") >= 0) emoji = "👼";
       else if (tipo.indexOf("infantil") >= 0 || tipo.indexOf("nene") >= 0 || tipo.indexOf("nena") >= 0) emoji = "🎈";
       else if (tipo.indexOf("empresa") >= 0 || tipo.indexOf("corporate") >= 0 || tipo.indexOf("after") >= 0) emoji = "🏢";
-      else if (tipo.indexOf("navidad") >= 0) emoji = "🎄";
-      else if (tipo.indexOf("año nuevo") >= 0) emoji = "🥂";
-      else if (tipo.indexOf("despedida") >= 0) emoji = "💃";
-      else if (tipo.indexOf("egresado") >= 0 || tipo.indexOf("graduacion") >= 0) emoji = "🎓";
-      else if (tipo.indexOf("reunion") >= 0 || tipo.indexOf("juntada") >= 0) emoji = "🍻";
       var appName = nombreEvento || "Mi Evento";
-      var manifest = {
-        name: emoji + " " + appName,
-        short_name: appName.length > 20 ? appName.slice(0, 18) + "…" : appName,
-        description: "Tu evento en " + (data.negocio.nombre_negocio || "nuestro espacio"),
-        start_url: window.location.href,
-        display: "standalone",
-        background_color: "#F6F2EC",
-        theme_color: "#C4602B",
-        icons: [
-          { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
-        ]
-      };
-      var blob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
-      var url = URL.createObjectURL(blob);
-      var link = document.createElement("link");
-      link.rel = "manifest";
-      link.href = url;
-      document.head.appendChild(link);
       document.querySelector('meta[name="apple-mobile-web-app-title"]') ||
         (function() { var m = document.createElement("meta"); m.name = "apple-mobile-web-app-title"; m.content = emoji + " " + appName; document.head.appendChild(m); })();
     })();
