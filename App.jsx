@@ -2424,7 +2424,7 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
   );
 });
 
-function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaClick }) {
+function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaClick, mercadoProductos, toggleMercadoReserva }) {
   const c = clientes.find(x=>x.id===nextEvento.clienteId);
   const extrasForNext = extrasReserva.filter(e=>e.reservaId===nextEvento.id);
   const saldo = getSaldo(nextEvento, extrasReserva, pagos);
@@ -2463,6 +2463,24 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
         <div style={{background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:8}}>
           <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.7)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>✨ Extras</div>
           {extrasForNext.map((e,i)=><div key={i} style={{fontSize:12,color:"rgba(255,255,255,0.9)"}}>· {e.descripcion} x{e.cantidad}</div>)}
+        </div>
+      )}
+      {mercadoProductos && mercadoProductos.filter(p=>p.activo).length > 0 && (
+        <div style={{marginBottom:8}}>
+          <button onClick={(e)=>{e.stopPropagation();toggleMercadoReserva(nextEvento.id,!nextEvento.mercadoActivo);}} style={{
+            background:nextEvento.mercadoActivo?"rgba(255,255,255,0.25)":"rgba(255,255,255,0.1)",
+            border:nextEvento.mercadoActivo?"2px solid rgba(255,255,255,0.6)":"2px solid rgba(255,255,255,0.2)",
+            color:"#FFF",borderRadius:10,padding:"8px 14px",cursor:"pointer",
+            display:"flex",alignItems:"center",gap:8,width:"100%",fontFamily:"inherit",
+            transition:"all 0.2s ease",
+          }}>
+            <span style={{fontSize:18}}>{nextEvento.mercadoActivo?"🟢":"🛒"}</span>
+            <div style={{textAlign:"left",flex:1}}>
+              <div style={{fontSize:13,fontWeight:800}}>{nextEvento.mercadoActivo?"Mercado ACTIVO":"Activar Mercado"}</div>
+              <div style={{fontSize:10,opacity:0.8}}>{nextEvento.mercadoActivo?"Los organizadores pueden pedir productos":"Toca para habilitar pedidos en el portal"}</div>
+            </div>
+            <span style={{fontSize:14,opacity:0.7}}>{nextEvento.mercadoActivo?"✓":"›"}</span>
+          </button>
         </div>
       )}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2690,7 +2708,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
       ) : (
         <>
           {/* ── Próximo Evento (mobile) ── */}
-          {nextEvento ? NextEventoCard({nextEvento, clientes, extrasReserva, pagos, onReservaClick}) : (
+          {nextEvento ? NextEventoCard({nextEvento, clientes, extrasReserva, pagos, onReservaClick, mercadoProductos, toggleMercadoReserva}) : (
             <div style={{background:"#F9F6F2",borderRadius:14,padding:"20px 18px",marginBottom:14,border:"1.5px dashed #D4C5B5",textAlign:"center"}}>
               <div style={{fontSize:32,marginBottom:8}}>🗓</div>
               <div style={{fontWeight:700,fontSize:15,color:"#8B7355",marginBottom:4}}>No hay eventos próximos programados</div>
@@ -2720,7 +2738,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
       )}
 
       {/* ── Próximo Evento (desktop) ── */}
-      {isDesktop && (nextEvento ? NextEventoCard({nextEvento, clientes, extrasReserva, pagos, onReservaClick}) : (
+      {isDesktop && (nextEvento ? NextEventoCard({nextEvento, clientes, extrasReserva, pagos, onReservaClick, mercadoProductos, toggleMercadoReserva}) : (
         <div style={{background:"#F9F6F2",borderRadius:14,padding:"16px 18px",marginBottom:14,border:"1.5px dashed #D4C5B5",textAlign:"center"}}>
           <div style={{fontWeight:700,fontSize:14,color:"#8B7355"}}>🗓 No hay eventos próximos programados</div>
         </div>
@@ -2865,59 +2883,6 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           })}
         </div>
       )}
-
-      {/* ── Mercado del Evento ── */}
-      {(mercadoProductos||[]).length>0 && (() => {
-        const todayEvts = reservas.filter(r=>r.fecha===today&&(r.estado==="confirmada"||r.estado==="senada"));
-        if(todayEvts.length===0) return null;
-        return todayEvts.map(r => {
-          const c = clientes.find(x=>x.id===r.clienteId);
-          const pedidosEvt = (mercadoPedidos||[]).filter(p=>p.reservaId===r.id);
-          const totalPedidos = pedidosEvt.reduce((s,p)=>s+p.total,0);
-          return (
-            <div key={"merc-"+r.id} style={{...card,padding:"14px 16px",marginBottom:12,border:r.mercadoActivo?"2px solid #16A34A":"1.5px solid #EDE0D0"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <div>
-                  <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>🛒 Mercado</div>
-                  <div style={{fontSize:12,color:"#8B7355",marginTop:1}}>{clientName(c)} · {r.horario||"--"}</div>
-                </div>
-                <button onClick={()=>toggleMercadoReserva(r.id,!r.mercadoActivo)}
-                  style={{padding:"6px 16px",borderRadius:20,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",
-                    background:r.mercadoActivo?"#16A34A":"#EF4444",color:"#FFF",transition:"background 0.2s"}}>
-                  {r.mercadoActivo?"🟢 Abierto":"🔴 Cerrado"}
-                </button>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {(mercadoProductos||[]).map(p=>(
-                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:p.activo?"#F0FDF4":"#FEF2F2",borderRadius:8,border:`1px solid ${p.activo?"#BBF7D0":"#FECACA"}`}}>
-                    <span style={{fontSize:18}}>{p.emoji||"📦"}</span>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{p.nombre}</div>
-                      <div style={{fontSize:11,color:"#8B7355"}}>${(p.precio||0).toLocaleString("es-AR")}</div>
-                    </div>
-                    <button onClick={()=>toggleMercadoProducto(p.id,!p.activo)}
-                      style={{padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"none",
-                        background:p.activo?"#16A34A":"#D1D5DB",color:p.activo?"#FFF":"#6B7280",transition:"background 0.2s"}}>
-                      {p.activo?"Disponible":"Agotado"}
-                    </button>
-                  </div>
-                ))}
-              </div>
-              {pedidosEvt.length>0 && (
-                <div style={{marginTop:10,padding:"8px 10px",background:"#FDF8F3",borderRadius:8,border:"1px solid #EDE0D0"}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#5C4033",marginBottom:4}}>📋 Pedidos ({pedidosEvt.length}) · ${totalPedidos.toLocaleString("es-AR")}</div>
-                  {pedidosEvt.slice(0,5).map(ped=>(
-                    <div key={ped.id} style={{fontSize:12,color:"#1C1C1E",padding:"3px 0",borderBottom:"1px solid #F5EDE4"}}>
-                      {ped.productoEmoji} {ped.productoNombre} x{ped.cantidad} · ${ped.total.toLocaleString("es-AR")} · <span style={{color:ped.estado==="pagado"?"#16A34A":"#F59E0B",fontWeight:600}}>{ped.estado}</span>
-                    </div>
-                  ))}
-                  {pedidosEvt.length>5 && <div style={{fontSize:11,color:"#8B7355",marginTop:4}}>+{pedidosEvt.length-5} más...</div>}
-                </div>
-              )}
-            </div>
-          );
-        });
-      })()}
 
       {/* ── Tareas del Quincho ── */}
       <div style={{...card,padding:"14px 16px"}}>

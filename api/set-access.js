@@ -176,11 +176,11 @@ export default async function handler(req, res) {
       const editPed = req.body?.edit_mode === true
       let reserva
       if (editPed) {
-        const r1 = await supa.from('reservas').select('id, org_id, mercado_activo').eq('edit_token', tkn).single()
+        const r1 = await supa.from('reservas').select('id, org_id, cliente_id, fecha, mercado_activo').eq('edit_token', tkn).single()
         if (r1.data) { reserva = r1.data }
-        else { const r2 = await supa.from('reservas').select('id, org_id, mercado_activo').eq('share_token', tkn).single(); reserva = r2.data }
+        else { const r2 = await supa.from('reservas').select('id, org_id, cliente_id, fecha, mercado_activo').eq('share_token', tkn).single(); reserva = r2.data }
       } else {
-        const r0 = await supa.from('reservas').select('id, org_id, mercado_activo').eq('share_token', tkn).single()
+        const r0 = await supa.from('reservas').select('id, org_id, cliente_id, fecha, mercado_activo').eq('share_token', tkn).single()
         reserva = r0.data
       }
       if (!reserva) return res.status(404).json({ ok: false, error: 'not_found' })
@@ -188,20 +188,49 @@ export default async function handler(req, res) {
 
       const cant = Math.max(1, Number(cantidad) || 1)
       const precio = Number(precio_unitario) || 0
+      const total = cant * precio
       const pedidoId = Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
-      const { error: insErr } = await supa.from('mercado_pedidos').insert({
-        id: pedidoId,
-        org_id: reserva.org_id,
-        reserva_id: reserva.id,
-        producto_nombre,
-        producto_emoji: producto_emoji || '📦',
-        cantidad: cant,
-        precio_unitario: precio,
-        total: cant * precio,
-        estado: 'pendiente',
-      })
-      if (insErr) return res.status(500).json({ ok: false, error: insErr.message })
-      return res.json({ ok: true, pedido_id: pedidoId })
+      const extraId = 'mkt-' + pedidoId
+
+      const [pedidoRes, extraRes] = await Promise.all([
+        supa.from('mercado_pedidos').insert({
+          id: pedidoId,
+          org_id: reserva.org_id,
+          reserva_id: reserva.id,
+          producto_nombre,
+          producto_emoji: producto_emoji || '📦',
+          cantidad: cant,
+          precio_unitario: precio,
+          total,
+          estado: 'pendiente',
+        }),
+        supa.from('extras_reserva').insert({
+          id: extraId,
+          org_id: reserva.org_id,
+          reserva_id: reserva.id,
+          servicio_id: null,
+          descripcion: `🛒 ${producto_emoji || '📦'} ${producto_nombre}`,
+          cantidad: cant,
+          precio_historico: precio,
+        }),
+      ])
+
+      if (pedidoRes.error) return res.status(500).json({ ok: false, error: pedidoRes.error.message })
+
+      const [cliRes, cfgRes] = await Promise.all([
+        supa.from('clientes').select('nombre, apellido').eq('id', reserva.cliente_id).single(),
+        supa.from('config').select('telefono').eq('org_id', reserva.org_id).single(),
+      ])
+      const cliNombre = [cliRes.data?.nombre, cliRes.data?.apellido].filter(Boolean).join(' ') || 'Cliente'
+      const ownerPhone = (cfgRes.data?.telefono || '').replace(/[\s-]/g, '')
+
+      let waLink = null
+      if (ownerPhone) {
+        const msg = `🛒 *Nuevo pedido del Mercado*\n\n${producto_emoji || '📦'} *${producto_nombre}* x${cant}\n💰 Total: $${total.toLocaleString('es-AR')}\n👤 ${cliNombre}\n📅 Evento: ${reserva.fecha}\n\n_Pedido registrado automáticamente como extra en la reserva._`
+        waLink = `https://wa.me/${ownerPhone}?text=${encodeURIComponent(msg)}`
+      }
+
+      return res.json({ ok: true, pedido_id: pedidoId, wa_link: waLink })
     }
 
     // ── portal-track: registra evento de analytics ──

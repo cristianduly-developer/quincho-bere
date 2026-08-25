@@ -367,6 +367,9 @@
           setTimeout(function() { msgEl.style.display = "none"; }, 4000);
         }
         showToast("Pedido enviado!");
+        if (r.wa_link) {
+          setTimeout(function() { window.open(r.wa_link, "_blank"); }, 800);
+        }
       } else {
         showToast("Error al pedir, intenta de nuevo");
       }
