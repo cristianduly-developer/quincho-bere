@@ -234,6 +234,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         ))}
       </div>
 
+      {subtab==="financiero" && <>
       {/* Selector de modo */}
       <div style={{display:"flex",gap:0,marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0"}}>
         {[{v:"mes",l:"📅 Por mes"},{v:"rango",l:"📆 Por fechas"}].map(o=>(
@@ -263,6 +264,14 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
               style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 10px",fontSize:13,fontFamily:"inherit",color:"#1C1C1E",background:"#FDF8F3"}} />
           </div>
+        </div>
+      )}
+      </>}
+
+      {subtab==="portal" && (
+        <div style={{padding:"10px 0 6px",marginBottom:8,textAlign:"center"}}>
+          <span style={{fontSize:13,fontWeight:700,color:"#8B7355"}}>📱 Portales activos</span>
+          <span style={{fontSize:12,color:"#A89279",marginLeft:6}}>(últimos 30 días + próximos eventos)</span>
         </div>
       )}
 
@@ -766,11 +775,9 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             <div style={{fontSize:14,color:"#8B7355",fontWeight:600}}>Cargando datos del portal...</div>
           </div>
         ) : (()=>{
-          const hoy = new Date().toISOString().slice(0,10);
-          const hace30 = new Date(Date.now() - 30*86400000).toISOString().slice(0,10);
-          const portalRes = reservas.filter(r => r.shareToken && r.fecha >= hace30 && r.estado !== "cancelada");
+          const portalRes = reservas.filter(r => r.shareToken && r.estado !== "cancelada");
           const totalPortales = portalRes.length;
-          const allNoCancel = reservas.filter(r => r.fecha >= hace30 && r.estado !== "cancelada");
+          const allNoCancel = reservas.filter(r => r.estado !== "cancelada");
           const pctAdopcion = allNoCancel.length > 0 ? Math.round((totalPortales / allNoCancel.length) * 100) : 0;
 
           const portalIds = new Set(portalRes.map(r => r.id));
