@@ -565,7 +565,7 @@
     html += '<div class="hero-info-strip">';
     html += '<div class="hero-info-block"><div class="hero-info-label">Fecha</div><div class="hero-info-value">' + dayName + ' ' + dayNum + '</div><div class="hero-info-sub">' + monthName + ' ' + year + '</div></div>';
     html += '<div class="hero-info-block"><div class="hero-info-label">Horario</div><div class="hero-info-value">' + esc(ev.horario || "") + ' a ' + esc(ev.horario_fin || "") + '</div>' + (ev.turno && ev.turno.length < 20 ? '<div class="hero-info-sub">' + esc(ev.turno) + '</div>' : '') + '</div>';
-    if (state === "live") {
+    if (state === "live" && sec.ver_confirmados !== false) {
       html += '<div class="hero-info-block"><div class="hero-info-label">Confirmados</div><div class="hero-info-value">' + totalConf + '</div><div class="hero-info-sub">personas</div></div>';
     } else {
       html += '<div class="hero-info-block"><div class="hero-info-label">Invitados</div><div class="hero-info-value">' + (ev.cant_invitados || 0) + '</div><div class="hero-info-sub">personas</div></div>';
@@ -589,6 +589,7 @@
         html += '<button class="rsvp-btn rsvp-btn-yes" id="btn-confirm">Confirmo que voy</button>';
         html += '<button class="rsvp-btn rsvp-btn-no" id="btn-decline">No puedo ir esta vez</button>';
         html += '</div></div>';
+        if (sec.ver_confirmados !== false) {
         html += '<div class="rsvp-divider"></div>';
         html += '<div class="rsvp-confirmed-label"><span>✅</span> Confirmados</div>';
         html += '<div class="rsvp-guests" id="guest-list">';
@@ -598,6 +599,7 @@
         });
         html += '</div>';
         html += '<div class="rsvp-total" id="rsvp-total"><strong>' + totalConf + '</strong> personas confirmadas de ' + (ev.cant_invitados || 0) + ' invitados</div>';
+        }
         html += '</div>';
       }
 
@@ -697,7 +699,7 @@
       }
 
       // RSVP (summary only)
-      if (sec.rsvp !== false && totalConf > 0) {
+      if (sec.rsvp !== false && sec.ver_confirmados !== false && totalConf > 0) {
         html += '<div class="rsvp-summary"><div class="rsvp-summary-ico">👥</div><div><div class="rsvp-summary-num">' + totalConf + ' personas</div><div class="rsvp-summary-label">confirmaron asistencia</div></div></div>';
       }
 
