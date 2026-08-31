@@ -486,7 +486,7 @@
 
   function renderNudges(d) {
     var res = d.reserva;
-    var evDate = new Date(res.fecha + "T12:00:00");
+    var evDate = new Date(res.fecha + "T00:00:00");
     var now = new Date(); now.setHours(0,0,0,0);
     var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
 
@@ -562,7 +562,7 @@
     var res = d.reserva;
     var pay = d.pagos;
     var rsvpList = d.rsvp || [];
-    var evDate = new Date(res.fecha + "T12:00:00");
+    var evDate = new Date(res.fecha + "T00:00:00");
     var now = new Date(); now.setHours(0,0,0,0);
     var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
 
@@ -798,7 +798,7 @@
   }
 
   function renderChecklist(d) {
-    var evDate = new Date(d.reserva.fecha + "T12:00:00");
+    var evDate = new Date(d.reserva.fecha + "T00:00:00");
     var now = new Date(); now.setHours(0,0,0,0);
     var dLeft = Math.ceil((evDate.getTime() - now.getTime()) / 86400000);
     if (dLeft > 10 || dLeft < -1) return "";
@@ -911,7 +911,7 @@
     }
 
     // Fetch clima si faltan <=2 dias
-    var evD = new Date(data.reserva.fecha + "T12:00:00");
+    var evD = new Date(data.reserva.fecha + "T00:00:00");
     var nowD = new Date(); nowD.setHours(0,0,0,0);
     var daysL = Math.ceil((evD.getTime() - nowD.getTime()) / 86400000);
     if (daysL >= 0 && daysL <= 2 && !weatherData) fetchWeather(data.reserva.fecha);
@@ -1031,7 +1031,7 @@
   function renderReservaTab(d) {
     var res = d.reserva;
     var neg = d.negocio;
-    var evDate = new Date(res.fecha + "T12:00:00");
+    var evDate = new Date(res.fecha + "T00:00:00");
     var dayName = DAYS[evDate.getDay()];
     var dayNum = evDate.getDate();
     var monthName = MONTHS[evDate.getMonth()];
@@ -1381,7 +1381,7 @@
   // ════════════════════════════════════════════
   function renderExtrasTab(d) {
     var html = '';
-    var evDateEx = new Date(d.reserva.fecha + "T12:00:00");
+    var evDateEx = new Date(d.reserva.fecha + "T00:00:00");
     var nowEx = new Date(); nowEx.setHours(0,0,0,0);
     var dLeftEx = Math.ceil((evDateEx.getTime() - nowEx.getTime()) / 86400000);
     var extrasCerrados = dLeftEx <= 0;
