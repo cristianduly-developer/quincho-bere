@@ -352,6 +352,9 @@
     .mural-send{width:100%;padding:10px;background:var(--accent);color:#FFF;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s}
     .mural-send:active{background:var(--accent-hover)}
     .mural-send:disabled{opacity:.6;cursor:default}
+    .powered{text-align:center;padding:18px 16px 24px;opacity:.45;transition:opacity .2s}
+    .powered:hover{opacity:.7}
+    .powered a{color:var(--text-muted);text-decoration:none;font-size:11px;font-weight:500;letter-spacing:.04em}
   </style>
 </head>
 <body>
@@ -804,6 +807,8 @@
     if (addr) {
       html += '<div class="sticky"><a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr) + '" target="_blank" rel="noopener">📍 Como llegar — ' + esc(addr) + '</a></div>';
     }
+
+    html += '<div class="powered"><a href="https://solucionesmdp.com.ar" target="_blank" rel="noopener">Powered by SolucionesMDP</a></div>';
 
     $("app").innerHTML = html;
 
