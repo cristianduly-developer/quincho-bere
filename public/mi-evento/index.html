@@ -931,6 +931,9 @@
     var res = d.reserva;
     var cli = d.cliente;
     var clienteName = [cli.nombre, cli.apellido].filter(Boolean).join(" ") || "Organizador";
+    var evDateR = new Date(res.fecha + "T00:00:00");
+    var nowR = new Date(); nowR.setHours(0,0,0,0);
+    var eventoPasado = nowR.getTime() > evDateR.getTime();
 
     var html = '';
 
@@ -961,10 +964,12 @@
     var rsvpBadge = rsvpCount > 0 ? '<span style="background:var(--green);color:#FFF;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">' + rsvpCount + '</span>' : '';
     html += '<div class="tabs"><div class="tabs-inner">';
     html += '<button class="tab' + (activeTab === "reserva" ? " active" : "") + '" data-tab="reserva"><span class="tab-ico">📋</span>Mi Reserva' + rsvpBadge + '</button>';
-    html += '<button class="tab' + (activeTab === "evento" ? " active" : "") + '" data-tab="evento"><span class="tab-ico">🔗</span>Mi Evento</button>';
-    var hasRegalo = d.reserva.regalo_descuento && d.reserva.regalo_enviado_en && (Date.now() < new Date(d.reserva.regalo_enviado_en).getTime() + 72*60*60*1000);
+    html += '<button class="tab' + (activeTab === "evento" ? " active" : "") + '" data-tab="evento"><span class="tab-ico">' + (eventoPasado ? '📋' : '🔗') + '</span>' + (eventoPasado ? 'Resumen' : 'Mi Evento') + '</button>';
+    var hasRegalo = !eventoPasado && d.reserva.regalo_descuento && d.reserva.regalo_enviado_en && (Date.now() < new Date(d.reserva.regalo_enviado_en).getTime() + 72*60*60*1000);
     var regaloBadge = hasRegalo ? '<span style="background:#FFD700;color:#1C1C1E;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:4px">🎁</span>' : '';
-    html += '<button class="tab' + (activeTab === "extras" ? " active" : "") + '" data-tab="extras"><span class="tab-ico">✨</span>Extras' + regaloBadge + '</button>';
+    if (!eventoPasado) {
+      html += '<button class="tab' + (activeTab === "extras" ? " active" : "") + '" data-tab="extras"><span class="tab-ico">✨</span>Extras' + regaloBadge + '</button>';
+    }
     html += '</div></div>';
 
     // Content
@@ -973,12 +978,17 @@
     // Welcome (first visit feel)
     html += '<div class="welcome">';
     html += '<div class="welcome-hi">Hola ' + esc(clienteName.split(" ")[0]) + ' 👋</div>';
-    html += '<div class="welcome-title">Este es el portal de tu evento</div>';
-    html += '<div class="welcome-sub">Desde aca podes ver los datos de tu reserva, armar la invitacion para tus invitados y solicitar extras.</div>';
+    if (eventoPasado) {
+      html += '<div class="welcome-title">Tu evento ya paso</div>';
+      html += '<div class="welcome-sub">Gracias por elegirnos. Aca podes ver el resumen de tu evento, las fotos y los datos de tu reserva.</div>';
+    } else {
+      html += '<div class="welcome-title">Este es el portal de tu evento</div>';
+      html += '<div class="welcome-sub">Desde aca podes ver los datos de tu reserva, armar la invitacion para tus invitados y solicitar extras.</div>';
+    }
     html += '</div>';
 
-    // Tips, checklist y mercado solo en solapa Reserva
-    if (activeTab === "reserva") {
+    // Tips, checklist y mercado solo en solapa Reserva (y solo pre/live)
+    if (activeTab === "reserva" && !eventoPasado) {
 
     // Tips pre-evento (48hs antes)
     html += renderTipsPanel(d);
@@ -1018,9 +1028,10 @@
 
     } // fin if reserva (tips/checklist/mercado)
 
+    if (eventoPasado && activeTab === "extras") activeTab = "reserva";
     if (activeTab === "reserva") html += renderReservaTab(d);
-    if (activeTab === "evento") html += renderEventoTab(d);
-    if (activeTab === "extras") html += renderExtrasTab(d);
+    if (activeTab === "evento") html += renderEventoTab(d, eventoPasado);
+    if (activeTab === "extras" && !eventoPasado) html += renderExtrasTab(d);
 
     html += '</div>';
     html += '<div class="powered"><a href="https://solucionesmdp.com.ar" target="_blank" rel="noopener">Powered by SolucionesMDP</a></div>';
@@ -1242,23 +1253,31 @@
   // ════════════════════════════════════════════
   // TAB 2: MI EVENTO
   // ════════════════════════════════════════════
-  function renderEventoTab(d) {
+  function renderEventoTab(d, eventoPasado) {
     var res = d.reserva;
     var shareUrl = shareToken ? (window.location.origin + "/evento/" + shareToken) : "";
 
     var html = '';
 
-    // Intro
-    html += '<div class="tab-intro">';
-    html += '<div class="tab-intro-title">🔗 Arma la invitacion para tus invitados</div>';
-    html += '<div class="tab-intro-text">Configura como se ve la pagina de tu evento y comparti el link con tus invitados. Ellos van a poder confirmar asistencia, ver la info y subir fotos el dia del evento.</div>';
-    html += '<ul class="tab-intro-steps">';
-    html += '<li><span class="step-num">1</span>Personaliza tu evento: nombre, mensaje, colores y foto</li>';
-    html += '<li><span class="step-num">2</span>Guarda los cambios</li>';
-    html += '<li><span class="step-num">3</span>Copia el link y mandalo por WhatsApp a tus invitados</li>';
-    html += '</ul>';
-    html += '</div>';
+    if (eventoPasado) {
+      html += '<div class="tab-intro">';
+      html += '<div class="tab-intro-title">📋 Resumen de tu evento</div>';
+      html += '<div class="tab-intro-text">Tu evento ya finalizo. Aca podes ver como quedo la invitacion y las confirmaciones que recibiste.</div>';
+      html += '</div>';
+    } else {
+      // Intro
+      html += '<div class="tab-intro">';
+      html += '<div class="tab-intro-title">🔗 Arma la invitacion para tus invitados</div>';
+      html += '<div class="tab-intro-text">Configura como se ve la pagina de tu evento y comparti el link con tus invitados. Ellos van a poder confirmar asistencia, ver la info y subir fotos el dia del evento.</div>';
+      html += '<ul class="tab-intro-steps">';
+      html += '<li><span class="step-num">1</span>Personaliza tu evento: nombre, mensaje, colores y foto</li>';
+      html += '<li><span class="step-num">2</span>Guarda los cambios</li>';
+      html += '<li><span class="step-num">3</span>Copia el link y mandalo por WhatsApp a tus invitados</li>';
+      html += '</ul>';
+      html += '</div>';
+    }
 
+    if (!eventoPasado) {
     // Event name
     html += '<div class="card">';
     html += '<div class="card-title">✏️ Nombre del evento</div>';
@@ -1353,10 +1372,16 @@
     html += '<button class="btn" id="btn-save" ' + (saving ? "disabled" : "") + '>' + (saving ? "Guardando..." : "💾 Guardar cambios") + '</button>';
     html += '</div>';
 
+    } // fin if (!eventoPasado) — edición bloqueada post-evento
+
     // Generated link
     html += '<div class="card" style="margin-top:16px">';
-    html += '<div class="card-title">🔗 Link para tus invitados</div>';
-    html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;line-height:1.5">Copia este link y mandalo por WhatsApp o redes a tus invitados. Ahi van a poder confirmar si van, ver la info del evento y subir fotos el dia del evento.</div>';
+    html += '<div class="card-title">🔗 Link ' + (eventoPasado ? 'del evento' : 'para tus invitados') + '</div>';
+    if (eventoPasado) {
+      html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;line-height:1.5">Link de la pagina de tu evento. Los invitados todavia pueden ver las fotos y dejar una reseña.</div>';
+    } else {
+      html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;line-height:1.5">Copia este link y mandalo por WhatsApp o redes a tus invitados. Ahi van a poder confirmar si van, ver la info del evento y subir fotos el dia del evento.</div>';
+    }
     html += '<div class="link-box"><span class="link-url">' + esc(shareUrl) + '</span><button class="link-copy" id="btn-copy">Copiar</button></div>';
     html += '<div style="display:flex;gap:8px;margin-top:10px">';
     html += '<a href="' + esc(shareUrl) + '" target="_blank" rel="noopener" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;background:var(--surface-warm);border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-weight:600;color:var(--text);text-decoration:none;font-family:inherit">👁️ Vista previa</a>';
