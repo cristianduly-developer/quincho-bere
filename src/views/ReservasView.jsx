@@ -747,9 +747,7 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
       ) : groups.map(g=>(
         <div key={g.label}>
           <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:".7px",margin:"16px 0 8px"}}>{g.label}</div>
-          {g.label==="📅 Esta semana" ? (
-            <WeeklyGrid reservas={reservas} clientes={clientes} recursos={recursos} turnosRecurso={turnosRecurso} onReservaClick={onReservaClick} />
-          ) : g.items.map(r=>(
+          {g.items.map(r=>(
             <ReservaCard key={r.id} r={r} clientes={clientes} recursos={recursos} extrasReserva={extrasReserva} pagos={pagos}
               onReservaClick={onReservaClick} onCobrar={onCobrar} negocio={negocio} turnosRecurso={turnosRecurso} />
           ))}
