@@ -5614,14 +5614,31 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           }
         }
         const {data:dbConflicts}=await supabase.from("reservas").select("id,cliente_id,turno,turno_id,recurso_id").eq("fecha",data.fecha).eq("org_id",getCurrentOrgId()).neq("estado","cancelada");
-        const conflict=dbConflicts?.find(r=>r.recurso_id===data.recursoId&&(
-          data.turnoId
-            ? (r.turno_id===data.turnoId || r.turno==="completo")
-            : (r.turno===data.turno||r.turno==="completo"||data.turno==="completo"||!!r.turno_id)
-        ));
+        const toMinC=s=>{const[h,m]=(s+":0").split(":");return Number(h)*60+Number(m||0);};
+        const solapanC=(a,b)=>toMinC(a.horaInicio)<toMinC(b.horaFin)&&toMinC(b.horaInicio)<toMinC(a.horaFin);
+        const turnoNew=turnosRecurso.find(t=>t.id===data.turnoId);
+        const conflict=dbConflicts?.find(r=>{
+          if(r.recurso_id!==data.recursoId) return false;
+          if(data.turnoId&&r.turno_id===data.turnoId) return true;
+          if(r.turno==="completo"||data.turno==="completo") return true;
+          const turnoExist=turnosRecurso.find(t=>t.id===(r.turno_id||r.turno));
+          if(turnoExist&&turnoNew&&solapanC(turnoExist,turnoNew)) return true;
+          if(!data.turnoId&&(r.turno===data.turno)) return true;
+          return false;
+        });
         if(conflict){const c=clientes.find(x=>x.id===conflict.cliente_id);showToast("Conflicto: ya existe una reserva de "+clientName(c)+" en ese espacio, día y turno.","error");return;}
-        const bloqueoConflict=bloqueos.find(b=>b.fecha===data.fecha&&(b.turno===data.turnoId||b.turno===data.turno||b.turno==="completo"||(data.turno==="completo"&&b.turno)));
-        if(bloqueoConflict){showToast("Fecha bloqueada: "+bloqueoConflict.motivo+". Desbloqueala primero desde el calendario.","error");return;}
+        const toMinB=s=>{const[h,m]=(s+":0").split(":");return Number(h)*60+Number(m||0);};
+        const solapanB=(a,b)=>toMinB(a.horaInicio)<toMinB(b.horaFin)&&toMinB(b.horaInicio)<toMinB(a.horaFin);
+        const turnoNuevo=turnosRecurso.find(t=>t.id===data.turnoId);
+        const bloqueoConflict=bloqueos.find(b=>{
+          if(b.fecha!==data.fecha) return false;
+          if(b.turno==="completo") return true;
+          if(b.turno===data.turnoId||b.turno===data.turno) return true;
+          const turnoBlq=turnosRecurso.find(t=>t.id===b.turno);
+          if(turnoBlq&&turnoNuevo&&solapanB(turnoBlq,turnoNuevo)) return true;
+          return false;
+        });
+        if(bloqueoConflict){showToast("Fecha bloqueada: "+(bloqueoConflict.motivo||"sin motivo")+". Desbloqueala primero desde el calendario.","error");return;}
       }
       if(editReserva){
         await saveR(reservas.map(r=>r.id===editReserva.id?{...r,...data}:r));
