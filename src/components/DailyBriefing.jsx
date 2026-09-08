@@ -137,6 +137,16 @@ function generarAlertas({ reservas, clientes, pagos, extrasReserva, recursos, se
     alertasHoy.push({ icon:"🎉", texto:`Hoy: ${clientName(c)}${turnoLabel?` · ${turnoLabel}`:""}${r.cantInvitados>0?` · ${r.cantInvitados} personas`:""}` });
   }
 
+  // Visitas programadas hoy y mañana
+  reservas.filter(r => r.estado === "visita" && (r.fechaVisita || r.fecha) === hoy).forEach(r => {
+    const c = clientes.find(x=>x.id===r.clienteId);
+    alertasHoy.push({ icon:"👁️", texto:`Visita programada hoy: ${clientName(c)}${r.horaVisita?` a las ${r.horaVisita} hs`:""} — viene a conocer el espacio.`, urgente:true });
+  });
+  reservas.filter(r => r.estado === "visita" && (r.fechaVisita || r.fecha) === toISO(dias7[1])).forEach(r => {
+    const c = clientes.find(x=>x.id===r.clienteId);
+    alertasSemana.push({ icon:"👁️", texto:`Visita mañana: ${clientName(c)}${r.horaVisita?` a las ${r.horaVisita} hs`:""} — tené el espacio presentable.` });
+  });
+
   const extrasHoy = {};
   eventosHoy.forEach(r => {
     extrasReserva.filter(e=>e.reservaId===r.id).forEach(e => {
@@ -220,7 +230,7 @@ function generarAlertas({ reservas, clientes, pagos, extrasReserva, recursos, se
     oportunidades.push({ icon:"📊", texto:`Semana cargada: ${eventosSemana.length} eventos. Confirmá logística de pileta y limpieza.` });
   }
 
-  const visitasHoy = reservas.filter(r => r.estado === "visita" && r.fechaVisita === hoy).map(r => {
+  const visitasHoy = reservas.filter(r => r.estado === "visita" && (r.fechaVisita || r.fecha) === hoy).map(r => {
     const c = clientes.find(x=>x.id===r.clienteId);
     return { reserva: r, cliente: c };
   });

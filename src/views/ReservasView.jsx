@@ -155,6 +155,7 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
   const deuda = saldo > 0;
   const ACTIVAS = ["visita","pendiente","senada","confirmada"];
   const activa = ACTIVAS.includes(r.estado);
+  const esVisita = r.estado === "visita";
   const customTurno = r.turnoId && turnosRecurso?.find(t=>t.id===r.turnoId);
   const turnoLabel = customTurno ? customTurno.nombre : (TURNOS[r.turno]?.label || r.turno);
   const turnoIcon = customTurno ? "🕐" : (TURNOS[r.turno]?.icon || "");
@@ -164,11 +165,18 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
     const neg = negocio?.nombreNegocio || "nuestro espacio";
     const tel = c?.whatsapp?.replace(/\D/g,"");
     if (!tel) return;
+    if (esVisita) {
+      const fv = r.fechaVisita || r.fecha;
+      const msg = `Hola ${clientName(c)} 👋, te escribimos desde *${neg}*.\n\nTe confirmamos tu visita para el *${fmtDate(fv)}*${r.horaVisita?` a las *${r.horaVisita} hs*`:""}. ¡Te esperamos!`;
+      window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`);
+      return;
+    }
     const msg = `Hola ${clientName(c)} 👋, te escribimos desde *${neg}*.\n\nTu reserva para el *${fmtDate(r.fecha)}* está registrada.\n${deuda ? `Recordá que tenés un saldo pendiente de *${fmtCurrency(saldo)}*.` : "¡Ya tenés todo pagado! ✅"}`;
     window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`);
   };
 
-  const diff = diffDays(r.fecha);
+  const fechaPrincipal = esVisita ? (r.fechaVisita || r.fecha) : r.fecha;
+  const diff = diffDays(fechaPrincipal);
   const urgente = activa && diff >= 0 && diff <= 3;
 
   const st = STATUS[r.estado];
@@ -188,29 +196,45 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
           <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             {urgente && <span style={{marginRight:4}}>🔔</span>}{clientName(c)}
           </div>
-          <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
-            {fmtDate(r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{` · ${turnoIcon} ${turnoLabel}`}{horarioStr?` (${horarioStr})`:""}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div>
-          <div style={{fontSize:11,color:"#8B7355"}}>🏠 {rec?.nombre||"Sin espacio"}{r.tipoEvento ? ` · 🎉 ${r.tipoEvento}` : ""}</div>
+          {esVisita ? (
+            <>
+              <div style={{fontSize:12,color:"#7C3AED",marginTop:2,fontWeight:600}}>
+                👁️ Visita {fmtDate(r.fechaVisita||r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{r.horaVisita?` · ${r.horaVisita} hs`:""}
+              </div>
+              <div style={{fontSize:11,color:"#8B7355",marginTop:1}}>
+                📅 Fecha de interés: {fmtDate(r.fecha)}{r.tipoEvento?` · 🎉 ${r.tipoEvento}`:""} · 🏠 {rec?.nombre||"Sin espacio"}
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
+                {fmtDate(r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{` · ${turnoIcon} ${turnoLabel}`}{horarioStr?` (${horarioStr})`:""}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div>
+              <div style={{fontSize:11,color:"#8B7355"}}>🏠 {rec?.nombre||"Sin espacio"}{r.tipoEvento ? ` · 🎉 ${r.tipoEvento}` : ""}</div>
+            </>
+          )}
         </div>
         <StatusBadge estado={r.estado} />
       </div>
 
-      {activa && <ProgressBar pct={pct} />}
+      {activa && !esVisita && <ProgressBar pct={pct} />}
 
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:activa?0:8}}>
-        <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-          <span style={{fontSize:12,fontWeight:700,color:deuda?"#C4602B":saldo===0?"#16A34A":"#8B7355"}}>
-            {deuda ? `⚠️ Saldo ${fmtCurrency(saldo)}` : `✅ ${fmtCurrency(total)}`}
-          </span>
-          {r.proximoPagoMonto && activa && (() => {
-            const vencido = r.proximoPagoFecha && diffDays(r.proximoPagoFecha) < 0;
-            return (
-              <span style={{fontSize:10,fontWeight:600,color:"#fff",background:vencido?"#DC2626":"#16A34A",borderRadius:4,padding:"2px 6px",whiteSpace:"nowrap"}}>
-                ⏳ {fmtCurrency(r.proximoPagoMonto)}{r.proximoPagoFecha ? ` · ${fmtDate(r.proximoPagoFecha)}` : ""}
-              </span>
-            );
-          })()}
-        </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:activa&&!esVisita?0:8}}>
+        {!esVisita && (
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+            <span style={{fontSize:12,fontWeight:700,color:deuda?"#C4602B":saldo===0?"#16A34A":"#8B7355"}}>
+              {deuda ? `⚠️ Saldo ${fmtCurrency(saldo)}` : `✅ ${fmtCurrency(total)}`}
+            </span>
+            {r.proximoPagoMonto && activa && (() => {
+              const vencido = r.proximoPagoFecha && diffDays(r.proximoPagoFecha) < 0;
+              return (
+                <span style={{fontSize:10,fontWeight:600,color:"#fff",background:vencido?"#DC2626":"#16A34A",borderRadius:4,padding:"2px 6px",whiteSpace:"nowrap"}}>
+                  ⏳ {fmtCurrency(r.proximoPagoMonto)}{r.proximoPagoFecha ? ` · ${fmtDate(r.proximoPagoFecha)}` : ""}
+                </span>
+              );
+            })()}
+          </div>
+        )}
+        {esVisita && <div style={{fontSize:12,color:"#7C3AED",fontWeight:600}}>👁️ Viene a conocer el espacio</div>}
         {activa && (
           <div style={{display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>
             {c?.whatsapp && (
@@ -218,7 +242,7 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
                 💬 WA
               </button>
             )}
-            {deuda && r.estado!=="visita" && (
+            {deuda && !esVisita && (
               <button onClick={()=>onCobrar(r)} style={{padding:"4px 10px",borderRadius:6,border:"0.5px solid #C4602B",background:"#C4602B",color:"#FFF",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                 💰 Cobrar
               </button>
@@ -666,7 +690,8 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
     }
 
     const isHistorial = filter==="historial";
-    list.sort((a,b)=>isHistorial ? b.fecha.localeCompare(a.fecha) : a.fecha.localeCompare(b.fecha));
+    const getFechaPrincipal = r => r.estado === "visita" ? (r.fechaVisita || r.fecha) : r.fecha;
+    list.sort((a,b)=>isHistorial ? getFechaPrincipal(b).localeCompare(getFechaPrincipal(a)) : getFechaPrincipal(a).localeCompare(getFechaPrincipal(b)));
     return list;
   }, [reservas, clientes, pagos, extrasReserva, recursos, filter, search]);
 
@@ -676,8 +701,9 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
     const map = {};
     const ORDER = ["📅 Esta semana","📆 Este mes","🗓️ Más adelante","📋 Sin fecha futura"];
     filtered.forEach(r => {
-      const diff = diffDays(r.fecha);
-      const lbl = diff < 0 ? "📋 Sin fecha futura" : groupLabel(r.fecha);
+      const fp = r.estado === "visita" ? (r.fechaVisita || r.fecha) : r.fecha;
+      const diff = diffDays(fp);
+      const lbl = diff < 0 ? "📋 Sin fecha futura" : groupLabel(fp);
       if (!map[lbl]) map[lbl] = [];
       map[lbl].push(r);
     });
@@ -686,6 +712,7 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
 
   const FILTERS = [
     { v:"activas",   l:"Activas" },
+    { v:"visita",    l:"👁️ Visitas" },
     { v:"saldo",     l:"⚠️ Con saldo" },
     { v:"vencidos",  l:"⏰ Vencidos" },
     { v:"senada",    l:"Señada" },

@@ -561,7 +561,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
       {f.tipoEvento && <Input label="Nombre del evento (opcional)" value={f.nombreEvento} onChange={set("nombreEvento")} placeholder={`${f.tipoEvento} de ${clientes.find(c=>c.id===f.clienteId)?.nombre||"..."}`} />}
       <Select label="Espacio" value={f.recursoId} onChange={set("recursoId")}
         options={recursos.map(r=>({value:r.id,label:r.nombre}))} />
-      <Input label="Fecha del evento" type="date" value={f.fecha} onChange={set("fecha")} required />
+      <Input label={f.estado==="visita"?"Fecha de interés (evento)":"Fecha del evento"} type="date" value={f.fecha} onChange={set("fecha")} required />
 
       {/* Selector de turno: custom si hay turnos configurados, genérico si no */}
       {fechaSinTemporada ? (
@@ -1034,9 +1034,9 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
             )}
           </div>
           <div>
-            <div style={labelStyle}>Fecha del evento</div>
+            <div style={labelStyle}>{reserva.estado==="visita"?"Fecha de interés":"Fecha del evento"}</div>
             <div style={{fontWeight:700,fontSize:16,color:"#1C1C1E"}}>{fmtDate(reserva.fecha)}</div>
-            {(reserva.horario||reserva.horarioFin) && <div style={{fontSize:13,color:"#8B7355",marginTop:4}}>⏰ {reserva.horario||"—"} → {reserva.horarioFin||"—"}</div>}
+            {reserva.estado!=="visita"&&(reserva.horario||reserva.horarioFin) && <div style={{fontSize:13,color:"#8B7355",marginTop:4}}>⏰ {reserva.horario||"—"} → {reserva.horarioFin||"—"}</div>}
           </div>
           {recurso && <div><div style={labelStyle}>Espacio</div><div style={{fontSize:14,color:"#1C1C1E"}}>🏠 {recurso.nombre}</div></div>}
           {reserva.tipoEvento && <div><div style={labelStyle}>Tipo de evento</div><div style={{fontSize:14,color:"#1C1C1E"}}>🎉 {reserva.tipoEvento}</div></div>}
@@ -2557,6 +2557,24 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
             );
           })
         )}
+        {(()=>{
+          const visitasDia=reservas.filter(r=>r.estado==="visita"&&(r.fechaVisita||r.fecha)===diaVista);
+          if(visitasDia.length===0) return null;
+          return visitasDia.map(r=>{
+            const cli=clientes.find(c=>c.id===r.clienteId);
+            return (
+              <button key={r.id} onClick={()=>onReservaClick(r)}
+                style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,width:"100%",marginBottom:6,
+                  border:"1.5px solid #DDD6FE",background:"#F5F3FF",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",width:96,flexShrink:0}}>👁️ Visita{r.horaVisita?` ${r.horaVisita}`:""}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:700,color:"#7C3AED"}}>{cli?clientName(cli):"Cliente"}</div>
+                  <div style={{fontSize:10,color:"#8B7355"}}>Viene a conocer el espacio{r.tipoEvento?` · ${r.tipoEvento}`:""}</div>
+                </div>
+              </button>
+            );
+          });
+        })()}
         {!isPast&&!hayBloqueoCompleto&&(
           <button onClick={()=>onDayClick(diaVista,reservasDia,espacioEfectivo||"all")}
             style={{width:"100%",padding:"10px",marginTop:4,border:"1.5px dashed #C4602B",borderRadius:8,
@@ -2581,11 +2599,17 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
   const confirmadas=useMemo(()=>reservas.filter(r=>r.estado==="confirmada"||r.estado==="senada").length,[reservas]);
   const totalPorCobrar=useMemo(()=>reservas.filter(r=>r.estado!=="cancelada"&&r.estado!=="finalizada").reduce((s,r)=>s+Math.max(0,getSaldo(r,extrasReserva,pagos)),0),[reservas,extrasReserva,pagos]);
   const upcoming=useMemo(()=>reservas.filter(r=>{
-    if(r.estado==="cancelada"||r.estado==="finalizada") return false;
+    if(r.estado==="cancelada"||r.estado==="finalizada"||r.estado==="visita") return false;
     if(r.fecha<today) return false;
     if(r.fecha===today&&r.horarioFin&&curTimeDash>r.horarioFin) return false;
     return true;
   }).sort((a,b)=>(a.fecha+(a.horario||"00:00")).localeCompare(b.fecha+(b.horario||"00:00"))),[reservas,today,curTimeDash]);
+  const upcomingVisitas=useMemo(()=>reservas.filter(r=>{
+    if(r.estado!=="visita") return false;
+    const fv=r.fechaVisita||r.fecha;
+    if(fv<today) return false;
+    return true;
+  }).sort((a,b)=>(a.fechaVisita||a.fecha).localeCompare(b.fechaVisita||b.fecha)),[reservas,today]);
   const tmReservas=useMemo(()=>reservas.filter(r=>r.fecha===tmStr&&(r.estado==="senada"||r.estado==="confirmada")&&!r.recordatorioEnviado),[reservas,tmStr]);
 
   const applyTemplate=(template,r)=>{
@@ -2862,6 +2886,30 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div><div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(c)}</div><div style={{fontSize:12,color:"#8B7355",marginTop:2}}>{fmtDate(r.fecha)} · {TURNOS[r.turno]?.icon||"📌"} {(r.turnoId&&turnosRecurso?.find(t=>t.id===r.turnoId)?.nombre)||TURNOS[r.turno]?.label||r.turno}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div></div>
                   <div style={{textAlign:"right"}}><StatusBadge estado={r.estado} />{saldo>0&&<div style={{fontSize:11,color:"#DC2626",fontWeight:700,marginTop:4}}>⚠️ {fmtCurrency(saldo)}</div>}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {upcomingVisitas.length>0 && (
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#7C3AED",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>👁️ Próximas visitas</div>
+          {upcomingVisitas.slice(0,5).map(r=>{
+            const c=clientes.find(x=>x.id===r.clienteId);
+            const fv=r.fechaVisita||r.fecha;
+            const diffV=Math.ceil((new Date(fv+"T00:00:00")-new Date(today+"T00:00:00"))/(1000*60*60*24));
+            return (
+              <div key={r.id} onClick={()=>onReservaClick(r)} style={{...card,padding:"12px 14px",marginBottom:8,cursor:"pointer",background:"#F5F3FF",border:"1px solid #DDD6FE",borderLeft:"3px solid #7C3AED",borderRadius:"0 12px 12px 0"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(c)}</div>
+                    <div style={{fontSize:12,color:"#7C3AED",marginTop:2,fontWeight:600}}>
+                      👁️ Visita {fmtDate(fv)}{diffV===0?" · Hoy":diffV===1?" · Mañana":""}{r.horaVisita?` · ${r.horaVisita} hs`:""}
+                    </div>
+                    {r.fecha&&<div style={{fontSize:11,color:"#8B7355",marginTop:1}}>📅 Fecha de interés: {fmtDate(r.fecha)}{r.tipoEvento?` · ${r.tipoEvento}`:""}</div>}
+                  </div>
+                  <StatusBadge estado="visita" />
                 </div>
               </div>
             );
