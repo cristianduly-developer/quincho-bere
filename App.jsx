@@ -1008,7 +1008,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
     <BottomModal title={reserva.estado==="visita"?"Detalle de Visita":"Detalle de Reserva"} onClose={onClose}>
       {/* Badges */}
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
-        {reserva.estado!=="visita"&&<TurnoBadge turno={reserva.turno} label={reserva.turnoId&&(turnosRecurso||[]).find(t=>t.id===reserva.turnoId)?.nombre} />}
+        <TurnoBadge turno={reserva.turno} label={reserva.turnoId&&(turnosRecurso||[]).find(t=>t.id===reserva.turnoId)?.nombre} />
         <StatusBadge estado={reserva.estado} />
         {reserva.tipoEvento && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#7C3AED",background:"#F5F3FF",border:"1px solid #DDD6FE"}}>{reserva.tipoEvento}</span>}
         {saldo>0 && reserva.estado!=="visita" && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA"}}>⚠️ Saldo pendiente</span>}
@@ -1036,7 +1036,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
           <div>
             <div style={labelStyle}>{reserva.estado==="visita"?"Fecha de interés":"Fecha del evento"}</div>
             <div style={{fontWeight:700,fontSize:16,color:"#1C1C1E"}}>{fmtDate(reserva.fecha)}</div>
-            {reserva.estado!=="visita"&&(reserva.horario||reserva.horarioFin) && <div style={{fontSize:13,color:"#8B7355",marginTop:4}}>⏰ {reserva.horario||"—"} → {reserva.horarioFin||"—"}</div>}
+            {(reserva.horario||reserva.horarioFin) && <div style={{fontSize:13,color:reserva.estado==="visita"?"#7C3AED":"#8B7355",marginTop:4}}>⏰ {reserva.estado==="visita"?"Horario de interés: ":""}{reserva.horario||"—"} → {reserva.horarioFin||"—"}</div>}
           </div>
           {recurso && <div><div style={labelStyle}>Espacio</div><div style={{fontSize:14,color:"#1C1C1E"}}>🏠 {recurso.nombre}</div></div>}
           {reserva.tipoEvento && <div><div style={labelStyle}>Tipo de evento</div><div style={{fontSize:14,color:"#1C1C1E"}}>🎉 {reserva.tipoEvento}</div></div>}
