@@ -147,6 +147,19 @@ function generarAlertas({ reservas, clientes, pagos, extrasReserva, recursos, se
     alertasSemana.push({ icon:"👁️", texto:`Visita mañana: ${clientName(c)}${r.horaVisita?` a las ${r.horaVisita} hs`:""} — tené el espacio presentable.` });
   });
 
+  // Cobros agendados hoy y vencidos
+  reservas.filter(r => r.proximoPagoFecha && r.proximoPagoMonto && r.estado !== "cancelada" && r.estado !== "finalizada").forEach(r => {
+    const c = clientes.find(x=>x.id===r.clienteId);
+    if (r.proximoPagoFecha === hoy) {
+      alertasHoy.push({ icon:"💰", texto:`Cobro agendado hoy: ${fmtCurrency(r.proximoPagoMonto)} de ${clientName(c)} (evento ${fmtDate(r.fecha)}).`, urgente:true });
+    } else if (r.proximoPagoFecha < hoy) {
+      alertasHoy.push({ icon:"⚠️", texto:`Cobro vencido: ${fmtCurrency(r.proximoPagoMonto)} de ${clientName(c)} — venció el ${fmtDate(r.proximoPagoFecha)}.`, urgente:true });
+    } else if (dias7ISO.includes(r.proximoPagoFecha)) {
+      const dow = new Date(r.proximoPagoFecha+"T12:00:00").getDay();
+      alertasSemana.push({ icon:"💰", texto:`Cobro el ${DIAS_FULL[dow]}: ${fmtCurrency(r.proximoPagoMonto)} de ${clientName(c)}.` });
+    }
+  });
+
   const extrasHoy = {};
   eventosHoy.forEach(r => {
     extrasReserva.filter(e=>e.reservaId===r.id).forEach(e => {
