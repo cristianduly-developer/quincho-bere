@@ -1005,13 +1005,13 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
   const saldo        = totalEvento - totalPagado;
 
   return (
-    <BottomModal title="Detalle de Reserva" onClose={onClose}>
+    <BottomModal title={reserva.estado==="visita"?"Detalle de Visita":"Detalle de Reserva"} onClose={onClose}>
       {/* Badges */}
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
-        <TurnoBadge turno={reserva.turno} label={reserva.turnoId&&(turnosRecurso||[]).find(t=>t.id===reserva.turnoId)?.nombre} />
+        {reserva.estado!=="visita"&&<TurnoBadge turno={reserva.turno} label={reserva.turnoId&&(turnosRecurso||[]).find(t=>t.id===reserva.turnoId)?.nombre} />}
         <StatusBadge estado={reserva.estado} />
         {reserva.tipoEvento && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#7C3AED",background:"#F5F3FF",border:"1px solid #DDD6FE"}}>{reserva.tipoEvento}</span>}
-        {saldo>0 && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA"}}>⚠️ Saldo pendiente</span>}
+        {saldo>0 && reserva.estado!=="visita" && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA"}}>⚠️ Saldo pendiente</span>}
       </div>
 
       {/* Visita panel */}
@@ -1045,8 +1045,8 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
         {reserva.notas && <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #EDE0D0",fontSize:13,color:"#5C4033"}}>📝 {reserva.notas}</div>}
       </div>
 
-      {/* Financial breakdown */}
-      <div style={{...card,padding:16,marginBottom:12}}>
+      {/* Financial breakdown — oculto para visitas */}
+      {reserva.estado!=="visita"&&<div style={{...card,padding:16,marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
           <span style={{fontSize:13,color:"#8B7355"}}>Monto pactado</span>
           <span style={{fontWeight:600}}>{fmtCurrency(reserva.montoPactado)}</span>
@@ -1073,10 +1073,10 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
             <span style={{fontWeight:800,color:saldo>0?"#DC2626":"#16A34A"}}>{fmtCurrency(Math.abs(saldo))}</span>
           </div>
         )}
-      </div>
+      </div>}
 
-      {/* Extras section */}
-      <div style={{marginBottom:16}}>
+      {/* Extras section — oculto para visitas */}
+      {reserva.estado!=="visita"&&<div style={{marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={labelStyle}>🎉 Extras contratados</div>
           {getPlanLimits(plan).serviciosExtras===false
@@ -1094,10 +1094,10 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
             <span style={{fontWeight:700,color:"#D97706",fontSize:14}}>{fmtCurrency(e.cantidad*e.precioHistorico)}</span>
           </div>
         ))}
-      </div>
+      </div>}
 
-      {/* Próximo pago acordado */}
-      {canModifyCaja && reserva.estado!=="cancelada" && reserva.estado!=="finalizada" && (
+      {/* Próximo pago acordado — oculto para visitas */}
+      {reserva.estado!=="visita" && canModifyCaja && reserva.estado!=="cancelada" && reserva.estado!=="finalizada" && (
         <div style={{marginBottom:12}}>
           {reserva.proximoPagoFecha && reserva.proximoPagoMonto ? (
             <div style={{background: new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "#FEF2F2":"#FFF8E1",
@@ -1150,8 +1150,8 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
         </div>
       )}
 
-      {/* Payments timeline */}
-      <div style={{marginBottom:16}}>
+      {/* Payments timeline — oculto para visitas */}
+      {reserva.estado!=="visita"&&<div style={{marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={labelStyle}>💰 Historial de cobros</div>
           <Btn small onClick={onNewPago}>+ Cobro</Btn>
@@ -1197,7 +1197,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
             ))}
           </div>
         )}
-      </div>
+      </div>}
 
       {editingPago&&<EditPagoModal pago={editingPago} onClose={()=>setEditingPago(null)} onSave={p=>{onEditPago(p);setEditingPago(null);}} />}
 
@@ -1247,10 +1247,10 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       )}
 
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-        <Btn small onClick={()=>onShowPDF(printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio))}>🖨️ PDF</Btn>
-        <Btn small variant="secondary" onClick={()=>onShowPDF(printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio))}>📄 Contrato</Btn>
+        {reserva.estado!=="visita"&&<Btn small onClick={()=>onShowPDF(printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio))}>🖨️ PDF</Btn>}
+        {reserva.estado!=="visita"&&<Btn small variant="secondary" onClick={()=>onShowPDF(printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio))}>📄 Contrato</Btn>}
         <Btn small variant="secondary" onClick={onEdit}>✏️ Editar</Btn>
-        {canModifyCaja&&reserva.estado!=="cancelada"&&reserva.estado!=="finalizada"&&(
+        {reserva.estado!=="visita"&&canModifyCaja&&reserva.estado!=="cancelada"&&reserva.estado!=="finalizada"&&(
           <Btn small variant="secondary" onClick={()=>setShowReschedule(v=>!v)}>📅 Reprogramar</Btn>
         )}
         {onCancel&&canModifyCaja&&reserva.estado!=="cancelada"&&reserva.estado!=="finalizada"&&(
@@ -1264,13 +1264,13 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
               <Btn small variant="ghost" onClick={()=>setConfirmDelete(false)}>No</Btn>
             </div>
         }
-        {reserva.estado!=="cancelada"&&negocio?.portalActivo!==false&&getPlanLimits(plan).portal!==false&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir portal</Btn>}
-        {reserva.estado!=="cancelada"&&getPlanLimits(plan).portal===false&&<Btn small variant="secondary" onClick={()=>showToast("El portal de clientes está disponible en el plan Profesional o superior.","warn")} style={{opacity:0.6}}>🔒 Portal (plan superior)</Btn>}
+        {reserva.estado!=="visita"&&reserva.estado!=="cancelada"&&negocio?.portalActivo!==false&&getPlanLimits(plan).portal!==false&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir portal</Btn>}
+        {reserva.estado!=="visita"&&reserva.estado!=="cancelada"&&getPlanLimits(plan).portal===false&&<Btn small variant="secondary" onClick={()=>showToast("El portal de clientes está disponible en el plan Profesional o superior.","warn")} style={{opacity:0.6}}>🔒 Portal (plan superior)</Btn>}
         <Btn small variant="ghost" onClick={onClose}>Cerrar</Btn>
       </div>
 
       {/* Panel Evento Compartido */}
-      {showSharePanel && (()=>{
+      {reserva.estado!=="visita"&&showSharePanel && (()=>{
         const portalUrl=reserva.editToken ? (window.location.origin+"/mi-evento/"+reserva.editToken) : (reserva.shareToken ? (window.location.origin+"/mi-evento/"+reserva.shareToken) : null);
         const shareUrl=reserva.shareToken ? (window.location.origin+"/evento/"+reserva.shareToken) : null;
         const handleGenerate=async()=>{
