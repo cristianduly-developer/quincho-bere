@@ -1375,13 +1375,17 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
   const allRes = reservas.filter(r=>r.clienteId===cliente.id).sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const esVisitaNoConcreto = r => r.estado==="cancelada" && r.fechaVisita;
   const cr = allRes.filter(r=>!esVisitaNoConcreto(r));
-  const totalMonto = cr.reduce((s,r)=>s+r.montoPactado,0);
+  const visitasActivas = cr.filter(r=>r.estado==="visita");
+  const reservasReales = cr.filter(r=>r.estado!=="visita");
+  const totalMonto = reservasReales.reduce((s,r)=>s+r.montoPactado,0);
   const avg = getClientAvg(cliente.id, reservas);
   const notas = cr.filter(r=>r.calificacion?.nota).map(r=>({...r.calificacion,fecha:r.fecha}));
   const [confirmReactivar, setConfirmReactivar] = useState(null);
   const todayStr = toDateStr(new Date());
-  const ultimoEvento = cr.find(r=>r.fecha<=todayStr && r.estado==="finalizada");
-  const proximoEvento = [...cr].reverse().find(r=>r.fecha>=todayStr && ["visita","pendiente","senada","confirmada"].includes(r.estado));
+  const ultimoEvento = reservasReales.find(r=>r.fecha<=todayStr && r.estado==="finalizada");
+  const proximoReserva = [...reservasReales].reverse().find(r=>r.fecha>=todayStr && ["pendiente","senada","confirmada"].includes(r.estado));
+  const proximaVisita = [...visitasActivas].reverse().find(r=>(r.fechaVisita||r.fecha)>=todayStr);
+  const proximoEvento = proximoReserva || null;
   const [verTodas, setVerTodas] = useState(false);
   return (
     <BottomModal title="Ficha de Cliente" onClose={onClose}>
@@ -1432,12 +1436,17 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
       )}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
         <div style={{...card,padding:"12px 14px",textAlign:"center"}}>
-          <div style={{fontSize:24,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display', serif"}}>{cr.length}</div>
-          <div style={{fontSize:11,color:"#8B7355"}}>Reservas totales</div>
+          <div style={{fontSize:24,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display', serif"}}>{reservasReales.length}</div>
+          <div style={{fontSize:11,color:"#8B7355"}}>{reservasReales.length===1?"Reserva":"Reservas"}{visitasActivas.length>0&&<span style={{color:"#7C3AED"}}>{` · ${visitasActivas.length} visita${visitasActivas.length!==1?"s":""}`}</span>}</div>
         </div>
         <div style={{...card,padding:"12px 14px",textAlign:"center"}}>
-          <div style={{fontSize:18,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display', serif"}}>{fmtCurrency(totalMonto)}</div>
-          <div style={{fontSize:11,color:"#8B7355"}}>Monto acumulado</div>
+          {reservasReales.length>0 ? <>
+            <div style={{fontSize:18,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display', serif"}}>{fmtCurrency(totalMonto)}</div>
+            <div style={{fontSize:11,color:"#8B7355"}}>Monto acumulado</div>
+          </> : <>
+            <div style={{fontSize:18,fontWeight:800,color:"#7C3AED",fontFamily:"'Playfair Display', serif"}}>—</div>
+            <div style={{fontSize:11,color:"#8B7355"}}>Sin reservas aún</div>
+          </>}
         </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
@@ -1451,26 +1460,33 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
           ) : <div style={{fontSize:12,color:"#C4B49A"}}>Sin eventos pasados</div>}
         </div>
         <div style={{...card,padding:"12px 14px"}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>Próximo evento</div>
-          {proximoEvento ? (
-            <>
-              <div style={{fontSize:14,fontWeight:700,color:"#16A34A"}}>{fmtDate(proximoEvento.fecha)}</div>
-              {proximoEvento.tipoEvento && <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{proximoEvento.tipoEvento}</div>}
-            </>
-          ) : <div style={{fontSize:12,color:"#C4B49A"}}>Sin reserva futura</div>}
+          {proximoEvento ? <>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>Próximo evento</div>
+            <div style={{fontSize:14,fontWeight:700,color:"#16A34A"}}>{fmtDate(proximoEvento.fecha)}</div>
+            {proximoEvento.tipoEvento && <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{proximoEvento.tipoEvento}</div>}
+          </> : proximaVisita ? <>
+            <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",marginBottom:4}}>Próxima visita</div>
+            <div style={{fontSize:14,fontWeight:700,color:"#7C3AED"}}>{fmtDate(proximaVisita.fechaVisita||proximaVisita.fecha)}</div>
+            <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>Fecha de interés: {fmtDate(proximaVisita.fecha)}</div>
+          </> : <><div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>Próximo evento</div><div style={{fontSize:12,color:"#C4B49A"}}>Sin reserva futura</div></>}
         </div>
       </div>
       <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Historial de reservas</div>
       {(verTodas ? allRes : allRes.slice(0,4)).map(r=>{
         const esVisitaNoConcreto = r.estado==="cancelada" && r.fechaVisita;
         return (
-        <div key={r.id} style={{...card,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",borderLeft:esVisitaNoConcreto?"3px solid #7C3AED":undefined}}>
+        <div key={r.id} style={{...card,padding:"10px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",borderLeft:(esVisitaNoConcreto||r.estado==="visita")?"3px solid #7C3AED":undefined}}>
           <div>
-            <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{fmtDate(r.fecha)}</div>
-            <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
-              <TurnoBadge turno={r.turno} label={r.turnoId&&(turnosRecurso||[]).find(t=>t.id===r.turnoId)?.nombre} />
-              {r.tipoEvento && <span style={{fontSize:10,fontWeight:600,color:"#7C3AED",background:"#F5F3FF",borderRadius:4,padding:"1px 6px",border:"1px solid #DDD6FE"}}>{r.tipoEvento}</span>}
-            </div>
+            {r.estado==="visita" ? <>
+              <div style={{fontSize:13,fontWeight:600,color:"#7C3AED"}}>👁️ Visita {r.fechaVisita?fmtDate(r.fechaVisita):""}{r.horaVisita?` · ${r.horaVisita} hs`:""}</div>
+              <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>Fecha de interés: {fmtDate(r.fecha)}{r.tipoEvento?` · ${r.tipoEvento}`:""}</div>
+            </> : <>
+              <div style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{fmtDate(r.fecha)}</div>
+              <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
+                <TurnoBadge turno={r.turno} label={r.turnoId&&(turnosRecurso||[]).find(t=>t.id===r.turnoId)?.nombre} />
+                {r.tipoEvento && <span style={{fontSize:10,fontWeight:600,color:"#7C3AED",background:"#F5F3FF",borderRadius:4,padding:"1px 6px",border:"1px solid #DDD6FE"}}>{r.tipoEvento}</span>}
+              </div>
+            </>}
             {esVisitaNoConcreto && <div style={{fontSize:11,color:"#7C3AED",marginTop:3,fontWeight:600}}>🟣 Visitó el {fmtDate(r.fechaVisita)} — no concretó</div>}
             {esVisitaNoConcreto && r.motivoNoConcreto && <div style={{fontSize:11,color:"#6B7280",marginTop:2,fontStyle:"italic"}}>Motivo: {r.motivoNoConcreto}</div>}
           </div>
