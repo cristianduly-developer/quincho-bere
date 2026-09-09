@@ -1381,7 +1381,29 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
   const avg = getClientAvg(cliente.id, reservas);
   const notas = cr.filter(r=>r.calificacion?.nota).map(r=>({...r.calificacion,fecha:r.fecha}));
   const [confirmReactivar, setConfirmReactivar] = useState(null);
+  const [portalStats, setPortalStats] = useState(null);
   const todayStr = toDateStr(new Date());
+  const portalRes = cr.filter(r=>r.shareToken&&r.estado!=="cancelada");
+  useEffect(()=>{
+    if(portalRes.length===0) return;
+    const ids=portalRes.map(r=>r.id);
+    Promise.all([
+      supabase.from("evento_rsvp").select("reserva_id,estado,cantidad").in("reserva_id",ids),
+      supabase.from("evento_fotos").select("reserva_id").in("reserva_id",ids),
+      supabase.from("portal_eventos").select("reserva_id,evento").in("reserva_id",ids),
+    ]).then(([rsvpRes,fotosRes,evtRes])=>{
+      const stats={};
+      ids.forEach(id=>{stats[id]={rsvps:0,rsvpConf:0,fotos:0,visitas:0,sobres:0,mural:0};});
+      (rsvpRes.data||[]).forEach(r=>{stats[r.reserva_id].rsvps++;if(r.estado==="confirmado")stats[r.reserva_id].rsvpConf+=(r.cantidad||1);});
+      (fotosRes.data||[]).forEach(f=>{stats[f.reserva_id].fotos++;});
+      (evtRes.data||[]).forEach(e=>{
+        if(e.evento==="vista_invitado"||e.evento==="vista_cliente") stats[e.reserva_id].visitas++;
+        if(e.evento==="abrir_sobre") stats[e.reserva_id].sobres++;
+        if(e.evento==="enviar_mural") stats[e.reserva_id].mural++;
+      });
+      setPortalStats(stats);
+    });
+  },[cliente.id]);
   const ultimoEvento = reservasReales.find(r=>r.fecha<=todayStr && r.estado==="finalizada");
   const proximoReserva = [...reservasReales].reverse().find(r=>r.fecha>=todayStr && ["pendiente","senada","confirmada"].includes(r.estado));
   const proximaVisita = [...visitasActivas].reverse().find(r=>(r.fechaVisita||r.fecha)>=todayStr);
@@ -1471,6 +1493,31 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
           </> : <><div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>Próximo evento</div><div style={{fontSize:12,color:"#C4B49A"}}>Sin reserva futura</div></>}
         </div>
       </div>
+      {portalStats&&portalRes.length>0&&(
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>📱 Portal</div>
+          {portalRes.map(r=>{
+            const s=portalStats[r.id];
+            if(!s) return null;
+            const activo=s.visitas>0||s.rsvps>0||s.fotos>0;
+            return (
+              <div key={"portal-"+r.id} style={{...card,padding:"12px 14px",marginBottom:8,borderLeft:`3px solid ${activo?"#16A34A":"#EDE0D0"}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#1C1C1E"}}>{r.nombreEvento||r.tipoEvento||"Evento"} · {fmtDate(r.fecha)}</div>
+                  {activo&&<span style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,background:"#DCFCE7",color:"#16A34A",border:"1px solid #BBF7D0"}}>Activo</span>}
+                </div>
+                <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                  <span style={{fontSize:11,color:s.visitas>0?"#059669":"#C4B49A",fontWeight:600}}>👁 {s.visitas} visitas</span>
+                  <span style={{fontSize:11,color:s.rsvpConf>0?"#7C3AED":"#C4B49A",fontWeight:600}}>📋 {s.rsvpConf}{r.cantInvitados>0?`/${r.cantInvitados}`:""} RSVP</span>
+                  <span style={{fontSize:11,color:s.fotos>0?"#3B82F6":"#C4B49A",fontWeight:600}}>📸 {s.fotos} fotos</span>
+                  {s.sobres>0&&<span style={{fontSize:11,color:"#D97706",fontWeight:600}}>💝 {s.sobres} sobres</span>}
+                  {s.mural>0&&<span style={{fontSize:11,color:"#9333EA",fontWeight:600}}>💬 {s.mural} mural</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>Historial de reservas</div>
       {(verTodas ? allRes : allRes.slice(0,4)).map(r=>{
         const esVisitaNoConcreto = r.estado==="cancelada" && r.fechaVisita;
