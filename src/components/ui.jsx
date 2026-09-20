@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { STATUS, TURNOS } from "../lib/constants.js";
 import { inputStyle, labelStyle } from "../lib/styles.js";
 
@@ -38,6 +38,51 @@ export function TextArea({ label, value, onChange, placeholder, rows=3 }) {
     <Field label={label}>
       <textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
         rows={rows} style={{...inputStyle, resize:"vertical"}} />
+    </Field>
+  );
+}
+export function SearchSelect({ label, value, onChange, options, placeholder="Buscar..." }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const ref = useRef(null);
+  const selected = options.find(o => o.value === value);
+
+  useEffect(() => {
+    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = q ? options.filter(o => o.value && o.label.toLowerCase().includes(q.toLowerCase())) : options.filter(o => o.value);
+
+  return (
+    <Field label={label}>
+      <div ref={ref} style={{position:"relative"}}>
+        <div onClick={() => { setOpen(!open); setQ(""); }} style={{...inputStyle, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", minHeight:40}}>
+          <span style={{color: selected ? "#1C1C1E" : "#8B7355", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1}}>{selected ? selected.label : (placeholder || "— Seleccionar —")}</span>
+          <span style={{fontSize:10, color:"#8B7355", marginLeft:8}}>{open ? "▲" : "▼"}</span>
+        </div>
+        {open && (
+          <div style={{position:"absolute", top:"100%", left:0, right:0, zIndex:100, background:"#FFF", border:"1.5px solid #EDE0D0", borderRadius:10, boxShadow:"0 6px 24px rgba(0,0,0,0.12)", maxHeight:260, display:"flex", flexDirection:"column"}}>
+            <div style={{padding:"8px 10px", borderBottom:"1px solid #F0E8DE"}}>
+              <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="🔍 Buscar cliente..."
+                style={{...inputStyle, marginBottom:0, fontSize:13}} onClick={e => e.stopPropagation()} />
+            </div>
+            <div style={{overflowY:"auto", flex:1}}>
+              {filtered.length === 0 ? (
+                <div style={{padding:"14px 12px", textAlign:"center", color:"#8B7355", fontSize:13}}>Sin resultados</div>
+              ) : filtered.map(o => (
+                <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); setQ(""); }}
+                  style={{padding:"10px 14px", cursor:"pointer", fontSize:13, color:"#1C1C1E", background: o.value === value ? "#FDF5EE" : "transparent", borderBottom:"1px solid #F8F2EC"}}
+                  onMouseEnter={e => e.currentTarget.style.background="#FDF5EE"}
+                  onMouseLeave={e => { if (o.value !== value) e.currentTarget.style.background="transparent"; }}>
+                  {o.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </Field>
   );
 }

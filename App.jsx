@@ -4,7 +4,7 @@ import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, 
 import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor, mensajeErrorGuardado, getUltimoError } from "./src/lib/supabase.js";
 import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario, mapConsulta, mapMercadoProducto, mapMercadoPedido } from "./src/lib/mappers.js";
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
-import { Field, Input, Select, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
+import { Field, Input, Select, SearchSelect, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
 import DailyBriefing, { shouldShowBriefing, markBriefingShown } from "./src/components/DailyBriefing.jsx";
 
 const GastosViewLazy        = lazy(() => import("./src/views/GastosView.jsx"));
@@ -544,8 +544,8 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
 
   return (
     <BottomModal title={isEdit?"Editar Reserva":"Nueva Reserva"} onClose={onClose}>
-      <Select label="Cliente" value={f.clienteId} onChange={set("clienteId")}
-        options={[{value:"",label:"— Seleccionar cliente —"},...clientes.map(c=>({value:c.id,label:clientName(c)+(c.whatsapp?` · ${c.whatsapp}`:"")}))]} />
+      <SearchSelect label="Cliente" value={f.clienteId} onChange={set("clienteId")} placeholder="— Seleccionar cliente —"
+        options={[{value:"",label:"— Seleccionar cliente —"},...clientes.sort((a,b)=>clientName(a).localeCompare(clientName(b),"es")).map(c=>({value:c.id,label:clientName(c)+(c.whatsapp?` · ${c.whatsapp}`:"")}))]} />
       {f.clienteId && (()=>{
         const avg = reservas ? getClientAvg(f.clienteId, reservas) : null;
         if(avg!==null && Number(avg)<=2) return (

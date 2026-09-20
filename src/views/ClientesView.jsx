@@ -23,7 +23,9 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
     return clientes;
   })();
 
-  const filtered = scopedClientes.filter(c => clientName(c).toLowerCase().includes(search.toLowerCase()) || (c.whatsapp || "").includes(search));
+  const filtered = scopedClientes
+    .filter(c => clientName(c).toLowerCase().includes(search.toLowerCase()) || (c.whatsapp || "").includes(search))
+    .sort((a, b) => clientName(a).localeCompare(clientName(b), "es"));
 
   const countPotenciales = clientes.filter(c => c.estadoCrm === "Potencial").length;
 
@@ -57,7 +59,10 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
               }}>{o.l}</button>
             ))}
           </div>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Buscar cliente..." style={{...inputStyle,marginBottom:12}} />
+          <div style={{display:"flex",gap:8,marginBottom:12}}>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Buscar cliente..." style={{...inputStyle,marginBottom:0,flex:1}} />
+            <Btn small onClick={onNewCliente}>+ Nuevo</Btn>
+          </div>
           {filtered.length === 0 ? (
             <div style={{textAlign:"center",padding:"48px 0",color:"#8B7355"}}>
               <div style={{fontSize:44,marginBottom:10}}>👥</div>
