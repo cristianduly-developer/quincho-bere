@@ -1611,7 +1611,7 @@ function EditPagoModal({ pago, onClose, onSave }) {
   );
 }
 
-function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueosDia, onBloquear, canBloquear, turnosRecurso, espacioFiltro, temporadasPrecio, preciosTemporada }) {
+function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClick, bloqueosDia, onBloquear, canBloquear, turnosRecurso, espacioFiltro, temporadasPrecio, preciosTemporada, isPast }) {
   const bloqueosDiaArr = bloqueosDia||[];
   const hayBloqueoCompleto = bloqueosDiaArr.some(b=>b.turno==="completo");
   // Para compatibilidad con código viejo que usa bloqueo singular
@@ -1668,16 +1668,29 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
             return (
               <div key={r.id} onClick={()=>{onReservaClick(r);onClose();}}
                 style={{...card,padding:"10px 14px",marginBottom:6,cursor:"pointer",
-                  borderLeft:`3px solid ${TURNOS[r.turno]?.color||"#C4602B"}`,borderRadius:"0 10px 10px 0",
-                  display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div>
-                  <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>{clientName(c)}</div>
-                  <TurnoBadge turno={r.turno} label={r.turnoId&&(turnosRecurso||[]).find(t=>t.id===r.turnoId)?.nombre} />
+                  borderLeft:`3px solid ${TURNOS[r.turno]?.color||"#C4602B"}`,borderRadius:"0 10px 10px 0"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E"}}>{clientName(c)}</div>
+                    <TurnoBadge turno={r.turno} label={r.turnoId&&(turnosRecurso||[]).find(t=>t.id===r.turnoId)?.nombre} />
+                  </div>
+                  <StatusBadge estado={r.estado} />
                 </div>
-                <StatusBadge estado={r.estado} />
+                {isPast && (
+                  <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #F0E8DE",display:"flex",flexWrap:"wrap",gap:8,alignItems:"center"}}>
+                    {r.tipoEvento && <span style={{fontSize:11,color:"#8B7355"}}>🎉 {r.tipoEvento}{r.nombreEvento?` — ${r.nombreEvento}`:""}</span>}
+                    {r.invitados>0 && <span style={{fontSize:11,color:"#8B7355"}}>👥 {r.invitados} invitados</span>}
+                    {r.montoPactado>0 && <span style={{fontSize:11,color:"#16A34A",fontWeight:600}}>💰 {fmtCurrency(r.montoPactado)}</span>}
+                    {r.calificacion?.estrellas && (
+                      <span style={{fontSize:11,color:"#D97706",fontWeight:600}}>⭐ {r.calificacion.estrellas}/5{r.calificacion.nota?` — "${r.calificacion.nota}"`:""}</span>
+                    )}
+                    {isPast && !r.calificacion?.estrellas && <span style={{fontSize:11,color:"#B5A090"}}>Sin calificación</span>}
+                  </div>
+                )}
               </div>
             );
           })}
+          {isPast && <div style={{textAlign:"center",fontSize:11,color:"#B5A090",marginTop:4}}>Tocá un evento para ver todos los detalles</div>}
         </div>
       )}
 
@@ -1704,8 +1717,12 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
         </div>
       )}
 
-      {/* Selector de modo (solo si tiene permiso de bloqueo) */}
-      {canBloquear && (
+      {isPast && dayRes.length === 0 && (
+        <div style={{textAlign:"center",padding:"24px 0",color:"#8B7355",fontSize:13}}>No hubo eventos este día.</div>
+      )}
+
+      {/* Selector de modo (solo si tiene permiso de bloqueo y no es fecha pasada) */}
+      {!isPast && canBloquear && (
         <div style={{display:"flex",gap:0,marginBottom:16,borderRadius:10,overflow:"hidden",border:"1.5px solid #EDE0D0"}}>
           <button onClick={()=>setMode("reserva")} style={{
             flex:1,padding:"10px 6px",fontWeight:700,fontSize:12,border:"none",cursor:"pointer",
@@ -1723,7 +1740,7 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
       )}
 
       {/* MODO RESERVA */}
-      {mode === "reserva" && (
+      {!isPast && mode === "reserva" && (
         <div>
           {/* Resumen del día — solo en modo agenda (cancha/slots) */}
           {modoAgenda && usaTurnosCustom && (()=>{
@@ -1855,7 +1872,7 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
       )}
 
       {/* MODO BLOQUEO */}
-      {mode === "bloqueo" && (
+      {!isPast && mode === "bloqueo" && (
         <div>
           {/* Bloqueos existentes con confirmación de desbloqueo */}
           {bloqueosDiaArr.length>0 && (
@@ -2384,7 +2401,7 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
           const bloqueo=getBloqueo(day);
           return (
             <div key={`day-${year}-${month}-${day}`} onClick={()=>onDayClick(ds2,dr,espacioFiltro)}
-              style={{background:bloqueo?"#1F2937":isToday&&dr.length===0?"#FEF0E8":"#FFF",minHeight:54,display:"flex",flexDirection:"column",cursor:"pointer",padding:"2px",opacity:isPast?0.4:1,pointerEvents:isPast?"none":"auto"}}>
+              style={{background:bloqueo?"#1F2937":isToday&&dr.length===0?"#FEF0E8":"#FFF",minHeight:54,display:"flex",flexDirection:"column",cursor:isPast&&dr.length===0?"default":"pointer",padding:"2px",opacity:isPast?0.5:1,pointerEvents:isPast&&dr.length===0?"none":"auto"}}>
               <div style={{textAlign:"center",padding:"2px 1px",flexShrink:0}}>
                 {isToday ? (
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
@@ -6099,6 +6116,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {/* Views */}
       {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} removeTarea={removeTarea} onOpenBriefing={()=>setShowBriefing(true)} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>{
   const filtro=ef||"all";
+  const isPastDay=ds<toDateStr(new Date());
+  if(isPastDay&&dr.length===1){setDetailReserva(dr[0]);return;}
+  if(isPastDay&&dr.length>1){setDayModal({date:ds,reservas:dr,espacioFiltro:filtro});return;}
   if(filtro==="all"&&recursos.length>1){
     setEspacioPicker({date:ds,reservas:dr});
   } else {
@@ -6376,6 +6396,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         clientes={clientes}
         bloqueosDia={bloqueos.filter(b=>b.fecha===dayModal.date)}
         canBloquear={currentUser?.gestionOperativa!==false}
+        isPast={dayModal.date<toDateStr(new Date())}
         onClose={()=>setDayModal(null)}
         turnosRecurso={turnosRecurso}
         temporadasPrecio={temporadasPrecio}
