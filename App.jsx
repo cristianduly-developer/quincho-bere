@@ -972,7 +972,7 @@ function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
   );
 }
 
-function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto, turnosRecurso, onSaveShareConfig, logCom, comunicaciones }) {
+function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto, turnosRecurso, onSaveShareConfig, logCom, comunicaciones, readOnly }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -1079,7 +1079,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       {reserva.estado!=="visita"&&<div style={{marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={labelStyle}>🎉 Extras contratados</div>
-          {getPlanLimits(plan).serviciosExtras===false
+          {readOnly ? null : getPlanLimits(plan).serviciosExtras===false
             ? <span style={{fontSize:11,color:"#8B7355",fontStyle:"italic"}}>🔒 No disponible en tu plan</span>
             : <Btn small variant="secondary" onClick={onNewExtra}>+ Extra</Btn>}
         </div>
@@ -1096,8 +1096,8 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
         ))}
       </div>}
 
-      {/* Próximo pago acordado — oculto para visitas */}
-      {reserva.estado!=="visita" && canModifyCaja && reserva.estado!=="cancelada" && reserva.estado!=="finalizada" && (
+      {/* Próximo pago acordado — oculto para visitas y readOnly */}
+      {!readOnly && reserva.estado!=="visita" && canModifyCaja && reserva.estado!=="cancelada" && reserva.estado!=="finalizada" && (
         <div style={{marginBottom:12}}>
           {reserva.proximoPagoFecha && reserva.proximoPagoMonto ? (
             <div style={{background: new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "#FEF2F2":"#FFF8E1",
@@ -1154,7 +1154,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       {reserva.estado!=="visita"&&<div style={{marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={labelStyle}>💰 Historial de cobros</div>
-          <Btn small onClick={onNewPago}>+ Cobro</Btn>
+          {(!readOnly || saldo > 0) && <Btn small onClick={onNewPago}>+ Cobro</Btn>}
         </div>
         {resPagos.length===0 ? (
           <div style={{...card,padding:"12px 14px",textAlign:"center",color:"#8B7355",fontSize:13}}>Sin cobros registrados</div>
@@ -1172,7 +1172,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       <span style={{fontWeight:800,color:"#16A34A",fontSize:15}}>+{fmtCurrency(p.monto)}</span>
-                      {canModifyCaja&&(
+                      {canModifyCaja&&!readOnly&&(
                         <>
                           <button onClick={()=>setEditingPago(p)} style={{background:"#EFF6FF",border:"1px solid #93C5FD",color:"#2563EB",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit"}}>✏️</button>
                           {confirmDelPagoId===p.id ? (
@@ -1247,30 +1247,31 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       )}
 
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-        {reserva.estado!=="visita"&&<Btn small onClick={()=>onShowPDF(printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio))}>🖨️ PDF</Btn>}
-        {reserva.estado!=="visita"&&<Btn small variant="secondary" onClick={()=>onShowPDF(printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio))}>📄 Contrato</Btn>}
-        <Btn small variant="secondary" onClick={onEdit}>✏️ Editar</Btn>
-        {reserva.estado!=="visita"&&canModifyCaja&&reserva.estado!=="cancelada"&&reserva.estado!=="finalizada"&&(
+        {!readOnly&&reserva.estado!=="visita"&&<Btn small onClick={()=>onShowPDF(printReserva(reserva,cliente,recurso,resExtras,resPagos,negocio))}>🖨️ PDF</Btn>}
+        {!readOnly&&reserva.estado!=="visita"&&<Btn small variant="secondary" onClick={()=>onShowPDF(printContrato(reserva,cliente,recurso,resExtras,resPagos,negocio))}>📄 Contrato</Btn>}
+        {!readOnly&&<Btn small variant="secondary" onClick={onEdit}>✏️ Editar</Btn>}
+        {!readOnly&&reserva.estado!=="visita"&&canModifyCaja&&reserva.estado!=="cancelada"&&reserva.estado!=="finalizada"&&(
           <Btn small variant="secondary" onClick={()=>setShowReschedule(v=>!v)}>📅 Reprogramar</Btn>
         )}
-        {onCancel&&canModifyCaja&&reserva.estado!=="cancelada"&&reserva.estado!=="finalizada"&&(
+        {!readOnly&&onCancel&&canModifyCaja&&reserva.estado!=="cancelada"&&reserva.estado!=="finalizada"&&(
           <Btn small variant="danger" onClick={()=>setCancelStep("confirm")}>🚫 Cancelar</Btn>
         )}
-        {!confirmDelete
+        {!readOnly&&(!confirmDelete
           ? <Btn small variant="danger" onClick={()=>setConfirmDelete(true)}>🗑️</Btn>
           : <div style={{display:"flex",gap:6,alignItems:"center",background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"4px 8px"}}>
               <span style={{fontSize:11,fontWeight:700,color:"#DC2626"}}>¿Eliminar?</span>
               <Btn small variant="danger" onClick={onDelete}>Sí</Btn>
               <Btn small variant="ghost" onClick={()=>setConfirmDelete(false)}>No</Btn>
             </div>
-        }
-        {reserva.estado!=="visita"&&reserva.estado!=="cancelada"&&negocio?.portalActivo!==false&&getPlanLimits(plan).portal!==false&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir portal</Btn>}
-        {reserva.estado!=="visita"&&reserva.estado!=="cancelada"&&getPlanLimits(plan).portal===false&&<Btn small variant="secondary" onClick={()=>showToast("El portal de clientes está disponible en el plan Profesional o superior.","warn")} style={{opacity:0.6}}>🔒 Portal (plan superior)</Btn>}
+        )}
+        {!readOnly&&reserva.estado!=="visita"&&reserva.estado!=="cancelada"&&negocio?.portalActivo!==false&&getPlanLimits(plan).portal!==false&&<Btn small variant="secondary" onClick={()=>setShowSharePanel(v=>!v)}>🔗 Compartir portal</Btn>}
+        {!readOnly&&reserva.estado!=="visita"&&reserva.estado!=="cancelada"&&getPlanLimits(plan).portal===false&&<Btn small variant="secondary" onClick={()=>showToast("El portal de clientes está disponible en el plan Profesional o superior.","warn")} style={{opacity:0.6}}>🔒 Portal (plan superior)</Btn>}
+        {readOnly && saldo > 0 && <Btn small onClick={onNewPago}>💰 Cobrar pendiente</Btn>}
         <Btn small variant="ghost" onClick={onClose}>Cerrar</Btn>
       </div>
 
       {/* Panel Evento Compartido */}
-      {reserva.estado!=="visita"&&showSharePanel && (()=>{
+      {!readOnly&&reserva.estado!=="visita"&&showSharePanel && (()=>{
         const portalUrl=reserva.editToken ? (window.location.origin+"/mi-evento/"+reserva.editToken) : (reserva.shareToken ? (window.location.origin+"/mi-evento/"+reserva.shareToken) : null);
         const shareUrl=reserva.shareToken ? (window.location.origin+"/evento/"+reserva.shareToken) : null;
         const handleGenerate=async()=>{
@@ -5281,6 +5282,7 @@ export default function App() {
   const now0=new Date(); const [calYear,setCalYear]=useState(now0.getFullYear()); const [calMonth,setCalMonth]=useState(now0.getMonth());
 
   const [detailReserva,setDetailReserva]=useState(null);
+  const [detailReadOnly,setDetailReadOnly]=useState(false);
   const [detailCliente,setDetailCliente]=useState(null);
   const [editReserva,setEditReserva]=useState(null);
   const [editCliente,setEditCliente]=useState(null);
@@ -6117,7 +6119,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {tab==="inicio" && <InicioView reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} bloqueos={bloqueos} tareas={tareas} saveTareas={saveTareas} removeTarea={removeTarea} onOpenBriefing={()=>setShowBriefing(true)} calDate={{year:calYear,month:calMonth}} setCalDate={(fn)=>{const r=fn({year:calYear,month:calMonth});setCalYear(r.year);setCalMonth(r.month);}} onDayClick={(ds,dr,ef)=>{
   const filtro=ef||"all";
   const isPastDay=ds<toDateStr(new Date());
-  if(isPastDay&&dr.length===1){setDetailReserva(dr[0]);return;}
+  if(isPastDay&&dr.length===1){setDetailReadOnly(true);setDetailReserva(dr[0]);return;}
   if(isPastDay&&dr.length>1){setDayModal({date:ds,reservas:dr,espacioFiltro:filtro});return;}
   if(filtro==="all"&&recursos.length>1){
     setEspacioPicker({date:ds,reservas:dr});
@@ -6169,9 +6171,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         extrasReserva={extrasReserva}
         serviciosExtras={serviciosExtras}
         turnosRecurso={turnosRecurso}
+        readOnly={detailReadOnly}
         canModifyCaja={isAdmin || currentUser?.modificarCaja === true}
         onShowPDF={setPrintData}
-        onClose={()=>setDetailReserva(null)}
+        onClose={()=>{setDetailReserva(null);setDetailReadOnly(false);}}
         onEdit={(overrideData)=>{
           if(overrideData&&overrideData._fromReschedule){
             // Direct reschedule save — no modal
@@ -6408,7 +6411,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           setEditReserva(null);
           setModal("reserva");
         }}
-        onReservaClick={r=>setDetailReserva(r)}
+        onReservaClick={r=>{if(dayModal.date<toDateStr(new Date()))setDetailReadOnly(true);setDetailReserva(r);}}
         onBloquear={(data)=>{
           if(data&&data.id){
             // Desbloquear directamente (confirmación en el modal)
