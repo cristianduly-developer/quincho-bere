@@ -1014,6 +1014,19 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
         {saldo>0 && reserva.estado!=="visita" && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA"}}>⚠️ Saldo pendiente</span>}
       </div>
 
+      {/* Calificación del evento */}
+      {reserva.calificacion?.estrellas && (
+        <div style={{...card,padding:"12px 16px",marginBottom:12,background:"#FFFBEB",border:"1px solid #FDE68A"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{fontSize:24}}>{"⭐".repeat(reserva.calificacion.estrellas)}{"☆".repeat(5-reserva.calificacion.estrellas)}</div>
+            <div>
+              <div style={{fontWeight:700,fontSize:14,color:"#92400E"}}>{["","Muy malo","Malo","Regular","Bueno","Excelente"][reserva.calificacion.estrellas]}</div>
+              {reserva.calificacion.nota && <div style={{fontSize:12,color:"#78716C",marginTop:2,fontStyle:"italic"}}>"{reserva.calificacion.nota}"</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Visita panel */}
       {reserva.estado==="visita" && (
         <VisitaPanel reserva={reserva} cliente={cliente} onConfirmVisita={onConfirmVisita} onNoConcreto={onNoConcreto} />
