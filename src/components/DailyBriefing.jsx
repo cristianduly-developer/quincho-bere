@@ -280,11 +280,11 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
         <span style={{fontSize:20,flexShrink:0}}>👁️</span>
         <div style={{flex:1}}>
           <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(cliente)}</div>
-          <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
-            {reserva.horaVisita ? `${reserva.horaVisita} hs` : ""}{reserva.tipoEvento ? ` · ${reserva.tipoEvento}` : ""}{reserva.cantInvitados>0 ? ` · ${reserva.cantInvitados} personas` : ""}
-          </div>
           <div style={{fontSize:12,color:"#7C3AED",fontWeight:600,marginTop:2}}>
-            Evento: {fmtDate(reserva.fecha)}{reserva.montoPactado ? ` · ${fmtCurrency(reserva.montoPactado)}` : ""}
+            📅 Visita: {fmtDate(reserva.fechaVisita||reserva.fecha)}{reserva.horaVisita ? ` · ${reserva.horaVisita} hs` : ""}
+          </div>
+          <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
+            {reserva.tipoEvento ? `🎉 ${reserva.tipoEvento}` : ""}{reserva.cantInvitados>0 ? ` · 👥 ${reserva.cantInvitados} personas` : ""}{reserva.montoPactado ? ` · 💰 ${fmtCurrency(reserva.montoPactado)}` : ""}
           </div>
         </div>
         <button onClick={()=>{setOpen(v=>!v);setShowRepro(false);setShowPosponer(false);setConfirmAction(null);}} style={{background:open?"#7C3AED":"#EDE0D0",border:"none",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:open?"#FFF":"#8B7355",flexShrink:0,transition:"all 0.15s"}}>
