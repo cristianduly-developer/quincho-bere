@@ -265,7 +265,7 @@ function AlertaItem({ icon, texto, urgente }) {
   );
 }
 
-function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, onNoConcreto, onEditVisita }) {
+export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, onNoConcreto, onEditVisita }) {
   const [open, setOpen] = useState(false);
   const [showRepro, setShowRepro] = useState(false);
   const [reproFecha, setReproFecha] = useState(reserva.fechaVisita || "");

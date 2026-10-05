@@ -5,7 +5,7 @@ import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor
 import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario, mapConsulta, mapMercadoProducto, mapMercadoPedido } from "./src/lib/mappers.js";
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
 import { Field, Input, Select, SearchSelect, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
-import DailyBriefing, { shouldShowBriefing, markBriefingShown } from "./src/components/DailyBriefing.jsx";
+import DailyBriefing, { shouldShowBriefing, markBriefingShown, VisitaCard } from "./src/components/DailyBriefing.jsx";
 
 const GastosViewLazy        = lazy(() => import("./src/views/GastosView.jsx"));
 const ReportesViewLazy      = lazy(() => import("./src/views/ReportesView.jsx"));
@@ -2681,7 +2681,7 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
   );
 });
 
-function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, removeTarea, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop, onOpenBriefing, mercadoProductos, mercadoPedidos, setMercadoPedidos, toggleMercadoReserva, toggleMercadoProducto }) {
+function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras, bloqueos, tareas, saveTareas, removeTarea, saveReservas, calDate, setCalDate, onDayClick, onReservaClick, onNavigate, setModal, currentUser, negocio, recursos, turnosRecurso, isDesktop, onOpenBriefing, mercadoProductos, mercadoPedidos, setMercadoPedidos, toggleMercadoReserva, toggleMercadoProducto, onConfirmVisita, onPosponerVisita, onReprogramarVisita, onNoConcreto, onEditVisita }) {
   const today=toDateStr(new Date()), now=new Date();
   const monthStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const curTimeDash=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
@@ -2991,21 +2991,8 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           <div style={{fontSize:12,fontWeight:700,color:"#7C3AED",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>👁️ Próximas visitas</div>
           {upcomingVisitas.slice(0,5).map(r=>{
             const c=clientes.find(x=>x.id===r.clienteId);
-            const fv=r.fechaVisita||r.fecha;
-            const diffV=Math.ceil((new Date(fv+"T00:00:00")-new Date(today+"T00:00:00"))/(1000*60*60*24));
             return (
-              <div key={r.id} onClick={()=>onReservaClick(r)} style={{...card,padding:"12px 14px",marginBottom:8,cursor:"pointer",background:"#F5F3FF",border:"1px solid #DDD6FE",borderLeft:"3px solid #7C3AED",borderRadius:"0 12px 12px 0"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(c)}</div>
-                    <div style={{fontSize:12,color:"#7C3AED",marginTop:2,fontWeight:600}}>
-                      👁️ Visita {fmtDate(fv)}{diffV===0?" · Hoy":diffV===1?" · Mañana":""}{r.horaVisita?` · ${r.horaVisita} hs`:""}
-                    </div>
-                    {r.fecha&&<div style={{fontSize:11,color:"#8B7355",marginTop:1}}>📅 Fecha de interés: {fmtDate(r.fecha)}{r.tipoEvento?` · ${r.tipoEvento}`:""}</div>}
-                  </div>
-                  <StatusBadge estado="visita" />
-                </div>
-              </div>
+              <VisitaCard key={r.id} reserva={r} cliente={c} onConfirm={onConfirmVisita} onPosponer={onPosponerVisita} onReprogramar={onReprogramarVisita} onNoConcreto={onNoConcreto} onEditVisita={onEditVisita} />
             );
           })}
         </div>
@@ -6139,7 +6126,37 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   } else {
     setDayModal({date:ds,reservas:dr,espacioFiltro:filtro});
   }
-}} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} isDesktop={isDesktop} mercadoProductos={mercadoProductos} mercadoPedidos={mercadoPedidos} setMercadoPedidos={setMercadoPedidos} toggleMercadoReserva={toggleMercadoReserva} toggleMercadoProducto={toggleMercadoProducto} />}
+}} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} isDesktop={isDesktop} mercadoProductos={mercadoProductos} mercadoPedidos={mercadoPedidos} setMercadoPedidos={setMercadoPedidos} toggleMercadoReserva={toggleMercadoReserva} toggleMercadoProducto={toggleMercadoProducto}
+        onConfirmVisita={(r)=>{
+          const cli=clientes.find(c=>c.id===r.clienteId);
+          const updated={...r,estado:"pendiente",fechaVisita:null,horaVisita:null};
+          saveR(reservas.map(x=>x.id===r.id?updated:x));
+          if(cli&&cli.estadoCrm==="Potencial") saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
+          showToast("Visita confirmada — reserva activa","ok");
+        }}
+        onPosponerVisita={(r,horas)=>{
+          const ahora=new Date();
+          ahora.setHours(ahora.getHours()+horas);
+          const nuevaFecha=`${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,"0")}-${String(ahora.getDate()).padStart(2,"0")}`;
+          const nuevaHora=`${String(ahora.getHours()).padStart(2,"0")}:${String(ahora.getMinutes()).padStart(2,"0")}`;
+          const updated={...r,fechaVisita:nuevaFecha,horaVisita:nuevaHora};
+          saveR(reservas.map(x=>x.id===r.id?updated:x));
+          showToast(`Visita pospuesta ${horas}hs — ${nuevaFecha} ${nuevaHora}`,"info");
+        }}
+        onReprogramarVisita={(r,fecha,hora)=>{
+          const updated={...r,fechaVisita:fecha,horaVisita:hora||r.horaVisita};
+          saveR(reservas.map(x=>x.id===r.id?updated:x));
+          showToast("Visita reprogramada","ok");
+        }}
+        onNoConcreto={(r,motivo)=>{
+          saveR(reservas.map(x=>x.id===r.id?{...r,estado:"cancelada",motivoNoConcreto:motivo||null}:x));
+          showToast("Visita no concretada — fecha liberada","info");
+        }}
+        onEditVisita={(r)=>{
+          setEditReserva(r);
+          setModal("reserva");
+        }}
+      />}
       {tab==="reservas" && <Suspense fallback={<ViewLoader/>}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} turnosRecurso={turnosRecurso} extrasReserva={extrasReserva} bloqueos={bloqueos} onReservaClick={r=>setDetailReserva(r)} onNewReserva={(fecha)=>{setEditReserva(null);if(fecha)setInitDate(fecha);setModal("reserva");}} onCobrar={r=>{setPagoReservaId(r.id);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="clientes" && <Suspense fallback={<ViewLoader/>}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} recursos={recursos} negocio={negocio} onDescartarSeguimiento={(r)=>{const updated={...r,seguimientoDescartado:true};saveR(reservas.map(x=>x.id===r.id?updated:x));showToast("Potencial descartado del seguimiento","info");}} /></Suspense>}
       {tab==="gastos" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><GastosViewLazy gastos={gastos} onNewGasto={()=>{setEditGasto(null);setModal("gasto");}} onEditGasto={(g)=>{setEditGasto(g);setModal("gasto");}} onDeleteGasto={handleDeleteGasto} /></Suspense></ErrorBoundary>}
