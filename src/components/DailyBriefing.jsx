@@ -265,7 +265,7 @@ function AlertaItem({ icon, texto, urgente }) {
   );
 }
 
-export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, onNoConcreto, onEditVisita }) {
+export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogramar, onNoConcreto, onEditVisita, onClickDetail }) {
   const [open, setOpen] = useState(false);
   const [showRepro, setShowRepro] = useState(false);
   const [reproFecha, setReproFecha] = useState(reserva.fechaVisita || "");
@@ -277,8 +277,8 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
   return (
     <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
       <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-        <span style={{fontSize:20,flexShrink:0}}>👁️</span>
-        <div style={{flex:1}}>
+        <span style={{fontSize:20,flexShrink:0,cursor:onClickDetail?"pointer":"default"}} onClick={onClickDetail?()=>onClickDetail(reserva):undefined}>👁️</span>
+        <div style={{flex:1,cursor:onClickDetail?"pointer":"default"}} onClick={onClickDetail?()=>onClickDetail(reserva):undefined}>
           <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(cliente)}</div>
           <div style={{fontSize:12,color:"#7C3AED",fontWeight:600,marginTop:2}}>
             📅 Visita: {fmtDate(reserva.fechaVisita||reserva.fecha)}{reserva.horaVisita ? ` · ${reserva.horaVisita} hs` : ""}

@@ -2992,7 +2992,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           {upcomingVisitas.slice(0,5).map(r=>{
             const c=clientes.find(x=>x.id===r.clienteId);
             return (
-              <VisitaCard key={r.id} reserva={r} cliente={c} onConfirm={onConfirmVisita} onPosponer={onPosponerVisita} onReprogramar={onReprogramarVisita} onNoConcreto={onNoConcreto} onEditVisita={onEditVisita} />
+              <VisitaCard key={r.id} reserva={r} cliente={c} onConfirm={onConfirmVisita} onPosponer={onPosponerVisita} onReprogramar={onReprogramarVisita} onNoConcreto={onNoConcreto} onEditVisita={onEditVisita} onClickDetail={onReservaClick} />
             );
           })}
         </div>
