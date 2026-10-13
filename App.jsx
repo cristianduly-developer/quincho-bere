@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback, memo, Component, Fragment, lazy, Suspense } from "react";
 import { MONTHS, MONTHS_SHORT, DAYS_SHORT, STATUS, TURNOS, PAYMENT_METHODS, EXPENSE_CATS, CAT_COLORS, DEFAULT_CONFIG, PLAN_LIMITS, getPlanLimits } from "./src/lib/constants.js";
-import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, getTotalExtras, getTotalPagado, getSaldo } from "./src/lib/utils.js";
+import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, getTotalExtras, getTotalPagado, getSaldo, waNumber } from "./src/lib/utils.js";
 import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor, mensajeErrorGuardado, getUltimoError } from "./src/lib/supabase.js";
 import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario, mapConsulta, mapMercadoProducto, mapMercadoPedido } from "./src/lib/mappers.js";
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
@@ -1039,7 +1039,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
             <div style={labelStyle}>Cliente</div>
             <div style={{fontWeight:700,fontSize:16,color:"#1C1C1E"}}>{clientName(cliente)}</div>
             {cliente?.whatsapp && (
-              <a href={`https://wa.me/${cliente.whatsapp.replace(/\D/g,"")}?text=Hola%20${encodeURIComponent(cliente.nombre||"")}%2C%20te%20contacto%20por%20tu%20reserva.`}
+              <a href={`https://wa.me/${waNumber(cliente.whatsapp)}?text=Hola%20${encodeURIComponent(cliente.nombre||"")}%2C%20te%20contacto%20por%20tu%20reserva.`}
                 target="_blank" rel="noreferrer"
                 style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:13,color:"#25D366",textDecoration:"none",marginTop:6,fontWeight:600}}>
                 💬 {cliente.whatsapp}
@@ -1315,7 +1315,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                   <button onClick={()=>{
                     const nombre = cliente ? (cliente.nombre||"").split(" ")[0] : "";
                     const msg = (nombre ? "Hola "+nombre+"! 👋" : "Hola! 👋") + "\nTe comparto el portal de tu evento en *Quincho de Bere* 🎉\n\nDesde ahi podes:\n✅ Ver los detalles de tu reserva\n📨 Armar y compartir la invitacion para tus invitados\n📸 Ver las fotos del lugar\n🎁 Agregar extras para tu evento\n\n👉 " + portalUrl + "\n\nCualquier duda me avisas!";
-                    const wa = cliente?.whatsapp ? cliente.whatsapp.replace(/\D/g,"") : "";
+                    const wa = cliente?.whatsapp ? waNumber(cliente.whatsapp) : "";
                     window.open("https://wa.me/"+(wa||"")+"?text="+encodeURIComponent(msg),"_blank");
                     if(logCom) logCom("whatsapp","Envío portal del cliente",reserva.clienteId,reserva.id,wa);
                   }} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,width:"100%",marginTop:8,padding:"10px 16px",background:"#25D366",color:"#FFF",border:"none",borderRadius:10,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
@@ -1440,7 +1440,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
         </div>
       </div>
       {cliente.whatsapp && (
-        <a href={`https://wa.me/${cliente.whatsapp.replace(/\D/g,"")}?text=Hola%20${encodeURIComponent(cliente.nombre||"")}%2C%20te%20contacto%20por%20tu%20reserva%20en%20el%20quincho.`}
+        <a href={`https://wa.me/${waNumber(cliente.whatsapp)}?text=Hola%20${encodeURIComponent(cliente.nombre||"")}%2C%20te%20contacto%20por%20tu%20reserva%20en%20el%20quincho.`}
           target="_blank" rel="noreferrer"
           style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"#25D366",color:"#FFF",textDecoration:"none",padding:"12px 16px",borderRadius:10,fontWeight:700,fontSize:15,marginBottom:16}}>
           💬 Abrir WhatsApp · {cliente.whatsapp}
@@ -2161,7 +2161,7 @@ function AlertaRecordatorioModal({ alerta, clientes, reservas, onClose, onVerCli
             <button onClick={onNewPago} style={btnStyle("#F0FDF4","#16A34A")}>💰 Registrar Pago</button>
           )}
           {waMsg&&(
-            <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent(waMsg)}
+            <a href={"https://wa.me/"+waNumber(c.whatsapp)+"?text="+encodeURIComponent(waMsg)}
               target="_blank" rel="noreferrer"
               style={{...btnStyle("#F0FDF4","#16A34A"),display:"block",textDecoration:"none",textAlign:"center"}}>
               💬 Enviar Mensaje WA
@@ -2199,7 +2199,7 @@ function PrintModal({ data, onClose }) {
         <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E",marginBottom:16,fontFamily:"'Playfair Display',serif"}}>🖨️ {data.title}</div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {data.waPhone&&data.waMsg&&(
-            <a href={"https://wa.me/"+data.waPhone.replace(/\D/g,"")+"?text="+encodeURIComponent(data.waMsg)}
+            <a href={"https://wa.me/"+waNumber(data.waPhone)+"?text="+encodeURIComponent(data.waMsg)}
               target="_blank" rel="noreferrer"
               style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"#25D366",color:"#FFF",borderRadius:10,padding:"13px",fontWeight:700,fontSize:14,textDecoration:"none"}}>
               💬 Enviar Recibo por WhatsApp
@@ -2902,7 +2902,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
             )}
             <div style={{display:"flex",gap:8}}>
               {puede ? (
-                <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent(msg)} target="_blank" rel="noreferrer"
+                <a href={"https://wa.me/"+waNumber(c.whatsapp)+"?text="+encodeURIComponent(msg)} target="_blank" rel="noreferrer"
                   onClick={()=>saveReservas(reservas.map(x=>x.id===r.id?{...x,postEventoProcesado:true}:x))}
                   style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:"#25D366",color:"#FFF",textDecoration:"none",padding:"9px 12px",borderRadius:8,fontWeight:700,fontSize:13}}>
                   💬 Enviar mensaje
@@ -2951,7 +2951,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
                   </div>
                 )}
                 {c&&c.whatsapp&&(puede?(
-                  <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent(buildReminderMsg(r))}
+                  <a href={"https://wa.me/"+waNumber(c.whatsapp)+"?text="+encodeURIComponent(buildReminderMsg(r))}
                     target="_blank" rel="noreferrer"
                     onClick={()=>saveReservas(reservas.map(x=>x.id===r.id?{...x,recordatorioEnviado:true}:x))}
                     style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"#25D366",color:"#FFF",textDecoration:"none",padding:"10px 14px",borderRadius:8,fontWeight:700,fontSize:13}}>
@@ -3016,7 +3016,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #EDE0D0"}}>
             <input type="checkbox" checked={false} onChange={()=>toggleTarea(t.id)} style={{width:16,height:16,cursor:"pointer",accentColor:"#C4602B"}} />
             <span style={{flex:1,fontSize:13,color:"#1C1C1E"}}>{displayDesc}</span>
-            {waMatch&&<a href={"https://wa.me/"+waMatch[1].replace(/[\s-]/g,"")} target="_blank" rel="noopener" style={{padding:"4px 10px",background:"#25D366",color:"#FFF",borderRadius:8,fontSize:11,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>💬 WhatsApp</a>}
+            {waMatch&&<a href={"https://wa.me/"+waNumber(waMatch[1])} target="_blank" rel="noopener" style={{padding:"4px 10px",background:"#25D366",color:"#FFF",borderRadius:8,fontSize:11,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>💬 WhatsApp</a>}
             <span style={{fontSize:11,color:"#8B7355"}}>{fmtDate(t.fechaRegistro)}</span>
             <button onClick={()=>deleteTarea(t.id)} style={{background:"none",border:"none",color:"#DC2626",cursor:"pointer",fontSize:14,padding:"0 4px"}}>✕</button>
           </div>);

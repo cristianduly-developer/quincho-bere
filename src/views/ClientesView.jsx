@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toDateStr, clientName } from "../lib/utils.js";
+import { toDateStr, clientName, waNumber } from "../lib/utils.js";
 import { card, inputStyle } from "../lib/styles.js";
 import { Btn, Avatar } from "../components/ui.jsx";
 import RecontactosView from "./RecontactosView.jsx";
@@ -91,7 +91,7 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
                 <div style={{textAlign:"right",flexShrink:0}}>
                   <div style={{fontSize:11,color:"#8B7355"}}>{reales.length>0&&`${reales.length} reserva${reales.length!==1?"s":""}`}{reales.length>0&&visitas.length>0&&" · "}{visitas.length>0&&<span style={{color:"#7C3AED"}}>{visitas.length} visita{visitas.length!==1?"s":""}</span>}{reales.length===0&&visitas.length===0&&"Sin reservas"}</div>
                   {c.whatsapp && (
-                    <a href={`https://wa.me/${c.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
+                    <a href={`https://wa.me/${waNumber(c.whatsapp)}`} target="_blank" rel="noreferrer"
                       onClick={e=>e.stopPropagation()} style={{display:"inline-block",marginTop:4,padding:"3px 8px",borderRadius:6,background:"#25D366",color:"#FFF",fontSize:11,fontWeight:600,textDecoration:"none"}}>💬</a>
                   )}
                 </div>

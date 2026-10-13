@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toDateStr, clientName, fmtDate, genId } from "../lib/utils.js";
+import { toDateStr, clientName, fmtDate, genId, waNumber } from "../lib/utils.js";
 import { card } from "../lib/styles.js";
 import { Btn, BottomModal, Select, TextArea, Input } from "../components/ui.jsx";
 
@@ -59,7 +59,7 @@ export default function RecordatoriosView({ recordatorios, setRecordatorios, res
               {r&&<Btn small variant="secondary" onClick={()=>onVerEvento(r)}>📋 Ver evento</Btn>}
               {rec.tipo==="Cobro pendiente"&&r&&<Btn small onClick={()=>onNewPago(r.id)}>💰 Cobro</Btn>}
               {c&&c.whatsapp&&(
-                <a href={"https://wa.me/"+c.whatsapp.replace(/\D/g,"")+"?text="+encodeURIComponent("Hola "+clientName(c)+"! Te contactamos desde "+(negocio?.nombreNegocio||"nuestro negocio")+". "+rec.nota)}
+                <a href={"https://wa.me/"+waNumber(c.whatsapp)+"?text="+encodeURIComponent("Hola "+clientName(c)+"! Te contactamos desde "+(negocio?.nombreNegocio||"nuestro negocio")+". "+rec.nota)}
                   target="_blank" rel="noreferrer"
                   style={{display:"inline-flex",alignItems:"center",gap:4,padding:"6px 12px",background:"#25D366",color:"#FFF",borderRadius:8,fontSize:12,fontWeight:600,textDecoration:"none"}}>
                   💬 WA
