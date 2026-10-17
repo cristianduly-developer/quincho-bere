@@ -229,7 +229,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
     <div style={{padding:"16px 16px 100px"}}>
 
       <div style={{display:"flex",gap:0,marginBottom:14,borderBottom:"1px solid #EDE0D0",background:"#FDF8F3",borderRadius:"10px 10px 0 0",overflow:"hidden"}}>
-        {[{v:"financiero",l:"💰 Financiero"},{v:"portal",l:"📱 Portal"}].map(o=>(
+        {[{v:"financiero",l:"💰 Financiero"},{v:"captacion",l:"📊 Captación"},{v:"portal",l:"📱 Portal"}].map(o=>(
           <button key={o.v} onClick={()=>setSubtab(o.v)} style={{flex:1,padding:"11px 0",fontWeight:600,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:"transparent",color:subtab===o.v?"#C4602B":"#8B7355",borderBottom:"2px solid "+(subtab===o.v?"#C4602B":"transparent"),transition:"all 0.15s"}}>{o.l}</button>
         ))}
       </div>
@@ -767,6 +767,162 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         );
       })()}
       </>}
+
+      {subtab==="captacion" && (()=>{
+        const DIAS_SEMANA = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+        const conFecha = reservas.filter(r => (r.creadoEn || r.fechaCreacion) && r.estado !== "cancelada");
+
+        const porDia = Array(7).fill(0);
+        conFecha.forEach(r => {
+          const d = new Date(r.creadoEn || r.fechaCreacion + "T12:00:00");
+          if (!isNaN(d)) porDia[d.getDay()]++;
+        });
+        const maxDia = Math.max(...porDia, 1);
+        const mejorDia = porDia.indexOf(Math.max(...porDia));
+
+        const porHora = Array(24).fill(0);
+        conFecha.forEach(r => {
+          if (!r.creadoEn) return;
+          const d = new Date(r.creadoEn);
+          if (!isNaN(d)) porHora[d.getHours()]++;
+        });
+        const maxHora = Math.max(...porHora, 1);
+        const mejorHora = porHora.indexOf(Math.max(...porHora));
+
+        const hoy = new Date();
+        const mesesData = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+          const prefix = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+          const count = conFecha.filter(r => (r.creadoEn || r.fechaCreacion || "").startsWith(prefix)).length;
+          mesesData.push({ label: MONTHS[d.getMonth()].slice(0,3), count });
+        }
+        const maxMes = Math.max(...mesesData.map(m => m.count), 1);
+
+        const anticipaciones = conFecha.filter(r => r.fecha && (r.creadoEn || r.fechaCreacion)).map(r => {
+          const creado = new Date(r.creadoEn || r.fechaCreacion + "T12:00:00");
+          const evento = new Date(r.fecha + "T12:00:00");
+          return Math.round((evento - creado) / (1000 * 60 * 60 * 24));
+        }).filter(d => d >= 0 && d < 365);
+        const promedioAnticipacion = anticipaciones.length > 0 ? Math.round(anticipaciones.reduce((s, d) => s + d, 0) / anticipaciones.length) : 0;
+
+        const porOrigen = {};
+        conFecha.forEach(r => {
+          const cli = clientes.find(c => c.id === r.clienteId);
+          const origen = cli?.origen || "Sin definir";
+          porOrigen[origen] = (porOrigen[origen] || 0) + 1;
+        });
+        const origenEntries = Object.entries(porOrigen).sort((a, b) => b[1] - a[1]);
+        const maxOrigen = origenEntries.length > 0 ? origenEntries[0][1] : 1;
+
+        return <>
+          <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
+            <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 12}}>📊 Resumen de captación</div>
+            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12}}>
+              <div style={{background: "#EFF6FF", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid #BFDBFE"}}>
+                <div style={{fontSize: 22, fontWeight: 800, color: "#2563EB"}}>{conFecha.length}</div>
+                <div style={{fontSize: 10, color: "#2563EB", fontWeight: 600}}>Reservas con fecha</div>
+              </div>
+              <div style={{background: "#F0FDF4", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid #BBF7D0"}}>
+                <div style={{fontSize: 22, fontWeight: 800, color: "#16A34A"}}>{promedioAnticipacion} días</div>
+                <div style={{fontSize: 10, color: "#16A34A", fontWeight: 600}}>Anticipación promedio</div>
+              </div>
+            </div>
+            <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8}}>
+              <div style={{background: "#FDF8F3", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid #EDE0D0"}}>
+                <div style={{fontSize: 16, fontWeight: 800, color: "#C4602B"}}>{DIAS_SEMANA[mejorDia]}</div>
+                <div style={{fontSize: 10, color: "#8B7355", fontWeight: 600}}>Mejor día para publicar</div>
+              </div>
+              <div style={{background: "#FDF8F3", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid #EDE0D0"}}>
+                <div style={{fontSize: 16, fontWeight: 800, color: "#C4602B"}}>{mejorHora}:00 hs</div>
+                <div style={{fontSize: 10, color: "#8B7355", fontWeight: 600}}>Mejor hora para publicar</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
+            <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>📅 Día que más reservan</div>
+            <div style={{fontSize: 11, color: "#A8A29E", marginBottom: 12}}>¿Qué día de la semana la gente hace más reservas?</div>
+            {DIAS_SEMANA.map((dia, i) => {
+              const pct = Math.round((porDia[i] / maxDia) * 100);
+              const esMejor = i === mejorDia && porDia[i] > 0;
+              return (
+                <div key={dia} style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 6}}>
+                  <div style={{width: 70, fontSize: 12, fontWeight: esMejor ? 800 : 500, color: esMejor ? "#C4602B" : "#1C1C1E"}}>{dia.slice(0,3)}</div>
+                  <div style={{flex: 1, height: 18, background: "#EDE0D0", borderRadius: 4, overflow: "hidden"}}>
+                    <div style={{height: "100%", width: pct + "%", background: esMejor ? "#C4602B" : "#D4A574", borderRadius: 4, transition: "width 0.3s"}} />
+                  </div>
+                  <div style={{width: 30, fontSize: 12, fontWeight: 700, color: esMejor ? "#C4602B" : "#8B7355", textAlign: "right"}}>{porDia[i]}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
+            <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>🕐 Hora que más reservan</div>
+            <div style={{fontSize: 11, color: "#A8A29E", marginBottom: 12}}>¿A qué hora del día la gente crea la reserva?</div>
+            <div style={{display: "flex", alignItems: "flex-end", gap: 2, height: 100}}>
+              {porHora.map((count, h) => {
+                const pct = maxHora > 0 ? (count / maxHora) * 100 : 0;
+                const esMejor = h === mejorHora && count > 0;
+                return (
+                  <div key={h} style={{flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2}}>
+                    <div style={{width: "100%", height: Math.max(pct, 2), background: esMejor ? "#C4602B" : count > 0 ? "#D4A574" : "#EDE0D0", borderRadius: "3px 3px 0 0", transition: "height 0.3s"}} />
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{display: "flex", gap: 2, marginTop: 4}}>
+              {porHora.map((_, h) => (
+                <div key={h} style={{flex: 1, textAlign: "center", fontSize: 7, color: h === mejorHora ? "#C4602B" : "#A8A29E", fontWeight: h === mejorHora ? 800 : 400}}>{h % 3 === 0 ? h : ""}</div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
+            <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>📈 Reservas creadas por mes</div>
+            <div style={{display: "flex", alignItems: "flex-end", gap: 6, height: 100}}>
+              {mesesData.map((m, i) => {
+                const pct = maxMes > 0 ? (m.count / maxMes) * 100 : 0;
+                return (
+                  <div key={i} style={{flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4}}>
+                    <div style={{fontSize: 11, fontWeight: 700, color: "#C4602B"}}>{m.count}</div>
+                    <div style={{width: "100%", height: Math.max(pct, 4), background: "#C4602B", borderRadius: 4, transition: "height 0.3s"}} />
+                    <div style={{fontSize: 10, color: "#8B7355", fontWeight: 600}}>{m.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {origenEntries.length > 0 && (
+            <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
+              <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>📣 Canal de origen</div>
+              <div style={{fontSize: 11, color: "#A8A29E", marginBottom: 12}}>¿De dónde vienen los clientes que reservan?</div>
+              {origenEntries.map(([origen, count]) => {
+                const pct = Math.round((count / maxOrigen) * 100);
+                return (
+                  <div key={origen} style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 6}}>
+                    <div style={{width: 100, fontSize: 12, fontWeight: 600, color: "#1C1C1E"}}>{origen}</div>
+                    <div style={{flex: 1, height: 18, background: "#EDE0D0", borderRadius: 4, overflow: "hidden"}}>
+                      <div style={{height: "100%", width: pct + "%", background: "#7C3AED", borderRadius: 4}} />
+                    </div>
+                    <div style={{width: 30, fontSize: 12, fontWeight: 700, color: "#7C3AED", textAlign: "right"}}>{count}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {conFecha.length === 0 && (
+            <div style={{...card, padding: "40px 20px", textAlign: "center"}}>
+              <div style={{fontSize: 36, marginBottom: 8}}>📊</div>
+              <div style={{fontWeight: 600, color: "#8B7355"}}>Aún no hay datos de captación</div>
+              <div style={{fontSize: 12, color: "#A8A29E", marginTop: 4}}>Las reservas creadas irán apareciendo acá</div>
+            </div>
+          )}
+        </>;
+      })()}
 
       {subtab==="portal" && (
         portalLoading ? (
