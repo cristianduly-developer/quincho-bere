@@ -112,6 +112,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   const [hasta, setHasta] = useState(toDateStr(now));
 
   const [subtab, setSubtab] = useState("financiero");
+  const [desgloseOpen, setDesgloseOpen] = useState(false);
   const [portalData, setPortalData] = useState(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
@@ -314,7 +315,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           if (!r) return;
           const c = clientes.find(x=>x.id===r.clienteId);
           const key = r.id;
-          if (!porReserva[key]) porReserva[key] = { nombre: c ? (c.nombre+" "+c.apellido).trim() : "Sin cliente", fecha: r.fecha, total: 0, pagos: [] };
+          if (!porReserva[key]) porReserva[key] = { nombre: c ? (c.nombre+" "+c.apellido).trim() : "Sin cliente", fecha: r.fecha, total: 0, pagos: [], ultimoPago: p.fecha };
           porReserva[key].total += p.monto;
           porReserva[key].pagos.push({ monto: p.monto, fecha: p.fecha, metodo: p.metodo, concepto: p.concepto || (p.esSena ? "Seña" : "Pago") });
         });
@@ -322,44 +323,51 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>💰 Desglose de ingresos</div>
-            <div style={{fontSize:11,color:"#A8A29E",marginBottom:12}}>¿De dónde viene la plata cobrada este período?</div>
+            <div onClick={()=>setDesgloseOpen(v=>!v)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase"}}>💰 Desglose de ingresos</div>
+              <span style={{fontSize:14,color:"#8B7355",transition:"transform 0.2s",transform:desgloseOpen?"rotate(180deg)":"rotate(0deg)"}}>▾</span>
+            </div>
+            {!desgloseOpen && <div style={{fontSize:11,color:"#A8A29E",marginTop:4}}>Tocá para ver el detalle de los cobros</div>}
 
-            {conceptoEntries.length > 1 && <>
-              <div style={{fontSize:10,fontWeight:700,color:"#8B7355",marginBottom:6}}>POR CONCEPTO</div>
-              {conceptoEntries.map(([concepto, monto]) => {
-                const pct = Math.round((monto / ingresos) * 100);
-                return (
-                  <div key={concepto} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                    <div style={{flex:1,fontSize:12,color:"#1C1C1E"}}>{concepto}</div>
-                    <div style={{fontSize:12,fontWeight:700,color:"#16A34A"}}>{fmtCurrency(monto)}</div>
-                    <div style={{width:36,fontSize:10,color:"#8B7355",textAlign:"right"}}>{pct}%</div>
+            {desgloseOpen && <>
+              <div style={{fontSize:11,color:"#A8A29E",marginTop:8,marginBottom:12}}>¿De dónde viene la plata cobrada este período?</div>
+
+              {conceptoEntries.length > 1 && <>
+                <div style={{fontSize:10,fontWeight:700,color:"#8B7355",marginBottom:6}}>POR CONCEPTO</div>
+                {conceptoEntries.map(([concepto, monto]) => {
+                  const pct = Math.round((monto / ingresos) * 100);
+                  return (
+                    <div key={concepto} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                      <div style={{flex:1,fontSize:12,color:"#1C1C1E"}}>{concepto}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:"#16A34A"}}>{fmtCurrency(monto)}</div>
+                      <div style={{width:36,fontSize:10,color:"#8B7355",textAlign:"right"}}>{pct}%</div>
+                    </div>
+                  );
+                })}
+                <div style={{borderTop:"1px solid #EDE0D0",marginTop:8,marginBottom:10}} />
+              </>}
+
+              <div style={{fontSize:10,fontWeight:700,color:"#8B7355",marginBottom:6}}>POR RESERVA</div>
+              {reservaEntries.slice(0,10).map((re,i) => (
+                <div key={i} style={{padding:"8px 0",borderBottom:i<Math.min(reservaEntries.length,10)-1?"1px solid #F5EDE4":"none"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:600,color:"#1C1C1E"}}>{re.nombre}</div>
+                      <div style={{fontSize:10,color:"#8B7355"}}>Cobro: {fmtDate(re.pagos[re.pagos.length-1]?.fecha)}{re.fecha ? ` · Evento: ${fmtDate(re.fecha)}` : ""}</div>
+                    </div>
+                    <div style={{fontWeight:800,fontSize:14,color:"#16A34A"}}>{fmtCurrency(re.total)}</div>
                   </div>
-                );
-              })}
-              <div style={{borderTop:"1px solid #EDE0D0",marginTop:8,marginBottom:10}} />
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
+                    {re.pagos.map((p,j) => (
+                      <span key={j} style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"#F0FDF4",color:"#16A34A",border:"1px solid #BBF7D0"}}>
+                        {p.concepto} · {fmtCurrency(p.monto)} · {p.metodo==="Efectivo"?"💵":"🏦"} · {fmtDate(p.fecha)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {reservaEntries.length > 10 && <div style={{fontSize:11,color:"#8B7355",textAlign:"center",marginTop:8}}>... y {reservaEntries.length-10} reservas más</div>}
             </>}
-
-            <div style={{fontSize:10,fontWeight:700,color:"#8B7355",marginBottom:6}}>POR RESERVA</div>
-            {reservaEntries.slice(0,10).map((re,i) => (
-              <div key={i} style={{padding:"8px 0",borderBottom:i<Math.min(reservaEntries.length,10)-1?"1px solid #F5EDE4":"none"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:600,color:"#1C1C1E"}}>{re.nombre}</div>
-                    <div style={{fontSize:10,color:"#8B7355"}}>Evento: {fmtDate(re.fecha)}</div>
-                  </div>
-                  <div style={{fontWeight:800,fontSize:14,color:"#16A34A"}}>{fmtCurrency(re.total)}</div>
-                </div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
-                  {re.pagos.map((p,j) => (
-                    <span key={j} style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"#F0FDF4",color:"#16A34A",border:"1px solid #BBF7D0"}}>
-                      {p.concepto} · {fmtCurrency(p.monto)} · {p.metodo==="Efectivo"?"💵":"🏦"} · {fmtDate(p.fecha)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-            {reservaEntries.length > 10 && <div style={{fontSize:11,color:"#8B7355",textAlign:"center",marginTop:8}}>... y {reservaEntries.length-10} reservas más</div>}
           </div>
         );
       })()}
