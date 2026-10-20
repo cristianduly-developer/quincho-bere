@@ -2450,7 +2450,7 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
                   const toMinCal=s=>{if(!s)return 0;const[h,m]=(s+":0").split(":");return Number(h)*60+Number(m||0);};
                   const getTurnoColor=(r,tc)=>{
                     if(isPast||r.estado==="finalizada") return "#9CA3AF";
-                    if(r.estado==="visita") return "#7C3AED";
+                    if(r.estado==="visita") return "#EC4899";
                     if(r.estado==="pendiente") return "#6B7280";
                     if(!tc) return TURNOS[r.turno]?.color||"#C4602B";
                     const dur=(toMinCal(tc.horaFin)||1440)-toMinCal(tc.horaInicio);
