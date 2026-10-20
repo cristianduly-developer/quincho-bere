@@ -318,8 +318,9 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           if (!porReserva[key]) porReserva[key] = { nombre: c ? (c.nombre+" "+c.apellido).trim() : "Sin cliente", fecha: r.fecha, total: 0, pagos: [], ultimoPago: p.fecha };
           porReserva[key].total += p.monto;
           porReserva[key].pagos.push({ monto: p.monto, fecha: p.fecha, metodo: p.metodo, concepto: p.concepto || (p.esSena ? "Seña" : "Pago") });
+          if (!porReserva[key].ultimoPago || p.fecha > porReserva[key].ultimoPago) porReserva[key].ultimoPago = p.fecha;
         });
-        const reservaEntries = Object.values(porReserva).sort((a,b)=>b.total-a.total);
+        const reservaEntries = Object.values(porReserva).sort((a,b)=>(b.ultimoPago||"").localeCompare(a.ultimoPago||""));
 
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
@@ -348,8 +349,8 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               </>}
 
               <div style={{fontSize:10,fontWeight:700,color:"#8B7355",marginBottom:6}}>POR RESERVA</div>
-              {reservaEntries.slice(0,10).map((re,i) => (
-                <div key={i} style={{padding:"8px 0",borderBottom:i<Math.min(reservaEntries.length,10)-1?"1px solid #F5EDE4":"none"}}>
+              {reservaEntries.map((re,i) => (
+                <div key={i} style={{padding:"8px 0",borderBottom:i<reservaEntries.length-1?"1px solid #F5EDE4":"none"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div>
                       <div style={{fontSize:12,fontWeight:600,color:"#1C1C1E"}}>{re.nombre}</div>
@@ -366,7 +367,6 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                   </div>
                 </div>
               ))}
-              {reservaEntries.length > 10 && <div style={{fontSize:11,color:"#8B7355",textAlign:"center",marginTop:8}}>... y {reservaEntries.length-10} reservas más</div>}
             </>}
           </div>
         );
