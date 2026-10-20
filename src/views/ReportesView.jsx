@@ -93,6 +93,20 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         ?"<div class=\"sec\"><div class=\"stitle\">📅 Detalle de reservas</div><table><tr><th>Fecha</th><th>Cliente / Tel.</th><th>Turno</th><th>Extras</th><th>Pactado</th><th>Cobrado</th><th>Saldo</th></tr>"+rowsRes+"</table></div>"
         :"<p style=\"color:#8B7355;padding:10px 0\">Sin reservas este mes.</p>")
       +(gastosCatRows?"<div class=\"sec\"><div class=\"stitle\">💸 Gastos por categoría</div><table><tr><th>Categoría</th><th style=\"text-align:right\">Total</th></tr>"+gastosCatRows+"<tr><td style=\"font-weight:bold\">TOTAL</td><td style=\"text-align:right;font-weight:bold\">"+fmt(totalGastos)+"</td></tr></table></div>":"")
+      +(()=>{
+        const pagosMes = pagos.filter(p=>p.fecha&&p.fecha.startsWith(prefix)).sort((a,b)=>(a.fecha||"").localeCompare(b.fecha||""));
+        if(pagosMes.length===0) return "";
+        const desgloseRows = pagosMes.map(p=>{
+          const r = reservas.find(x=>x.id===p.reservaId);
+          const c = r ? clientes.find(x=>x.id===r.clienteId) : null;
+          const nombre = c ? (escHtml(c.nombre)+" "+escHtml(c.apellido)).trim() : "—";
+          const concepto = escHtml(p.concepto || (p.esSena ? "Seña" : "Pago de reserva"));
+          const metodo = p.metodo==="Efectivo"?"💵 Efectivo":"🏦 Transf.";
+          const fechaEvento = r ? fmtDate(r.fecha) : "—";
+          return "<tr><td>"+fmtDate(p.fecha)+"</td><td>"+nombre+"</td><td>"+concepto+"</td><td>"+metodo+"</td><td style=\"text-align:right\">"+fmt(p.monto)+"</td><td>"+fechaEvento+"</td></tr>";
+        }).join("");
+        return "<div class=\"sec\" style=\"page-break-before:auto\"><div class=\"stitle\">💰 Desglose de ingresos</div><table><tr><th>Fecha cobro</th><th>Cliente</th><th>Concepto</th><th>Método</th><th style=\"text-align:right\">Monto</th><th>Evento</th></tr>"+desgloseRows+"<tr><td colspan=\"4\" style=\"font-weight:bold\">TOTAL</td><td style=\"text-align:right;font-weight:bold\">"+fmt(totalCobrado)+"</td><td></td></tr></table></div>";
+      })()
       +"<div class=\"ft\">Generado el "+new Date().toLocaleDateString("es-AR",{day:"2-digit",month:"long",year:"numeric"})+" · "+(negocio?.nombreNegocio||"Mi Negocio")+"</div>"
       +"</body></html>";
 
