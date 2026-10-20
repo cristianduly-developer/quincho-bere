@@ -557,7 +557,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
         return null;
       })()}
       <Select label="Tipo de evento" value={f.tipoEvento} onChange={set("tipoEvento")}
-        options={[{value:"",label:"— Seleccionar (opcional) —"},{value:"Cumpleaños",label:"🎂 Cumpleaños"},{value:"Cumpleaños de 15",label:"👑 Cumpleaños de 15"},{value:"Casamiento",label:"💍 Casamiento"},{value:"Bautismo / Comunión",label:"⛪ Bautismo / Comunión"},{value:"Baby Shower",label:"🍼 Baby Shower"},{value:"Despedida",label:"🥳 Despedida"},{value:"Evento corporativo",label:"🏢 Evento corporativo"},{value:"Reunión familiar",label:"👨‍👩‍👧‍👦 Reunión familiar"},{value:"Otro",label:"📌 Otro"}]} />
+        options={[{value:"",label:"— Seleccionar (opcional) —"},{value:"Cumpleaños",label:"🎂 Cumpleaños"},{value:"Cumpleaños infantil",label:"🎈 Cumpleaños infantil"},{value:"Cumpleaños de 15",label:"👑 Cumpleaños de 15"},{value:"Casamiento",label:"💍 Casamiento"},{value:"Bautismo / Comunión",label:"⛪ Bautismo / Comunión"},{value:"Baby Shower",label:"🍼 Baby Shower"},{value:"Despedida",label:"🥳 Despedida"},{value:"Evento corporativo",label:"🏢 Evento corporativo"},{value:"Reunión familiar",label:"👨‍👩‍👧‍👦 Reunión familiar"},{value:"Otro",label:"📌 Otro"}]} />
       {f.tipoEvento && <Input label="Nombre del evento (opcional)" value={f.nombreEvento} onChange={set("nombreEvento")} placeholder={`${f.tipoEvento} de ${clientes.find(c=>c.id===f.clienteId)?.nombre||"..."}`} />}
       <Select label="Espacio" value={f.recursoId} onChange={set("recursoId")}
         options={recursos.map(r=>({value:r.id,label:r.nombre}))} />
@@ -1056,6 +1056,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
           {reserva.cantInvitados>0 && <div><div style={labelStyle}>Invitados</div><div style={{fontSize:14,color:"#1C1C1E"}}>👥 {reserva.cantInvitados} personas</div></div>}
         </div>
         {reserva.notas && <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #EDE0D0",fontSize:13,color:"#5C4033"}}>📝 {reserva.notas}</div>}
+        {(reserva.fechaCreacion||reserva.creadoEn) && <div style={{marginTop:8,fontSize:11,color:"#A8A29E"}}>Reserva creada el {fmtDate(reserva.fechaCreacion||(reserva.creadoEn?reserva.creadoEn.slice(0,10):""))}{reserva.creadoPor?` por ${reserva.creadoPor}`:""}</div>}
       </div>
 
       {/* Financial breakdown — oculto para visitas */}
