@@ -17,7 +17,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
     const mes = MONTHS[selMonth];
     const anio = selYear;
     const prefix = selYear+"-"+String(selMonth+1).padStart(2,"0");
-    const reservasMes = reservas.filter(r=>r.fecha&&r.fecha.startsWith(prefix)&&r.estado!=="cancelada").sort((a,b)=>a.fecha.localeCompare(b.fecha));
+    const reservasMes = reservas.filter(r=>r.fecha&&r.fecha.startsWith(prefix)&&r.estado!=="cancelada"&&r.estado!=="visita").sort((a,b)=>a.fecha.localeCompare(b.fecha));
     const gastosMes = gastos.filter(g=>g.fecha&&g.fecha.startsWith(prefix));
     const totalCobrado = pagos.filter(p=>p.fecha&&p.fecha.startsWith(prefix)).reduce((s,p)=>s+p.monto,0);
     const totalGastos = gastosMes.reduce((s,g)=>s+g.monto,0);
@@ -164,7 +164,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   const selKey = `${selYear}-${String(selMonth+1).padStart(2,"0")}`;
   const todayKey = toDateStr(now).slice(0,7);
   const isFutureMonth = modo==="mes" && selKey > todayKey;
-  const monthRes = reservas.filter(r=>r.fecha&&enRango(r.fecha)&&r.estado!=="cancelada");
+  const monthRes = reservas.filter(r=>r.fecha&&enRango(r.fecha)&&r.estado!=="cancelada"&&r.estado!=="visita");
 
   const ingresos = pagos.filter(p=>enRangoPago(p.fecha)).reduce((s,p)=>s+p.monto,0);
   const gastosTotal = gastos.filter(g=>enRangoPago(g.fecha)).reduce((s,g)=>s+g.monto,0);
@@ -178,7 +178,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   const cuentas     = ingTransf - gstTransf;
 
   const proyeccion = isFutureMonth
-    ? reservas.filter(r=>r.fecha?.startsWith(selKey)&&r.estado!=="cancelada").reduce((s,r)=>s+Math.max(0,getSaldo(r,extrasReserva,pagos)),0)
+    ? reservas.filter(r=>r.fecha?.startsWith(selKey)&&r.estado!=="cancelada"&&r.estado!=="visita").reduce((s,r)=>s+Math.max(0,getSaldo(r,extrasReserva,pagos)),0)
     : null;
 
   const porCobrar = !isFutureMonth
@@ -310,6 +310,44 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         </div>
       </div>
 
+      {/* Rendimiento del mes: eventos realizados y su facturación */}
+      {monthRes.length>0 && (()=>{
+        const facturacion = monthRes.reduce((s,r)=>s+r.montoPactado+getTotalExtras(r.id,extrasReserva),0);
+        const cobrado = monthRes.reduce((s,r)=>s+pagos.filter(p=>p.reservaId===r.id).reduce((ss,p)=>ss+p.monto,0),0);
+        const pendiente = facturacion - cobrado;
+        const promedio = monthRes.length>0 ? Math.round(facturacion/monthRes.length) : 0;
+        return (
+          <div style={{...card,padding:"14px 16px",marginBottom:10,border:"1.5px solid #D4A574"}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>🏠 Rendimiento del período</div>
+            <div style={{fontSize:11,color:"#A8A29E",marginBottom:12}}>Eventos que ocurrieron en este período y cuánto facturaron</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+              <div style={{background:"#FDF8F3",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid #EDE0D0"}}>
+                <div style={{fontSize:24,fontWeight:800,color:"#C4602B"}}>{monthRes.length}</div>
+                <div style={{fontSize:10,color:"#8B7355",fontWeight:600}}>Alquileres</div>
+              </div>
+              <div style={{background:"#F0FDF4",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid #BBF7D0"}}>
+                <div style={{fontSize:20,fontWeight:800,color:"#16A34A"}}>{fmtCurrency(facturacion)}</div>
+                <div style={{fontSize:10,color:"#16A34A",fontWeight:600}}>Facturación total</div>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+              <div style={{background:"#EFF6FF",borderRadius:10,padding:"8px 6px",textAlign:"center",border:"1px solid #BFDBFE"}}>
+                <div style={{fontSize:14,fontWeight:800,color:"#2563EB"}}>{fmtCurrency(promedio)}</div>
+                <div style={{fontSize:9,color:"#2563EB",fontWeight:600}}>Promedio</div>
+              </div>
+              <div style={{background:"#F0FDF4",borderRadius:10,padding:"8px 6px",textAlign:"center",border:"1px solid #BBF7D0"}}>
+                <div style={{fontSize:14,fontWeight:800,color:"#16A34A"}}>{fmtCurrency(cobrado)}</div>
+                <div style={{fontSize:9,color:"#16A34A",fontWeight:600}}>Cobrado</div>
+              </div>
+              <div style={{background:pendiente>0?"#FEF3C7":"#F0FDF4",borderRadius:10,padding:"8px 6px",textAlign:"center",border:`1px solid ${pendiente>0?"#FCD34D":"#BBF7D0"}`}}>
+                <div style={{fontSize:14,fontWeight:800,color:pendiente>0?"#D97706":"#16A34A"}}>{fmtCurrency(pendiente)}</div>
+                <div style={{fontSize:9,color:pendiente>0?"#D97706":"#16A34A",fontWeight:600}}>Pendiente</div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {isFutureMonth ? (
         <div style={{...card,padding:"14px 16px",marginBottom:10,border:"2px solid #C4602B"}}>
           <div style={{fontSize:11,fontWeight:700,color:"#C4602B",textTransform:"uppercase",marginBottom:4}}>📈 Proyección de caja</div>
@@ -335,7 +373,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         const totalSlots=daysInMonth*slotsPerDay;
         const prefix=selKey;
         const occupied=new Set();
-        reservas.filter(r=>r.fecha?.startsWith(prefix)&&r.estado!=="cancelada").forEach(r=>{
+        reservas.filter(r=>r.fecha?.startsWith(prefix)&&r.estado!=="cancelada"&&r.estado!=="visita").forEach(r=>{
           const key=r.turnoId?`${r.fecha}-${r.turnoId}`:`${r.fecha}-${r.turno}`;
           occupied.add(key);
         });
@@ -352,7 +390,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         const prevDays=new Date(prevYear,prevMonth+1,0).getDate();
         const prevTotal=prevDays*slotsPerDay;
         const prevOcc=new Set();
-        reservas.filter(r=>r.fecha?.startsWith(prevPrefix)&&r.estado!=="cancelada").forEach(r=>{
+        reservas.filter(r=>r.fecha?.startsWith(prevPrefix)&&r.estado!=="cancelada"&&r.estado!=="visita").forEach(r=>{
           const key=r.turnoId?`${r.fecha}-${r.turnoId}`:`${r.fecha}-${r.turno}`;
           prevOcc.add(key);
         });
@@ -366,7 +404,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         const yoyDays=new Date(year-1,month+1,0).getDate();
         const yoyTotal=yoyDays*slotsPerDay;
         const yoyOcc=new Set();
-        reservas.filter(r=>r.fecha?.startsWith(prevYearSameMonth)&&r.estado!=="cancelada").forEach(r=>{
+        reservas.filter(r=>r.fecha?.startsWith(prevYearSameMonth)&&r.estado!=="cancelada"&&r.estado!=="visita").forEach(r=>{
           const key=r.turnoId?`${r.fecha}-${r.turnoId}`:`${r.fecha}-${r.turno}`;
           yoyOcc.add(key);
         });
@@ -637,7 +675,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           cant: reservas.filter(r=>{
             if(!r.fechaCreacion && !r.creadoEn) return false;
             const fc = (r.fechaCreacion||r.creadoEn||"").slice(0,7);
-            return fc === `${anioVista}-${String(m+1).padStart(2,"0")}` && r.estado !== "cancelada";
+            return fc === `${anioVista}-${String(m+1).padStart(2,"0")}` && r.estado !== "cancelada" && r.estado !== "visita";
           }).length,
         }));
         const maxCant = Math.max(...porMesCreacion.map(m=>m.cant), 1);
@@ -705,7 +743,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         const consRango = (consultas||[]).filter(c => enRango(c.fecha));
         const totalCons = consRango.reduce((s,c) => s + c.cantidad, 0);
         if (totalCons === 0) return null;
-        const reservasRango = reservas.filter(r => enRango(r.fecha) && r.estado !== "cancelada").length;
+        const reservasRango = reservas.filter(r => enRango(r.fecha) && r.estado !== "cancelada" && r.estado !== "visita").length;
         const conversion = totalCons > 0 ? Math.round((reservasRango / totalCons) * 100) : 0;
         const porCanal = {};
         consRango.forEach(c => { porCanal[c.canal] = (porCanal[c.canal] || 0) + c.cantidad; });
@@ -747,7 +785,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             {canales.map(([canal, cnt]) => {
               const pct = Math.round((cnt / totalCons) * 100);
               const resCanal = reservas.filter(r => {
-                if (!enRango(r.fecha) || r.estado === "cancelada") return false;
+                if (!enRango(r.fecha) || r.estado === "cancelada" || r.estado === "visita") return false;
                 const cli = clientes.find(x => x.id === r.clienteId);
                 return cli?.origen === canal;
               }).length;
@@ -770,7 +808,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
       {subtab==="captacion" && (()=>{
         const DIAS_SEMANA = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
-        const conFecha = reservas.filter(r => (r.creadoEn || r.fechaCreacion) && r.estado !== "cancelada");
+        const conFecha = reservas.filter(r => (r.creadoEn || r.fechaCreacion) && r.estado !== "cancelada" && r.estado !== "visita");
 
         const porDia = Array(7).fill(0);
         conFecha.forEach(r => {
