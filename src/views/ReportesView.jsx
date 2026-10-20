@@ -297,6 +297,73 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         </div>
       </div>
 
+      {/* Desglose de ingresos */}
+      {ingresos > 0 && (()=>{
+        const pagosPeriodo = pagos.filter(p=>enRangoPago(p.fecha));
+        const porConcepto = {};
+        pagosPeriodo.forEach(p => {
+          const r = reservas.find(x=>x.id===p.reservaId);
+          const concepto = p.concepto || (p.esSena ? "Seña" : "Pago de reserva");
+          porConcepto[concepto] = (porConcepto[concepto] || 0) + p.monto;
+        });
+        const conceptoEntries = Object.entries(porConcepto).sort((a,b)=>b[1]-a[1]);
+
+        const porReserva = {};
+        pagosPeriodo.forEach(p => {
+          const r = reservas.find(x=>x.id===p.reservaId);
+          if (!r) return;
+          const c = clientes.find(x=>x.id===r.clienteId);
+          const key = r.id;
+          if (!porReserva[key]) porReserva[key] = { nombre: c ? (c.nombre+" "+c.apellido).trim() : "Sin cliente", fecha: r.fecha, total: 0, pagos: [] };
+          porReserva[key].total += p.monto;
+          porReserva[key].pagos.push({ monto: p.monto, fecha: p.fecha, metodo: p.metodo, concepto: p.concepto || (p.esSena ? "Seña" : "Pago") });
+        });
+        const reservaEntries = Object.values(porReserva).sort((a,b)=>b.total-a.total);
+
+        return (
+          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>💰 Desglose de ingresos</div>
+            <div style={{fontSize:11,color:"#A8A29E",marginBottom:12}}>¿De dónde viene la plata cobrada este período?</div>
+
+            {conceptoEntries.length > 1 && <>
+              <div style={{fontSize:10,fontWeight:700,color:"#8B7355",marginBottom:6}}>POR CONCEPTO</div>
+              {conceptoEntries.map(([concepto, monto]) => {
+                const pct = Math.round((monto / ingresos) * 100);
+                return (
+                  <div key={concepto} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                    <div style={{flex:1,fontSize:12,color:"#1C1C1E"}}>{concepto}</div>
+                    <div style={{fontSize:12,fontWeight:700,color:"#16A34A"}}>{fmtCurrency(monto)}</div>
+                    <div style={{width:36,fontSize:10,color:"#8B7355",textAlign:"right"}}>{pct}%</div>
+                  </div>
+                );
+              })}
+              <div style={{borderTop:"1px solid #EDE0D0",marginTop:8,marginBottom:10}} />
+            </>}
+
+            <div style={{fontSize:10,fontWeight:700,color:"#8B7355",marginBottom:6}}>POR RESERVA</div>
+            {reservaEntries.slice(0,10).map((re,i) => (
+              <div key={i} style={{padding:"8px 0",borderBottom:i<Math.min(reservaEntries.length,10)-1?"1px solid #F5EDE4":"none"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:"#1C1C1E"}}>{re.nombre}</div>
+                    <div style={{fontSize:10,color:"#8B7355"}}>Evento: {fmtDate(re.fecha)}</div>
+                  </div>
+                  <div style={{fontWeight:800,fontSize:14,color:"#16A34A"}}>{fmtCurrency(re.total)}</div>
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
+                  {re.pagos.map((p,j) => (
+                    <span key={j} style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"#F0FDF4",color:"#16A34A",border:"1px solid #BBF7D0"}}>
+                      {p.concepto} · {fmtCurrency(p.monto)} · {p.metodo==="Efectivo"?"💵":"🏦"} · {fmtDate(p.fecha)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {reservaEntries.length > 10 && <div style={{fontSize:11,color:"#8B7355",textAlign:"center",marginTop:8}}>... y {reservaEntries.length-10} reservas más</div>}
+          </div>
+        );
+      })()}
+
       <div style={{...card,padding:"14px 16px",marginBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <div><div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:4}}>Ganancia Neta</div>
@@ -916,6 +983,42 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               ))}
             </div>
           </div>
+
+          {(()=>{
+            const tercios = [{label:"Principio (1-10)",count:0},{label:"Mediados (11-20)",count:0},{label:"Fin (21-31)",count:0}];
+            conFecha.forEach(r => {
+              const d = new Date(r.creadoEn || r.fechaCreacion + "T12:00:00");
+              if (isNaN(d)) return;
+              const day = d.getDate();
+              if (day <= 10) tercios[0].count++;
+              else if (day <= 20) tercios[1].count++;
+              else tercios[2].count++;
+            });
+            const maxT = Math.max(...tercios.map(t=>t.count), 1);
+            const mejorTercio = tercios.reduce((best, t) => t.count > best.count ? t : best, tercios[0]);
+            return conFecha.length > 0 ? (
+              <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
+                <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>📆 Momento del mes</div>
+                <div style={{fontSize: 11, color: "#A8A29E", marginBottom: 12}}>¿En qué parte del mes la gente reserva más?</div>
+                {tercios.map(t => {
+                  const pct = Math.round((t.count / maxT) * 100);
+                  const esMejor = t === mejorTercio && t.count > 0;
+                  return (
+                    <div key={t.label} style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
+                      <div style={{width: 110, fontSize: 12, fontWeight: esMejor ? 800 : 500, color: esMejor ? "#C4602B" : "#1C1C1E"}}>{t.label}</div>
+                      <div style={{flex: 1, height: 22, background: "#EDE0D0", borderRadius: 4, overflow: "hidden"}}>
+                        <div style={{height: "100%", width: pct + "%", background: esMejor ? "#C4602B" : "#D4A574", borderRadius: 4, transition: "width 0.3s"}} />
+                      </div>
+                      <div style={{width: 30, fontSize: 13, fontWeight: 700, color: esMejor ? "#C4602B" : "#8B7355", textAlign: "right"}}>{t.count}</div>
+                    </div>
+                  );
+                })}
+                <div style={{marginTop: 8, padding: "8px 12px", background: "#FDF8F3", borderRadius: 8, border: "1px solid #EDE0D0", fontSize: 12, color: "#5C4033"}}>
+                  💡 La gente reserva más a <strong style={{color: "#C4602B"}}>{mejorTercio.label.toLowerCase()}</strong> de mes
+                </div>
+              </div>
+            ) : null;
+          })()}
 
           <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
             <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>📈 Reservas creadas por mes</div>
