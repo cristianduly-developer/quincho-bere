@@ -450,54 +450,42 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         </div>
       )}
 
-      {/* Dashboard de ocupación */}
+      {/* Dashboard de ocupación — por días */}
       {modo==="mes"&&(()=>{
-        const tr=turnosRecurso||[];
-        const recs=recursos||[];
         const bloqs=bloqueos||[];
-        const activeTurnos=tr.filter(t=>t.activo!==false);
-        const slotsPerDay=activeTurnos.length||1;
         const year=selYear, month=selMonth;
         const daysInMonth=new Date(year,month+1,0).getDate();
-        const totalSlots=daysInMonth*slotsPerDay;
         const prefix=selKey;
-        const occupied=new Set();
+        const occupiedDays=new Set();
         reservas.filter(r=>r.fecha?.startsWith(prefix)&&r.estado!=="cancelada"&&r.estado!=="visita").forEach(r=>{
-          const key=r.turnoId?`${r.fecha}-${r.turnoId}`:`${r.fecha}-${r.turno}`;
-          occupied.add(key);
+          occupiedDays.add(r.fecha);
         });
         bloqs.filter(b=>b.fecha?.startsWith(prefix)).forEach(b=>{
-          const matching=b.turno?activeTurnos.filter(t=>t.nombre===b.turno||t.id===b.turno):activeTurnos;
-          matching.forEach(t=>{occupied.add(`${b.fecha}-${t.id}`);});
+          occupiedDays.add(b.fecha);
         });
-        const occupiedCount=occupied.size;
-        const pct=totalSlots>0?Math.round((occupiedCount/totalSlots)*100):0;
-        const libre=totalSlots-occupiedCount;
+        const occupiedCount=occupiedDays.size;
+        const pct=daysInMonth>0?Math.round((occupiedCount/daysInMonth)*100):0;
+        const libre=daysInMonth-occupiedCount;
         const prevYear=month===0?year-1:year;
         const prevMonth=month===0?11:month-1;
         const prevPrefix=`${prevYear}-${String(prevMonth+1).padStart(2,"0")}`;
         const prevDays=new Date(prevYear,prevMonth+1,0).getDate();
-        const prevTotal=prevDays*slotsPerDay;
         const prevOcc=new Set();
         reservas.filter(r=>r.fecha?.startsWith(prevPrefix)&&r.estado!=="cancelada"&&r.estado!=="visita").forEach(r=>{
-          const key=r.turnoId?`${r.fecha}-${r.turnoId}`:`${r.fecha}-${r.turno}`;
-          prevOcc.add(key);
+          prevOcc.add(r.fecha);
         });
         bloqs.filter(b=>b.fecha?.startsWith(prevPrefix)).forEach(b=>{
-          const matching=b.turno?activeTurnos.filter(t=>t.nombre===b.turno||t.id===b.turno):activeTurnos;
-          matching.forEach(t=>{prevOcc.add(`${b.fecha}-${t.id}`);});
+          prevOcc.add(b.fecha);
         });
-        const prevPct=prevTotal>0?Math.round((prevOcc.size/prevTotal)*100):0;
+        const prevPct=prevDays>0?Math.round((prevOcc.size/prevDays)*100):0;
         const diff=pct-prevPct;
         const prevYearSameMonth=`${year-1}-${String(month+1).padStart(2,"0")}`;
         const yoyDays=new Date(year-1,month+1,0).getDate();
-        const yoyTotal=yoyDays*slotsPerDay;
         const yoyOcc=new Set();
         reservas.filter(r=>r.fecha?.startsWith(prevYearSameMonth)&&r.estado!=="cancelada"&&r.estado!=="visita").forEach(r=>{
-          const key=r.turnoId?`${r.fecha}-${r.turnoId}`:`${r.fecha}-${r.turno}`;
-          yoyOcc.add(key);
+          yoyOcc.add(r.fecha);
         });
-        const yoyPct=yoyTotal>0?Math.round((yoyOcc.size/yoyTotal)*100):0;
+        const yoyPct=yoyDays>0?Math.round((yoyOcc.size/yoyDays)*100):0;
         const hasYoy=yoyOcc.size>0;
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
@@ -512,8 +500,8 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:18,color:"#1C1C1E"}}>{pct}%</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>{occupiedCount} de {totalSlots} turnos</div>
-                <div style={{fontSize:12,color:"#16A34A",fontWeight:600}}>{libre} turnos libres</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>{occupiedCount} de {daysInMonth} días</div>
+                <div style={{fontSize:12,color:"#16A34A",fontWeight:600}}>{libre} días libres</div>
                 {diff!==0&&<div style={{fontSize:11,color:diff>0?"#16A34A":"#DC2626",marginTop:4,fontWeight:600}}>
                   {diff>0?"▲":"▼"} {Math.abs(diff)}% vs mes anterior ({prevPct}%)
                 </div>}
