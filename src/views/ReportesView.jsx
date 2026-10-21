@@ -681,63 +681,6 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         );
       })()}
 
-      {/* Origen de clientes */}
-      {(()=>{
-        const clienteIds=new Set(monthRes.map(r=>r.clienteId));
-        const origenes={};
-        clientes.filter(c=>clienteIds.has(c.id)&&c.origen).forEach(c=>{
-          origenes[c.origen]=(origenes[c.origen]||0)+1;
-        });
-        const items=Object.entries(origenes).sort((a,b)=>b[1]-a[1]);
-        if(items.length===0) return null;
-        const sinOrigen=clientes.filter(c=>clienteIds.has(c.id)&&!c.origen).length;
-        const maxOr=Math.max(...items.map(x=>x[1]),1);
-        return (
-          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>📣 Origen de clientes</div>
-            {items.map(([origen,cant])=>(
-              <div key={origen} style={{marginBottom:6}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-                  <span style={{fontSize:12,fontWeight:600,color:"#1C1C1E"}}>{origen}</span>
-                  <span style={{fontWeight:700,fontSize:13,color:"#7C3AED"}}>{cant}</span>
-                </div>
-                <div style={{height:6,background:"#EDE0D0",borderRadius:3,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:Math.round((cant/maxOr)*100)+"%",background:"#7C3AED",borderRadius:3}}/>
-                </div>
-              </div>
-            ))}
-            {sinOrigen>0&&<div style={{fontSize:11,color:"#9CA3AF",marginTop:6}}>{sinOrigen} cliente{sinOrigen!==1?"s":""} sin origen registrado</div>}
-          </div>
-        );
-      })()}
-
-      {/* Tasa de conversión visita→reserva */}
-      {(()=>{
-        const visitaron=new Set(reservas.filter(r=>r.fechaVisita&&enRango(r.fechaVisita)).map(r=>r.clienteId));
-        if(visitaron.size===0) return null;
-        const convirtieron=new Set(reservas.filter(r=>r.fechaVisita&&enRango(r.fechaVisita)&&["pendiente","senada","confirmada","finalizada"].includes(r.estado)).map(r=>r.clienteId));
-        const pct=Math.round((convirtieron.size/visitaron.size)*100);
-        return (
-          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:8}}>🎯 Conversión de visitas</div>
-            <div style={{display:"flex",alignItems:"center",gap:16}}>
-              <div style={{position:"relative",width:64,height:64,flexShrink:0}}>
-                <svg viewBox="0 0 36 36" style={{width:64,height:64,transform:"rotate(-90deg)"}}>
-                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#EDE0D0" strokeWidth="3"/>
-                  <circle cx="18" cy="18" r="15.5" fill="none" stroke={pct>=60?"#16A34A":pct>=40?"#D97706":"#DC2626"} strokeWidth="3"
-                    strokeDasharray={`${pct*0.974} 100`} strokeLinecap="round"/>
-                </svg>
-                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:16,color:"#1C1C1E"}}>{pct}%</div>
-              </div>
-              <div>
-                <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E"}}>{convirtieron.size} de {visitaron.size} visitantes</div>
-                <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>concretaron reserva</div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Top clientes del mes */}
       {topClientes.length>0&&(
         <div style={{...card,padding:"14px 16px",marginBottom:10}}>
@@ -753,61 +696,6 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           ))}
         </div>
       )}
-
-      {/* ¿Cuándo reservan? — para decidir cuándo invertir en publicidad */}
-      {(()=>{
-        const anioVista = selYear;
-        // Agrupar por mes de creación de la reserva (no del evento)
-        const porMesCreacion = Array.from({length:12},(_,m)=>({
-          mes: MONTHS[m].slice(0,3),
-          mesNum: m,
-          cant: reservas.filter(r=>{
-            if(!r.fechaCreacion && !r.creadoEn) return false;
-            const fc = (r.fechaCreacion||r.creadoEn||"").slice(0,7);
-            return fc === `${anioVista}-${String(m+1).padStart(2,"0")}` && r.estado !== "cancelada" && r.estado !== "visita";
-          }).length,
-        }));
-        const maxCant = Math.max(...porMesCreacion.map(m=>m.cant), 1);
-        // Top 3 meses
-        const top3 = [...porMesCreacion].sort((a,b)=>b.cant-a.cant).slice(0,3).filter(m=>m.cant>0);
-        return (
-          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:4}}>📣 ¿Cuándo reservan? ({anioVista})</div>
-            <div style={{fontSize:11,color:"#8B7355",marginBottom:12}}>Mes en que se hizo la reserva — para planificar publicidad</div>
-            <div style={{display:"flex",alignItems:"flex-end",gap:3,height:80,marginBottom:6}}>
-              {porMesCreacion.map((m,i)=>{
-                const isTop = top3.some(t=>t.mesNum===m.mesNum);
-                return (
-                  <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                    <div style={{
-                      width:"100%",borderRadius:"3px 3px 0 0",
-                      background: isTop ? "#C4602B" : "#EDE0D0",
-                      height: Math.max(m.cant>0?6:2, Math.round((m.cant/maxCant)*64))+"px",
-                      transition:"height .3s"
-                    }} />
-                    <div style={{fontSize:8,color:isTop?"#C4602B":"#8B7355",fontWeight:isTop?700:400}}>{m.mes}</div>
-                  </div>
-                );
-              })}
-            </div>
-            {top3.length>0 && (
-              <div style={{borderTop:"1px solid #EDE0D0",paddingTop:10,marginTop:4}}>
-                <div style={{fontSize:11,color:"#5C4033",fontWeight:700,marginBottom:6}}>🏆 Meses con más reservas:</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  {top3.map((m,i)=>(
-                    <div key={m.mes} style={{background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,padding:"6px 12px",fontSize:12}}>
-                      <span style={{color:["#C4602B","#D97706","#6B7280"][i],fontWeight:800}}>{["1°","2°","3°"][i]}</span>
-                      {" "}<span style={{fontWeight:700}}>{MONTHS[m.mesNum]}</span>
-                      <span style={{color:"#8B7355"}}> · {m.cant} reserva{m.cant!==1?"s":""}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {top3.length===0 && <div style={{fontSize:12,color:"#8B7355",textAlign:"center",padding:"8px 0"}}>Sin datos de reservas para {anioVista}</div>}
-          </div>
-        );
-      })()}
 
       <div style={{...card,padding:"14px 16px",marginBottom:10}}>
         <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Últimos 6 meses</div>
