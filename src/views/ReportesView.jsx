@@ -634,26 +634,30 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         );
       })()}
 
-      {/* Funnel de conversión */}
+      {/* Funnel de conversión de visitas */}
       {(()=>{
         const allPeriod=reservas.filter(r=>r.fecha&&enRango(r.fecha));
         if(allPeriod.length===0) return null;
-        const visitas=allPeriod.filter(r=>r.fechaVisita).length;
-        const senadas=allPeriod.filter(r=>["senada","confirmada","finalizada"].includes(r.estado)).length;
-        const confirmadas=allPeriod.filter(r=>["confirmada","finalizada"].includes(r.estado)).length;
-        const canceladas=allPeriod.filter(r=>r.estado==="cancelada").length;
-        const total=allPeriod.length;
+        const visitasAll=allPeriod.filter(r=>r.estado==="visita"||r.fechaVisita);
+        const totalVisitas=visitasAll.length;
+        if(totalVisitas===0) return null;
+        const concretaron=visitasAll.filter(r=>["pendiente","senada","confirmada","finalizada"].includes(r.estado)).length;
+        const senaron=visitasAll.filter(r=>["senada","confirmada","finalizada"].includes(r.estado)).length;
+        const confirmaron=visitasAll.filter(r=>["confirmada","finalizada"].includes(r.estado)).length;
+        const pendientes=visitasAll.filter(r=>r.estado==="visita").length;
+        const canceladas=visitasAll.filter(r=>r.estado==="cancelada").length;
         const steps=[
-          {label:"Consultas",count:total,color:"#7C3AED"},
-          {label:"Visitaron",count:visitas,color:"#3B82F6"},
-          {label:"Señaron",count:senadas,color:"#D97706"},
-          {label:"Confirmadas",count:confirmadas,color:"#16A34A"},
+          {label:"Visitas",count:totalVisitas,color:"#EC4899"},
+          {label:"Reservaron",count:concretaron,color:"#3B82F6"},
+          {label:"Señaron",count:senaron,color:"#D97706"},
+          {label:"Confirmadas",count:confirmaron,color:"#16A34A"},
         ];
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Funnel de conversión</div>
+            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Conversión de visitas</div>
+            <div style={{fontSize:11,color:"#8B7355",marginBottom:12}}>Solo reservas que arrancaron como visita</div>
             {steps.map((step,i)=>{
-              const pct=total>0?Math.round((step.count/total)*100):0;
+              const pct=totalVisitas>0?Math.round((step.count/totalVisitas)*100):0;
               const prevCount=i>0?steps[i-1].count:null;
               const convRate=prevCount&&prevCount>0?Math.round((step.count/prevCount)*100):null;
               return (
@@ -671,10 +675,16 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 </div>
               );
             })}
-            {canceladas>0&&(
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,paddingTop:8,borderTop:"1px solid #EDE0D0"}}>
-                <span style={{fontSize:12,color:"#DC2626",fontWeight:600}}>Canceladas</span>
-                <span style={{fontWeight:800,fontSize:14,color:"#DC2626"}}>{canceladas} <span style={{fontSize:10,fontWeight:400}}>({total>0?Math.round((canceladas/total)*100):0}%)</span></span>
+            {(pendientes>0||canceladas>0)&&(
+              <div style={{marginTop:10,paddingTop:8,borderTop:"1px solid #EDE0D0",display:"flex",gap:16}}>
+                {pendientes>0&&<div style={{fontSize:12}}>
+                  <span style={{color:"#8B7355",fontWeight:600}}>Pendientes: </span>
+                  <span style={{fontWeight:800,color:"#EC4899"}}>{pendientes}</span>
+                </div>}
+                {canceladas>0&&<div style={{fontSize:12}}>
+                  <span style={{color:"#DC2626",fontWeight:600}}>Canceladas: </span>
+                  <span style={{fontWeight:800,color:"#DC2626"}}>{canceladas}</span>
+                </div>}
               </div>
             )}
           </div>
