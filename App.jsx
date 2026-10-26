@@ -767,7 +767,7 @@ function PagoModal({ onClose, onSave, reservas, clientes, pagos, extrasReserva, 
 
   const resOpts = [{value:"",label:"— Seleccionar reserva —"},
     ...reservas.filter(r=>{
-      if(r.estado==="cancelada"||r.estado==="finalizada"||r.estado==="visita") return false;
+      if(r.estado==="cancelada"||r.estado==="visita") return false;
       return getSaldo(r, extrasReserva, pagos) > 0;
     }).map(r=>{
       const c=clientes.find(x=>x.id===r.clienteId);
@@ -972,11 +972,12 @@ function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
   );
 }
 
-function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto, turnosRecurso, onSaveShareConfig, logCom, comunicaciones, readOnly }) {
+function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serviciosExtras, onClose, onEdit, onDelete, onCancel, onNewPago, onNewExtra, onShowPDF, onDeletePago, onEditPago, onEditProximoPago, canModifyCaja, negocio, plan, onConfirmVisita, onNoConcreto, turnosRecurso, onSaveShareConfig, logCom, comunicaciones, readOnly, onSaveRating }) {
   const [editingPago, setEditingPago] = useState(null);
   const [cancelStep, setCancelStep] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmDelPagoId, setConfirmDelPagoId] = useState(null);
+  const [editingRating, setEditingRating] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [showReschedule, setShowReschedule] = useState(false);
   const [showProximoPago, setShowProximoPago] = useState(false);
@@ -1017,15 +1018,19 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       {/* Calificación del evento */}
       {reserva.calificacion?.estrellas && (
         <div style={{...card,padding:"12px 16px",marginBottom:12,background:"#FFFBEB",border:"1px solid #FDE68A"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{fontSize:24}}>{"⭐".repeat(reserva.calificacion.estrellas)}{"☆".repeat(5-reserva.calificacion.estrellas)}</div>
-            <div>
-              <div style={{fontWeight:700,fontSize:14,color:"#92400E"}}>{["","Muy malo","Malo","Regular","Bueno","Excelente"][reserva.calificacion.estrellas]}</div>
-              {reserva.calificacion.nota && <div style={{fontSize:12,color:"#78716C",marginTop:2,fontStyle:"italic"}}>"{reserva.calificacion.nota}"</div>}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{fontSize:24}}>{"⭐".repeat(reserva.calificacion.estrellas)}{"☆".repeat(5-reserva.calificacion.estrellas)}</div>
+              <div>
+                <div style={{fontWeight:700,fontSize:14,color:"#92400E"}}>{["","Muy malo","Malo","Regular","Bueno","Excelente"][reserva.calificacion.estrellas]}</div>
+                {reserva.calificacion.nota && <div style={{fontSize:12,color:"#78716C",marginTop:2,fontStyle:"italic"}}>"{reserva.calificacion.nota}"</div>}
+              </div>
             </div>
+            {onSaveRating&&<button onClick={()=>setEditingRating(true)} style={{padding:"4px 10px",background:"none",border:"1px solid #FDE68A",borderRadius:6,fontSize:11,fontWeight:600,color:"#92400E",cursor:"pointer",fontFamily:"inherit"}}>✏️ Editar</button>}
           </div>
         </div>
       )}
+      {editingRating&&<RatingModal reserva={reserva} clientes={clientes} initialRating={reserva.calificacion} onSave={(cal)=>{onSaveRating(cal);setEditingRating(false);}} onSnooze={()=>setEditingRating(false)} />}
 
       {/* Visita panel */}
       {reserva.estado==="visita" && (
@@ -2235,10 +2240,10 @@ function getClientAvg(clienteId, reservas) {
   return (rated.reduce((s,r)=>s+r.calificacion.estrellas,0)/rated.length).toFixed(1);
 }
 
-function RatingModal({ reserva, clientes, onSave, onSnooze }) {
+function RatingModal({ reserva, clientes, onSave, onSnooze, initialRating }) {
   const c = clientes.find(x=>x.id===reserva.clienteId);
-  const [estrellas, setEstrellas] = useState(0);
-  const [nota, setNota] = useState("");
+  const [estrellas, setEstrellas] = useState(initialRating?.estrellas||0);
+  const [nota, setNota] = useState(initialRating?.nota||"");
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:20}}>
       <div style={{background:"#FFF",borderRadius:20,width:"100%",maxWidth:440,padding:28,boxShadow:"0 20px 60px rgba(0,0,0,0.3)"}}>
@@ -6284,6 +6289,10 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           saveR(reservas.map(r=>r.id===detailReserva.id?updatedRes:r));
           setDetailReserva(null);
           showToast("Visita no concretada — fecha liberada","info");
+        }}
+        onSaveRating={(cal)=>{
+          handleSaveRating(detailReserva.id,cal);
+          setDetailReserva({...detailReserva,calificacion:cal});
         }}
       />}
       {detailCliente && <ClienteDetail cliente={detailCliente} reservas={reservas} turnosRecurso={turnosRecurso} comunicaciones={comunicaciones}
