@@ -545,7 +545,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
   return (
     <BottomModal title={isEdit?"Editar Reserva":"Nueva Reserva"} onClose={onClose}>
       <SearchSelect label="Cliente" value={f.clienteId} onChange={(v)=>{if(v==="__new__"){onNewCliente&&onNewCliente();}else{set("clienteId")(v);}}} placeholder="— Seleccionar cliente —"
-        options={[{value:"",label:"— Seleccionar cliente —"},...clientes.sort((a,b)=>clientName(a).localeCompare(clientName(b),"es")).map(c=>({value:c.id,label:clientName(c)+(c.whatsapp?` · ${c.whatsapp}`:"")})),{value:"__new__",label:"➕ Crear nuevo cliente"}]} />
+        options={[{value:"",label:"— Seleccionar cliente —"},{value:"__new__",label:"➕ Crear nuevo cliente"},...clientes.sort((a,b)=>clientName(a).localeCompare(clientName(b),"es")).map(c=>({value:c.id,label:clientName(c)+(c.whatsapp?` · ${c.whatsapp}`:"")}))]} />
       {f.clienteId && (()=>{
         const avg = reservas ? getClientAvg(f.clienteId, reservas) : null;
         if(avg!==null && Number(avg)<=2) return (
@@ -6186,10 +6186,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {/* Bottom Tab Bar — oculto en desktop, la nav está en el sidebar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:isDesktop?"none":"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
         {[{id:"clientes",icon:"👥",label:"Clientes"},{id:"reservas",icon:"📋",label:"Reservas"},{id:"inicio",icon:"🏠",label:"Inicio"},{id:"gastos",icon:"💸",label:"Gastos"},{id:"reportes",icon:"📈",label:"Reportes"}].map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"10px 0 12px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,fontFamily:"inherit"}}>
-            <span style={{fontSize:22}}>{t.icon}</span>
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"10px 0 12px",background:t.id===tab?"#FDF5EE":"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,fontFamily:"inherit",borderTop:t.id===tab?"2.5px solid #C4602B":"2.5px solid transparent",transition:"all .2s"}}>
+            <span style={{fontSize:22,filter:t.id===tab?"none":"grayscale(0.4) opacity(0.7)"}}>{t.icon}</span>
             <span style={{fontSize:10,fontWeight:t.id===tab?800:500,color:t.id===tab?"#C4602B":"#8B7355"}}>{t.label}</span>
-            {t.id===tab && <div style={{width:20,height:2.5,background:"#C4602B",borderRadius:2}} />}
           </button>
         ))}
       </div>
