@@ -2824,25 +2824,6 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
               <div style={{fontSize:13,color:"#B5A090"}}>¡Cargá uno nuevo desde la pestaña Reservas!</div>
             </div>
           )}
-          {/* ── Quick buttons (mobile) ── */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:14}}>
-            {[
-              {icon:"📅",label:"Reserva",action:()=>setModal("reserva"),perm:currentUser?.gestionOperativa!==false},
-              {icon:"👥",label:"Cliente",action:()=>setModal("cliente"),perm:currentUser?.gestionOperativa!==false},
-
-              {icon:"💸",label:"Gastos",action:()=>onNavigate("gastos"),perm:currentUser?.gestionOperativa!==false},
-              {icon:"🔔",label:"Alertas",action:()=>getPlanLimits(currentUser?.plan).recordatorios!==false?onNavigate("recordatorios"):showToast("Los recordatorios no están disponibles en tu plan.","warn"),perm:true},
-            ].map((b,i)=>(
-              <button key={i} onClick={b.perm?b.action:()=>showToast("Sin permiso.","warn")} style={{
-                display:"flex",flexDirection:"column",alignItems:"center",gap:3,padding:"8px 4px",
-                background:b.perm?"#FFF":"#F3F4F6",border:"1px solid #EDE0D0",borderRadius:10,
-                cursor:b.perm?"pointer":"not-allowed",fontFamily:"inherit",opacity:b.perm?1:0.45,
-              }}>
-                <span style={{fontSize:18}}>{b.icon}</span>
-                <span style={{fontSize:9,fontWeight:700,color:b.perm?"#5C4033":"#9CA3AF",textAlign:"center",lineHeight:1.1}}>{b.label}</span>
-              </button>
-            ))}
-          </div>
         </>
       )}
 
