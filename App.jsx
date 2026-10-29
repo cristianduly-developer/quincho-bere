@@ -5384,8 +5384,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
   // Detectar sesión expirada mientras la app está abierta
   useEffect(()=>{
-    const { data:{ subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if(event === "SIGNED_OUT") {
+    let refreshing=false;
+    const { data:{ subscription } } = supabase.auth.onAuthStateChange(async(event) => {
+      if(event === "SIGNED_OUT" && !refreshing) {
+        refreshing=true;
+        const { data:refreshed } = await supabase.auth.refreshSession();
+        refreshing=false;
+        if(refreshed?.session) return;
         setCurrentUser(prev => {
           if(prev) {
             lsRemove("qb_user");
@@ -5410,9 +5415,13 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     (async()=>{
     try {
       // ── PASO 1: verificar sesión Supabase ──
-      const { data:{ session } } = await supabase.auth.getSession();
+      let { data:{ session } } = await supabase.auth.getSession();
       var cu=null; try{const s=lsGet("qb_user");if(s)cu=JSON.parse(s);}catch(e){}
 
+      if(!session?.user){
+        const { data:refreshed } = await supabase.auth.refreshSession();
+        session = refreshed?.session;
+      }
       if(!session?.user){ lsRemove("qb_user"); return; }
       if(cu?.email && cu.email !== session.user.email){ lsRemove("qb_user"); cu=null; }
       if(!cu?.email) return;

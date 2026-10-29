@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 export const supabase = createClient(
   import.meta.env.VITE_SUPA_URL,
   import.meta.env.VITE_SUPA_KEY,
-  { auth: { flowType: 'pkce' } }
+  { auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true } }
 );
 
 // org_id activo — se setea al login
