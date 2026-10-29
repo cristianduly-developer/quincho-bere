@@ -4809,17 +4809,36 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const res = await fetch("/api/verificar-acceso?login=true", {
-        headers: { "Authorization": `Bearer ${token}` },
-      });
-      const acceso = res.ok ? await res.json() : null;
+      let acceso = null;
+      try {
+        const res = await fetch("/api/verificar-acceso?login=true", {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if(res.ok) acceso = await res.json();
+        else console.error("verificar-acceso HTTP", res.status);
+      } catch(fetchErr) { console.error("verificar-acceso fetch error", fetchErr); }
 
-      if (!acceso?.tiene_acceso) {
-        if (acceso?.estado === "impago" || acceso?.estado === "suspendido" || acceso?.estado === "cancelado") {
+      // Si la API falló (acceso null sin estado), reintentar una vez antes de dar por perdido
+      if(!acceso) {
+        try {
+          await new Promise(r=>setTimeout(r,1500));
+          const r2 = await fetch("/api/verificar-acceso?login=true", { headers: { "Authorization": `Bearer ${token}` } });
+          if(r2.ok) acceso = await r2.json();
+        } catch(e2) {}
+      }
+
+      // Si sigue sin respuesta, mostrar error en vez de pantalla de registro
+      if(!acceso) {
+        setError("No se pudo conectar con el servidor. Intentá de nuevo en unos segundos.");
+        setLoading(false);
+        return;
+      }
+
+      if (!acceso.tiene_acceso) {
+        if (acceso.estado === "impago" || acceso.estado === "suspendido" || acceso.estado === "cancelado") {
           setAuthUser(au);
-          if (acceso?.org_id) setOrgIdBloqueo(acceso.org_id);
+          if (acceso.org_id) setOrgIdBloqueo(acceso.org_id);
           else {
-            // fallback: buscar org_id
             const { data: { session: s2 } } = await supabase.auth.getSession();
             const empRes = await fetch("/api/verificar-acceso", { headers: { Authorization: `Bearer ${s2?.access_token}` } });
             const empData = empRes.ok ? await empRes.json() : null;
@@ -4830,8 +4849,8 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
           setLoading(false);
           return;
         }
-        if (acceso?.estado === "demo" && (acceso?.dias_restantes ?? 0) <= 0) {
-          if (acceso?.ret_org_id) setOrgIdBloqueo(acceso.ret_org_id);
+        if (acceso.estado === "demo" && (acceso.dias_restantes ?? 0) <= 0) {
+          if (acceso.ret_org_id) setOrgIdBloqueo(acceso.ret_org_id);
           await supabase.auth.signOut();
           setAuthUser(au);
           setPantalla("demo_vencido");
@@ -5365,10 +5384,15 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   },[currentUser?.email]);
 
   // Detectar sesión expirada mientras la app está abierta
+  const currentUserRef = useRef(null);
+  useEffect(()=>{ currentUserRef.current = currentUser; },[currentUser]);
   useEffect(()=>{
     let refreshing=false;
     const { data:{ subscription } } = supabase.auth.onAuthStateChange(async(event) => {
       if(event === "SIGNED_OUT" && !refreshing) {
+        // Solo intentar recuperar si teníamos un usuario logueado;
+        // si no hay usuario, estamos en flujo de login y no hay que interferir
+        if(!currentUserRef.current) return;
         refreshing=true;
         const { data:refreshed } = await supabase.auth.refreshSession();
         refreshing=false;
