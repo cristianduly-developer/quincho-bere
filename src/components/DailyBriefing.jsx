@@ -283,6 +283,7 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
           <div style={{fontSize:12,color:"#7C3AED",fontWeight:600,marginTop:2}}>
             📅 Visita: {fmtDate(reserva.fechaVisita||reserva.fecha)}{reserva.horaVisita ? ` · ${reserva.horaVisita} hs` : ""}
           </div>
+          {reserva.fecha && <div style={{fontSize:12,color:"#5C4033",marginTop:2}}>🎯 Fecha de interés: {fmtDate(reserva.fecha)}</div>}
           <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
             {reserva.tipoEvento ? `🎉 ${reserva.tipoEvento}` : ""}{reserva.cantInvitados>0 ? ` · 👥 ${reserva.cantInvitados} personas` : ""}{reserva.montoPactado ? ` · 💰 ${fmtCurrency(reserva.montoPactado)}` : ""}
           </div>
