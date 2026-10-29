@@ -413,7 +413,7 @@ function getTemporadaActiva(fecha, temporadas, recursoId) {
   }) || null;
 }
 
-function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config, saving, turnosRecurso, temporadasPrecio, preciosTemporada }) {
+function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config, saving, turnosRecurso, temporadasPrecio, preciosTemporada, onNewCliente }) {
   const isEdit = !!reserva;
 
   const esFinde = (fecha) => {
@@ -544,8 +544,8 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
 
   return (
     <BottomModal title={isEdit?"Editar Reserva":"Nueva Reserva"} onClose={onClose}>
-      <SearchSelect label="Cliente" value={f.clienteId} onChange={set("clienteId")} placeholder="— Seleccionar cliente —"
-        options={[{value:"",label:"— Seleccionar cliente —"},...clientes.sort((a,b)=>clientName(a).localeCompare(clientName(b),"es")).map(c=>({value:c.id,label:clientName(c)+(c.whatsapp?` · ${c.whatsapp}`:"")}))]} />
+      <SearchSelect label="Cliente" value={f.clienteId} onChange={(v)=>{if(v==="__new__"){onNewCliente&&onNewCliente();}else{set("clienteId")(v);}}} placeholder="— Seleccionar cliente —"
+        options={[{value:"",label:"— Seleccionar cliente —"},...clientes.sort((a,b)=>clientName(a).localeCompare(clientName(b),"es")).map(c=>({value:c.id,label:clientName(c)+(c.whatsapp?` · ${c.whatsapp}`:"")})),{value:"__new__",label:"➕ Crear nuevo cliente"}]} />
       {f.clienteId && (()=>{
         const avg = reservas ? getClientAvg(f.clienteId, reservas) : null;
         if(avg!==null && Number(avg)<=2) return (
@@ -5284,6 +5284,7 @@ export default function App() {
   const setTab = (t) => { setTabRaw(t); window.scrollTo(0,0); };
   const [sideOpen,setSideOpen]=useState(false);
   const [modal,setModal]=useState(null);
+  const [clienteFromReserva,setClienteFromReserva]=useState(false);
   const [selectedClientId,setSelectedClientId]=useState(null);
   const now0=new Date(); const [calYear,setCalYear]=useState(now0.getFullYear()); const [calMonth,setCalMonth]=useState(now0.getMonth());
 
@@ -6184,7 +6185,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
       {/* Bottom Tab Bar — oculto en desktop, la nav está en el sidebar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:isDesktop?"none":"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
-        {[{id:"inicio",icon:"🏠",label:"Inicio"},{id:"clientes",icon:"👥",label:"Clientes"},{id:"reservas",icon:"📋",label:"Reservas"},{id:"reportes",icon:"📈",label:"Reportes"}].map(t=>(
+        {[{id:"clientes",icon:"👥",label:"Clientes"},{id:"reservas",icon:"📋",label:"Reservas"},{id:"inicio",icon:"🏠",label:"Inicio"},{id:"gastos",icon:"💸",label:"Gastos"},{id:"reportes",icon:"📈",label:"Reportes"}].map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"10px 0 12px",background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,fontFamily:"inherit"}}>
             <span style={{fontSize:22}}>{t.icon}</span>
             <span style={{fontSize:10,fontWeight:t.id===tab?800:500,color:t.id===tab?"#C4602B":"#8B7355"}}>{t.label}</span>
@@ -6200,8 +6201,9 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} negocio={negocio} />
 
       {/* Modals */}
-      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} turnosRecurso={turnosRecurso} temporadasPrecio={temporadasPrecio} preciosTemporada={preciosTemporada} />}
-      {modal==="cliente" && <ClienteModal onClose={()=>{setModal(null);setEditCliente(null);}} onSave={handleSaveCliente} cliente={editCliente} clientes={clientes} />}
+      {modal==="reserva" && <ReservaModal reservas={reservas} onClose={()=>{setModal(null);setEditReserva(null);setInitDate(null);setInitTurno(null);}} onSave={handleSaveReserva} clientes={clientes} recursos={recursos} reserva={editReserva} initialDate={initDate} initialTurno={initTurno} config={config} saving={savingReserva} turnosRecurso={turnosRecurso} temporadasPrecio={temporadasPrecio} preciosTemporada={preciosTemporada}
+        onNewCliente={()=>{setClienteFromReserva(true);setModal("cliente");}} />}
+      {modal==="cliente" && <ClienteModal onClose={()=>{if(clienteFromReserva){setClienteFromReserva(false);setModal("reserva");}else{setModal(null);}setEditCliente(null);}} onSave={(c)=>{handleSaveCliente(c);if(clienteFromReserva){setClienteFromReserva(false);setModal("reserva");}}} cliente={editCliente} clientes={clientes} />}
       {modal==="pago" && <PagoModal onClose={()=>{setModal(null);setPagoReservaId(null);}} onSave={handleSavePago} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} initialReservaId={pagoReservaId} recursos={recursos} turnosRecurso={turnosRecurso} />}
       {modal==="gasto" && <GastoModal onClose={()=>{setModal(null);setEditGasto(null);}} onSave={handleSaveGasto} gasto={editGasto} />}
       {modal==="extra" && <ExtrasModal onClose={()=>{setModal(null);setExtraReservaId(null);}} onSave={handleSaveExtra} servicios={serviciosExtras} reservaId={extraReservaId} />}
