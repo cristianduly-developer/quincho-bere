@@ -659,7 +659,7 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
   );
 }
 
-export default function ReservasView({ reservas, clientes, pagos, recursos, turnosRecurso, extrasReserva, bloqueos, onReservaClick, onNewReserva, onCobrar, negocio }) {
+export default function ReservasView({ reservas, clientes, pagos, recursos, turnosRecurso, extrasReserva, bloqueos, onReservaClick, onNewReserva, onNewPresupuesto, onCobrar, negocio }) {
   const ACTIVAS = ["visita","pendiente","senada","confirmada"];
   const [filter, setFilter] = useState("activas");
   const [search, setSearch]  = useState("");
@@ -732,7 +732,10 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
           <button onClick={()=>setVista("semanas")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="semanas"?"#C4602B":"#FDF8F3",color:vista==="semanas"?"#FFF":"#8B7355",transition:"all 0.15s"}}>📅 Semanas</button>
           <button onClick={()=>setVista("disponibilidad")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="disponibilidad"?"#C4602B":"#FDF8F3",color:vista==="disponibilidad"?"#FFF":"#8B7355",transition:"all 0.15s"}}>🟢 Dispo</button>
         </div>
-        <button onClick={onNewReserva} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva</button>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={onNewPresupuesto} style={{background:"#F5F3FF",color:"#7C3AED",border:"1.5px solid #DDD6FE",borderRadius:10,padding:"9px 12px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>💰</button>
+          <button onClick={onNewReserva} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva</button>
+        </div>
       </div>
 
       {/* Vista semanas */}

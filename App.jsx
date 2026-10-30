@@ -35,7 +35,7 @@ function useIsDesktop() {
 }
 
 // ─── DESKTOP LEFT NAV ────────────────────────────────────
-function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGasto, onNewConsulta, onLogout }) {
+function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGasto, onNewConsulta, onNewPresupuesto, onLogout }) {
   const isAdmin = currentUser?.rol === "Administrador";
   const limits = getPlanLimits(currentUser?.plan);
   const NAV_ITEMS = [
@@ -62,7 +62,7 @@ function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGa
       <div style={{padding:"12px 14px",borderBottom:"1px solid #EDE0D0",display:"flex",gap:8}}>
         <button onClick={onNewCobro} style={{flex:1,padding:"7px 0",background:"#F0FDF4",border:"0.5px solid #BBF7D0",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#16A34A",fontFamily:"inherit"}}>+ Cobro</button>
         <button onClick={onNewGasto} style={{flex:1,padding:"7px 0",background:"#FEF2F2",border:"0.5px solid #FECACA",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#DC2626",fontFamily:"inherit"}}>+ Gasto</button>
-        <button onClick={onNewConsulta} style={{flex:1,padding:"7px 0",background:"#E0F2FE",border:"0.5px solid #BAE6FD",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#0284C7",fontFamily:"inherit"}}>+ Consultas</button>
+        <button onClick={onNewPresupuesto} style={{flex:1,padding:"7px 0",background:"#F5F3FF",border:"0.5px solid #DDD6FE",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#7C3AED",fontFamily:"inherit"}}>💰 Presu</button>
       </div>
 
       {/* Nav items */}
@@ -395,6 +395,34 @@ function printReporte(month,year,ingresos,gastos,ganancia,catData,confirmadas,po
 }
 
 
+function printPresupuesto(presu, negocio) {
+  var hoy = new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  var hdr = pLogoHdr(negocio, 'Presupuesto', '<div style="font-size:11px;color:#8B7355;text-align:right">' + hoy + '<br>N° ' + presu.id.slice(-8).toUpperCase() + '</div>');
+  var body = hdr;
+  if (presu.clienteNombre) body += pH2('Cliente') + pRow('Nombre', escHtml(presu.clienteNombre)) + (presu.clienteWhatsapp ? pRow('WhatsApp', escHtml(presu.clienteWhatsapp)) : '');
+  body += pH2('Detalle del evento') + pRow('Fecha del evento', fmtDate(presu.fecha));
+  if (presu.turnoNombre) body += pRow('Turno / Horario', escHtml(presu.turnoNombre));
+  if (presu.horario) body += pRow('Horario', escHtml(presu.horario) + (presu.horarioFin ? ' a ' + escHtml(presu.horarioFin) : '') + ' hs');
+  if (presu.recursoNombre) body += pRow('Espacio', escHtml(presu.recursoNombre));
+  if (presu.tipoEvento) body += pRow('Tipo de evento', escHtml(presu.tipoEvento));
+  if (presu.cantInvitados > 0) body += pRow('Invitados', String(presu.cantInvitados) + ' personas');
+  body += pH2('Desglose');
+  body += pRow('Alquiler del espacio', fmtCurrency(presu.precioBase));
+  var totalExtras = 0;
+  if (presu.extras && presu.extras.length > 0) {
+    presu.extras.forEach(function (e) { var sub = e.precio * e.cantidad; totalExtras += sub; body += pRow(escHtml(e.descripcion) + (e.cantidad > 1 ? ' x' + e.cantidad : ''), fmtCurrency(sub)); });
+  }
+  var subtotal = presu.precioBase + totalExtras;
+  if (totalExtras > 0) body += pRow('Subtotal', fmtCurrency(subtotal));
+  if (presu.descuento > 0) body += pRow('Descuento' + (presu.descuentoTipo === '%' ? ' (' + presu.descuentoPct + '%)' : ''), '- ' + fmtCurrency(presu.descuento), 'neg');
+  body += '<div class="monto-destacado"><div class="monto-label">Total presupuestado</div><div class="monto-valor">' + fmtCurrency(presu.total) + '</div></div>';
+  if (presu.notas) body += pH2('Observaciones') + '<div style="font-size:13px;color:#333;padding:6px 0;white-space:pre-line">' + escHtml(presu.notas) + '</div>';
+  var validez = presu.validezDias || 7;
+  body += '<div style="margin-top:16px;background:#FDF8F3;border:1px solid #EDE0D0;border-radius:8px;padding:12px 14px;font-size:12px;color:#5C4033;line-height:1.6">' + 'Este presupuesto tiene una validez de <b>' + validez + ' días</b> a partir de la fecha de emisión. Los precios pueden variar fuera de este período.' + '</div>';
+  body += pFirmaConSello(negocio, 'PRESUPUESTO', presu.clienteNombre || '');
+  return buildDoc('Presupuesto ' + escHtml(presu.clienteNombre || ''), body, negocio);
+}
+
 // mappers importados desde src/lib/mappers.js
 
 
@@ -411,6 +439,161 @@ function getTemporadaActiva(fecha, temporadas, recursoId) {
     if(desde>hasta) return actual>=desde||actual<=hasta; // cruza año (ej: dic–mar)
     return actual>=desde&&actual<=hasta;
   }) || null;
+}
+
+function PresupuestoModal({ onClose, onGenerate, onConvertToReserva, clientes, recursos, turnosRecurso, temporadasPrecio, preciosTemporada, serviciosExtras, negocio }) {
+  const esFinde = (fecha) => {
+    try { const d=new Date(fecha+"T12:00:00"); const dow=d.getDay(); return dow===0||dow===6; } catch(e){ return false; }
+  };
+  const getTurnosEspacio = (recursoId) => (turnosRecurso||[]).filter(t=>t.recursoId===recursoId && t.activo!==false);
+  const getTurnosConPrecio = (recursoId, fecha) => {
+    const todos = getTurnosEspacio(recursoId);
+    const tmp = getTemporadaActiva(fecha, temporadasPrecio, recursoId);
+    if(!tmp) return todos;
+    return todos.map(t=>{
+      const pt = (preciosTemporada||[]).find(p=>p.temporadaId===tmp.id && p.turnoId===t.id);
+      if(!pt || pt.activo===false) return null;
+      return {...t, precioSemana: pt.precioSemana, precioFinde: pt.precioFinde};
+    }).filter(Boolean);
+  };
+
+  const [f, setF] = useState({ clienteId:"", fecha:"", recursoId: recursos[0]?.id||"", turnoId:"", horario:"", horarioFin:"", tipoEvento:"", cantInvitados:"", notas:"", validezDias:7 });
+  const set = (k) => (v) => setF(p=>({...p,[k]:v}));
+  const [extras, setExtras] = useState([]);
+  const [descuentoTipo, setDescuentoTipo] = useState("%");
+  const [descuentoVal, setDescuentoVal] = useState("");
+  const [showExtras, setShowExtras] = useState(false);
+
+  const turnos = f.recursoId && f.fecha ? getTurnosConPrecio(f.recursoId, f.fecha) : getTurnosEspacio(f.recursoId);
+  const turnoSel = turnos.find(t=>t.id===f.turnoId);
+  const precioBase = turnoSel ? (esFinde(f.fecha) ? turnoSel.precioFinde : turnoSel.precioSemana) : 0;
+  const [precioManual, setPrecioManual] = useState(null);
+  const precioFinal = precioManual !== null ? Number(precioManual) : Number(precioBase)||0;
+
+  useEffect(()=>{ setPrecioManual(null); },[f.turnoId, f.fecha, f.recursoId]);
+  useEffect(()=>{
+    if(f.recursoId && f.fecha && !f.turnoId) {
+      const ts = getTurnosConPrecio(f.recursoId, f.fecha);
+      if(ts.length===1) setF(p=>({...p, turnoId: ts[0].id}));
+    }
+  },[f.recursoId, f.fecha]);
+
+  const totalExtras = extras.reduce((s,e)=>s+e.precio*e.cantidad, 0);
+  const subtotal = precioFinal + totalExtras;
+  const descVal = Number(descuentoVal)||0;
+  const descMonto = descuentoTipo==="%" ? Math.round(subtotal*descVal/100) : descVal;
+  const total = Math.max(0, subtotal - descMonto);
+
+  const addExtra = (svc) => {
+    const existing = extras.find(e=>e.servicioId===svc.id);
+    if(existing) setExtras(extras.map(e=>e.servicioId===svc.id?{...e,cantidad:e.cantidad+1}:e));
+    else setExtras([...extras, { servicioId:svc.id, descripcion:svc.descripcion, precio:svc.precioActual, cantidad:1 }]);
+  };
+  const removeExtra = (idx) => setExtras(extras.filter((_,i)=>i!==idx));
+  const updateExtraQty = (idx, qty) => setExtras(extras.map((e,i)=>i===idx?{...e,cantidad:Math.max(1,Number(qty)||1)}:e));
+
+  const cliente = clientes.find(c=>c.id===f.clienteId);
+  const recurso = recursos.find(r=>r.id===f.recursoId);
+
+  const handleGenerate = () => {
+    if(!f.fecha) return alert("Elegí una fecha para el evento.");
+    const presu = {
+      id: genId(), fecha: f.fecha, recursoId: f.recursoId, recursoNombre: recurso?.nombre||"",
+      turnoId: f.turnoId, turnoNombre: turnoSel?.nombre||"", horario: f.horario, horarioFin: f.horarioFin,
+      tipoEvento: f.tipoEvento, cantInvitados: Number(f.cantInvitados)||0,
+      clienteId: f.clienteId, clienteNombre: clientName(cliente), clienteWhatsapp: cliente?.whatsapp||"",
+      precioBase: precioFinal, extras, descuento: descMonto, descuentoTipo, descuentoPct: descVal,
+      total, notas: f.notas, validezDias: Number(f.validezDias)||7,
+    };
+    onGenerate(presu);
+  };
+
+  const clienteOpts = [{value:"",label:"— Sin cliente (genérico) —"}, ...clientes.map(c=>({value:c.id,label:clientName(c)}))];
+  const recursoOpts = recursos.map(r=>({value:r.id,label:r.nombre}));
+  const turnoOpts = [{value:"",label:"— Seleccionar turno —"}, ...turnos.map(t=>({value:t.id,label:`${t.nombre} — ${fmtCurrency(esFinde(f.fecha)?t.precioFinde:t.precioSemana)}`}))];
+
+  return (
+    <BottomModal title="💰 Nuevo Presupuesto" onClose={onClose}>
+      <SearchSelect label="Cliente (opcional)" value={f.clienteId} onChange={set("clienteId")} options={clienteOpts} placeholder="Buscar cliente..." />
+      <Input label="Fecha del evento" type="date" value={f.fecha} onChange={set("fecha")} required />
+      {recursos.length>1 && <Select label="Espacio" value={f.recursoId} onChange={set("recursoId")} options={recursoOpts} />}
+      {f.recursoId && f.fecha && (
+        <Select label="Turno / Horario" value={f.turnoId} onChange={set("turnoId")} options={turnoOpts} />
+      )}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Input label="Hora inicio" type="time" value={f.horario} onChange={set("horario")} />
+        <Input label="Hora fin" type="time" value={f.horarioFin} onChange={set("horarioFin")} />
+      </div>
+      <Input label="Tipo de evento" value={f.tipoEvento} onChange={set("tipoEvento")} placeholder="Cumpleaños, asado, etc." />
+      <Input label="Invitados" type="number" value={f.cantInvitados} onChange={set("cantInvitados")} placeholder="Cantidad estimada" />
+
+      {/* Precio base */}
+      <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>💰 Precio del alquiler</div>
+        {turnoSel && precioManual===null && (
+          <div style={{fontSize:13,color:"#5C4033",marginBottom:6}}>Precio automático: <b>{fmtCurrency(precioBase)}</b> ({esFinde(f.fecha)?"fin de semana":"día de semana"})</div>
+        )}
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <input type="number" value={precioManual!==null?precioManual:precioBase} onChange={e=>setPrecioManual(e.target.value)} placeholder="Precio" style={{...inputStyle,marginBottom:0,flex:1}} />
+          {precioManual!==null && <button onClick={()=>setPrecioManual(null)} style={{background:"none",border:"none",color:"#7C3AED",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>↩ Auto</button>}
+        </div>
+      </div>
+
+      {/* Extras */}
+      <div style={{marginBottom:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <span style={{fontSize:13,fontWeight:700,color:"#5C4033"}}>✨ Extras</span>
+          <button onClick={()=>setShowExtras(!showExtras)} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:6,padding:"4px 12px",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Agregar</button>
+        </div>
+        {showExtras && (
+          <div style={{background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,padding:10,marginBottom:8,maxHeight:200,overflowY:"auto"}}>
+            {serviciosExtras.filter(s=>s.activo!==false).map(s=>(
+              <div key={s.id} onClick={()=>{addExtra(s);setShowExtras(false);}} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 6px",cursor:"pointer",borderBottom:"1px solid #F5EDE4",fontSize:13}}>
+                <span>{s.descripcion}</span>
+                <span style={{fontWeight:700,color:"#C4602B"}}>{fmtCurrency(s.precioActual)}</span>
+              </div>
+            ))}
+            {serviciosExtras.filter(s=>s.activo!==false).length===0 && <div style={{fontSize:13,color:"#8B7355",textAlign:"center",padding:10}}>No hay extras configurados</div>}
+          </div>
+        )}
+        {extras.map((e,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #F5EDE4",fontSize:13}}>
+            <span style={{flex:1}}>{e.descripcion}</span>
+            <input type="number" value={e.cantidad} onChange={ev=>updateExtraQty(i,ev.target.value)} min={1} style={{width:50,textAlign:"center",border:"1px solid #EDE0D0",borderRadius:6,padding:"3px 6px",fontSize:13}} />
+            <span style={{fontWeight:600,minWidth:70,textAlign:"right"}}>{fmtCurrency(e.precio*e.cantidad)}</span>
+            <button onClick={()=>removeExtra(i)} style={{background:"none",border:"none",color:"#DC2626",cursor:"pointer",fontSize:16,padding:0}}>✕</button>
+          </div>
+        ))}
+      </div>
+
+      {/* Descuento */}
+      <div style={{background:"#F0FDF4",border:"1.5px solid #86EFAC",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#16A34A",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>🏷️ Descuento (opcional)</div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <select value={descuentoTipo} onChange={e=>setDescuentoTipo(e.target.value)} style={{...inputStyle,marginBottom:0,width:70}}>
+            <option value="%">%</option>
+            <option value="$">$</option>
+          </select>
+          <input type="number" value={descuentoVal} onChange={e=>setDescuentoVal(e.target.value)} placeholder={descuentoTipo==="%"?"Ej: 10":"Monto"} style={{...inputStyle,marginBottom:0,flex:1}} />
+          {descMonto>0 && <span style={{fontSize:13,color:"#DC2626",fontWeight:600,whiteSpace:"nowrap"}}>-{fmtCurrency(descMonto)}</span>}
+        </div>
+      </div>
+
+      {/* Total */}
+      <div style={{background:"linear-gradient(135deg,#FDF8F3,#F5EDE4)",border:"2px solid #C4602B",borderRadius:12,padding:"16px 18px",marginBottom:14,textAlign:"center"}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:1}}>Total presupuestado</div>
+        <div style={{fontSize:32,fontWeight:900,color:"#C4602B",marginTop:4}}>{fmtCurrency(total)}</div>
+        {descMonto>0 && <div style={{fontSize:12,color:"#8B7355",marginTop:4}}>Subtotal: {fmtCurrency(subtotal)} — Desc: -{fmtCurrency(descMonto)}</div>}
+      </div>
+
+      <TextArea label="Observaciones" value={f.notas} onChange={set("notas")} placeholder="Condiciones, aclaraciones, etc." />
+      <Input label="Validez (días)" type="number" value={f.validezDias} onChange={set("validezDias")} />
+
+      <div style={{display:"flex",gap:10,marginTop:16}}>
+        <Btn fullWidth onClick={handleGenerate}>📄 Generar presupuesto</Btn>
+      </div>
+    </BottomModal>
+  );
 }
 
 function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, initialDate, initialTurno, config, saving, turnosRecurso, temporadasPrecio, preciosTemporada, onNewCliente }) {
@@ -6040,7 +6223,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 
   return (
     <div style={{fontFamily:"'DM Sans', sans-serif",background:"#FDF8F3",minHeight:"100vh", ...(isDesktop ? {display:"flex",flexDirection:"row"} : {maxWidth:480,margin:"0 auto",position:"relative"})}}>
-    {isDesktop && <DesktopNav negocio={negocio} onNavigate={setTab} tab={tab} currentUser={currentUser} onNewCobro={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onNewConsulta={()=>setModal("consultas")} onLogout={handleLogout} />}
+    {isDesktop && <DesktopNav negocio={negocio} onNavigate={setTab} tab={tab} currentUser={currentUser} onNewCobro={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onNewConsulta={()=>setModal("consultas")} onNewPresupuesto={()=>setModal("presupuesto")} onLogout={handleLogout} />}
     <div style={isDesktop ? {flex:1,minWidth:0,position:"relative",maxWidth:"calc(100% - 220px)"} : {}}>
       <style>{`
         /* fonts loaded via index.html preconnect + stylesheet link */
@@ -6107,6 +6290,12 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                     </span>
                   </div>
                 </div>
+                {/* Presupuesto */}
+                <button
+                  style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 16px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,color:"#7C3AED",fontFamily:"inherit",textAlign:"left",borderBottom:"1px solid #EDE0D0"}}
+                  onClick={()=>{setShowRootMenu(false);setModal("presupuesto");}}>
+                  💰 Nuevo presupuesto
+                </button>
                 {/* Ayuda */}
                 <button
                   style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"11px 16px",background:"none",border:"none",cursor:"pointer",fontSize:13,fontWeight:600,color:"#C4602B",fontFamily:"inherit",textAlign:"left",borderBottom:"1px solid #EDE0D0"}}
@@ -6178,7 +6367,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
           setModal("reserva");
         }}
       />}
-      {tab==="reservas" && <Suspense fallback={<ViewLoader/>}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} turnosRecurso={turnosRecurso} extrasReserva={extrasReserva} bloqueos={bloqueos} onReservaClick={r=>setDetailReserva(r)} onNewReserva={(fecha)=>{setEditReserva(null);if(fecha)setInitDate(fecha);setModal("reserva");}} onCobrar={r=>{setPagoReservaId(r.id);setModal("pago");}} negocio={negocio} /></Suspense>}
+      {tab==="reservas" && <Suspense fallback={<ViewLoader/>}><ReservasViewLazy reservas={reservas} clientes={clientes} pagos={pagos} recursos={recursos} turnosRecurso={turnosRecurso} extrasReserva={extrasReserva} bloqueos={bloqueos} onReservaClick={r=>setDetailReserva(r)} onNewReserva={(fecha)=>{setEditReserva(null);if(fecha)setInitDate(fecha);setModal("reserva");}} onNewPresupuesto={()=>setModal("presupuesto")} onCobrar={r=>{setPagoReservaId(r.id);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="clientes" && <Suspense fallback={<ViewLoader/>}><ClientesViewLazy clientes={clientes} reservas={reservas} onClienteClick={c=>setDetailCliente(c)} onNewCliente={()=>{setEditCliente(null);setModal("cliente");}} recursos={recursos} negocio={negocio} onDescartarSeguimiento={(r)=>{const updated={...r,seguimientoDescartado:true};saveR(reservas.map(x=>x.id===r.id?updated:x));showToast("Potencial descartado del seguimiento","info");}} /></Suspense>}
       {tab==="gastos" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><GastosViewLazy gastos={gastos} onNewGasto={()=>{setEditGasto(null);setModal("gasto");}} onEditGasto={(g)=>{setEditGasto(g);setModal("gasto");}} onDeleteGasto={handleDeleteGasto} /></Suspense></ErrorBoundary>}
       {tab==="recursos" && <RecursosView recursos={recursos} setRecursos={setRecursos} serviciosExtras={serviciosExtras} />}
@@ -6212,6 +6401,22 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {modal==="gasto" && <GastoModal onClose={()=>{setModal(null);setEditGasto(null);}} onSave={handleSaveGasto} gasto={editGasto} />}
       {modal==="extra" && <ExtrasModal onClose={()=>{setModal(null);setExtraReservaId(null);}} onSave={handleSaveExtra} servicios={serviciosExtras} reservaId={extraReservaId} />}
       {modal==="consultas" && <ConsultasModal onClose={()=>setModal(null)} onSave={handleSaveConsultas} />}
+      {modal==="presupuesto" && <PresupuestoModal onClose={()=>setModal(null)} clientes={clientes} recursos={recursos} turnosRecurso={turnosRecurso} temporadasPrecio={temporadasPrecio} preciosTemporada={preciosTemporada} serviciosExtras={serviciosExtras} negocio={negocio}
+        onGenerate={(presu)=>{
+          setModal(null);
+          const doc = printPresupuesto(presu,negocio);
+          const nombreNeg = negocio?.nombreNegocio||"Mi Negocio";
+          const waMsg = `Hola${presu.clienteNombre?' '+presu.clienteNombre.split(' ')[0]:''}! Te paso el presupuesto de *${nombreNeg}* para el ${fmtDate(presu.fecha)}:\n\n`
+            + `📅 Fecha: ${fmtDate(presu.fecha)}\n`
+            + (presu.turnoNombre ? `⏰ Turno: ${presu.turnoNombre}\n` : '')
+            + (presu.extras?.length>0 ? `✨ Extras: ${presu.extras.map(e=>e.descripcion).join(', ')}\n` : '')
+            + (presu.descuento>0 ? `🏷️ Descuento: -${fmtCurrency(presu.descuento)}\n` : '')
+            + `\n💰 *Total: ${fmtCurrency(presu.total)}*\n`
+            + `\nValidez: ${presu.validezDias} días. ¡Cualquier consulta avisame!`;
+          setPrintData({...doc, waPhone: presu.clienteWhatsapp||"", waMsg});
+        }}
+        onConvertToReserva={(presu)=>{setModal("reserva");setInitDate(presu.fecha);setInitTurno(presu.turnoId);}}
+      />}
 
       {/* Detail Panels */}
       {detailReserva && <ReservaDetail
