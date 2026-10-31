@@ -340,7 +340,7 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
         <div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:8,padding:"10px 12px",marginTop:10}}>
           <div style={{fontSize:11,fontWeight:700,color:"#92680A",marginBottom:8}}>¿Cuánto posponer?</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            {[{label:"6 horas",h:6},{label:"12 horas",h:12},{label:"Mañana",h:24}].map(opt=>(
+            {[{label:"24 hs",h:24},{label:"48 hs",h:48},{label:"72 hs",h:72}].map(opt=>(
               <button key={opt.h} onClick={()=>{onPosponer(reserva,opt.h);setOpen(false);setShowPosponer(false);}} style={{flex:1,padding:"8px",background:"#FFF",border:"1px solid #FFD54F",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",color:"#92680A",minWidth:70}}>
                 {opt.label}
               </button>
