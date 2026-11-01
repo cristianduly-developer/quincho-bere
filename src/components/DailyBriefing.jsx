@@ -275,7 +275,7 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
   const [motivo, setMotivo] = useState("");
 
   return (
-    <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
+    <div style={{background:"var(--qb-st-visita-bg)",border:"1.5px solid var(--qb-st-visita-border)",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
       <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
         <span style={{fontSize:20,flexShrink:0,cursor:onClickDetail?"pointer":"default"}} onClick={onClickDetail?()=>onClickDetail(reserva):undefined}>👁️</span>
         <div style={{flex:1,cursor:onClickDetail?"pointer":"default"}} onClick={onClickDetail?()=>onClickDetail(reserva):undefined}>
@@ -298,50 +298,50 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
           <button onClick={()=>setConfirmAction("confirmar")} style={{flex:1,padding:"8px 10px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             ✅ Confirmar
           </button>
-          <button onClick={()=>setShowPosponer(true)} style={{flex:1,padding:"8px 10px",background:"#FFF8E1",color:"#92680A",border:"1px solid #FFD54F",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+          <button onClick={()=>setShowPosponer(true)} style={{flex:1,padding:"8px 10px",background:"var(--qb-warning-bg)",color:"#92680A",border:"1px solid var(--qb-warning-border)",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             ⏳ Posponer
           </button>
-          <button onClick={()=>setShowRepro(true)} style={{flex:1,padding:"8px 10px",background:"#EFF6FF",color:"#2563EB",border:"1px solid #93C5FD",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+          <button onClick={()=>setShowRepro(true)} style={{flex:1,padding:"8px 10px",background:"var(--qb-st-finalizada-bg)",color:"#2563EB",border:"1px solid var(--qb-st-finalizada-border)",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             📅 Reprogramar
           </button>
-          <button onClick={()=>onEditVisita(reserva)} style={{flex:1,padding:"8px 10px",background:"var(--qb-bg-card-alt)",color:"var(--qb-text2)",border:"1px solid #EDE0D0",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+          <button onClick={()=>onEditVisita(reserva)} style={{flex:1,padding:"8px 10px",background:"var(--qb-bg-card-alt)",color:"var(--qb-text2)",border:"1px solid var(--qb-border)",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             ✏️ Editar
           </button>
-          <button onClick={()=>setConfirmAction("noconcreto")} style={{flex:1,padding:"8px 10px",background:"#FEF2F2",color:"#DC2626",border:"1px solid #FECACA",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+          <button onClick={()=>setConfirmAction("noconcreto")} style={{flex:1,padding:"8px 10px",background:"var(--qb-st-cancelada-bg)",color:"#DC2626",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             ❌ No concretó
           </button>
         </div>
       )}
 
       {open && confirmAction === "confirmar" && (
-        <div style={{background:"#DCFCE7",border:"1px solid #86EFAC",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+        <div style={{background:"var(--qb-st-confirmada-bg)",border:"1px solid var(--qb-st-confirmada-border)",borderRadius:8,padding:"10px 12px",marginTop:10}}>
           <div style={{fontSize:13,fontWeight:700,color:"#166534",marginBottom:8}}>¿Confirmar la reserva de {clientName(cliente)}?</div>
           <div style={{fontSize:12,color:"#166534",marginBottom:10}}>La reserva pasará a Pendiente y el cliente a Cliente.</div>
           <div style={{display:"flex",gap:6}}>
             <button onClick={()=>{onConfirm(reserva);setOpen(false);setConfirmAction(null);}} style={{flex:1,padding:"8px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, confirmar</button>
-            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid #86EFAC",borderRadius:6,fontSize:12,color:"#166534",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid var(--qb-st-confirmada-border)",borderRadius:6,fontSize:12,color:"#166534",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
           </div>
         </div>
       )}
 
       {open && confirmAction === "noconcreto" && (
-        <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+        <div style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:8,padding:"10px 12px",marginTop:10}}>
           <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:8}}>¿Marcar como no concretada?</div>
           <div style={{fontSize:12,color:"#991B1B",marginBottom:8}}>La fecha se liberará y la reserva se cancelará.</div>
-          <input value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo (opcional): ej. muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #FECACA",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"#FFF"}} />
+          <input value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo (opcional): ej. muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"var(--qb-bg-card)"}} />
           <div style={{display:"flex",gap:6}}>
             <button onClick={()=>{onNoConcreto(reserva,motivo.trim());setOpen(false);setConfirmAction(null);setMotivo("");}} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
-            <button onClick={()=>{setConfirmAction(null);setMotivo("");}} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+            <button onClick={()=>{setConfirmAction(null);setMotivo("");}} style={{padding:"8px 12px",background:"none",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
           </div>
         </div>
       )}
 
       {open && showPosponer && (
-        <div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+        <div style={{background:"var(--qb-warning-bg)",border:"1px solid var(--qb-warning-border)",borderRadius:8,padding:"10px 12px",marginTop:10}}>
           <div style={{fontSize:11,fontWeight:700,color:"#92680A",marginBottom:8}}>¿Cuánto posponer?</div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             {[{label:"24 hs",h:24},{label:"48 hs",h:48},{label:"72 hs",h:72}].map(opt=>(
-              <button key={opt.h} onClick={()=>{onPosponer(reserva,opt.h);setOpen(false);setShowPosponer(false);}} style={{flex:1,padding:"8px",background:"#FFF",border:"1px solid #FFD54F",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",color:"#92680A",minWidth:70}}>
+              <button key={opt.h} onClick={()=>{onPosponer(reserva,opt.h);setOpen(false);setShowPosponer(false);}} style={{flex:1,padding:"8px",background:"var(--qb-bg-card)",border:"1px solid var(--qb-warning-border)",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",color:"#92680A",minWidth:70}}>
                 {opt.label}
               </button>
             ))}
@@ -351,15 +351,15 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
       )}
 
       {open && showRepro && (
-        <div style={{background:"#EFF6FF",border:"1px solid #93C5FD",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+        <div style={{background:"var(--qb-st-finalizada-bg)",border:"1px solid var(--qb-st-finalizada-border)",borderRadius:8,padding:"10px 12px",marginTop:10}}>
           <div style={{fontSize:11,fontWeight:700,color:"#2563EB",marginBottom:8}}>Nueva fecha y hora de visita</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-            <input type="date" value={reproFecha} onChange={e=>setReproFecha(e.target.value)} style={{padding:"8px",borderRadius:6,border:"1px solid #93C5FD",fontSize:13,fontFamily:"inherit"}} />
-            <input type="time" value={reproHora} onChange={e=>setReproHora(e.target.value)} style={{padding:"8px",borderRadius:6,border:"1px solid #93C5FD",fontSize:13,fontFamily:"inherit"}} />
+            <input type="date" value={reproFecha} onChange={e=>setReproFecha(e.target.value)} style={{padding:"8px",borderRadius:6,border:"1px solid var(--qb-st-finalizada-border)",fontSize:13,fontFamily:"inherit"}} />
+            <input type="time" value={reproHora} onChange={e=>setReproHora(e.target.value)} style={{padding:"8px",borderRadius:6,border:"1px solid var(--qb-st-finalizada-border)",fontSize:13,fontFamily:"inherit"}} />
           </div>
           <div style={{display:"flex",gap:6}}>
             <button onClick={()=>{if(!reproFecha){alert("Elegí una fecha.");return;} onReprogramar(reserva,reproFecha,reproHora);setOpen(false);setShowRepro(false);}} style={{flex:1,padding:"8px",background:"#2563EB",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Guardar</button>
-            <button onClick={()=>setShowRepro(false)} style={{padding:"8px 12px",background:"none",border:"1px solid #93C5FD",borderRadius:6,fontSize:12,color:"#2563EB",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+            <button onClick={()=>setShowRepro(false)} style={{padding:"8px 12px",background:"none",border:"1px solid var(--qb-st-finalizada-border)",borderRadius:6,fontSize:12,color:"#2563EB",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
           </div>
         </div>
       )}

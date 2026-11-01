@@ -54,6 +54,22 @@ export const THEME_CSS = `
   --qb-dropdown-shadow: 0 4px 20px rgba(0,0,0,0.14);
   --qb-grab-bar: #D4C5B5;
   --qb-focus-ring: rgba(196,96,43,0.12);
+  --qb-muted: #F3F4F6;
+  --qb-muted-text: #6B7280;
+  --qb-warning-bg: #FFFBEB;
+  --qb-warning-border: #FDE68A;
+  --qb-st-visita-bg: #F5F3FF;
+  --qb-st-visita-border: #DDD6FE;
+  --qb-st-pendiente-bg: #F3F4F6;
+  --qb-st-pendiente-border: #D1D5DB;
+  --qb-st-senada-bg: #E0F2FE;
+  --qb-st-senada-border: #7DD3FC;
+  --qb-st-confirmada-bg: #DCFCE7;
+  --qb-st-confirmada-border: #86EFAC;
+  --qb-st-finalizada-bg: #DBEAFE;
+  --qb-st-finalizada-border: #93C5FD;
+  --qb-st-cancelada-bg: #FEF2F2;
+  --qb-st-cancelada-border: #FECACA;
 }
 :root.dark {
   --qb-bg: #0F0D0B;
@@ -87,6 +103,22 @@ export const THEME_CSS = `
   --qb-dropdown-shadow: 0 4px 20px rgba(0,0,0,0.4);
   --qb-grab-bar: #3D3530;
   --qb-focus-ring: rgba(232,132,74,0.2);
+  --qb-muted: rgba(107,114,128,0.12);
+  --qb-muted-text: #9CA3AF;
+  --qb-warning-bg: rgba(245,158,11,0.1);
+  --qb-warning-border: rgba(245,158,11,0.3);
+  --qb-st-visita-bg: rgba(124,58,237,0.1);
+  --qb-st-visita-border: rgba(124,58,237,0.3);
+  --qb-st-pendiente-bg: rgba(107,114,128,0.1);
+  --qb-st-pendiente-border: rgba(107,114,128,0.3);
+  --qb-st-senada-bg: rgba(2,132,199,0.1);
+  --qb-st-senada-border: rgba(2,132,199,0.3);
+  --qb-st-confirmada-bg: rgba(22,163,74,0.1);
+  --qb-st-confirmada-border: rgba(22,163,74,0.3);
+  --qb-st-finalizada-bg: rgba(29,78,216,0.1);
+  --qb-st-finalizada-border: rgba(29,78,216,0.3);
+  --qb-st-cancelada-bg: rgba(220,38,38,0.1);
+  --qb-st-cancelada-border: rgba(220,38,38,0.3);
 }
 .dark input, .dark select, .dark textarea {
   background: var(--qb-input-bg) !important;

@@ -3,12 +3,12 @@ export const MONTHS_SHORT = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Se
 export const DAYS_SHORT = ["L","M","X","J","V","S","D"];
 
 export const STATUS = {
-  visita:     { label:"Visita",     color:"#7C3AED", bg:"#F5F3FF", border:"#DDD6FE" },
-  pendiente:  { label:"Pendiente",  color:"#6B7280", bg:"#F3F4F6", border:"#D1D5DB" },
-  senada:     { label:"Señada",     color:"#0284C7", bg:"#E0F2FE", border:"#7DD3FC" },
-  confirmada: { label:"Confirmada", color:"#16A34A", bg:"#DCFCE7", border:"#86EFAC" },
-  finalizada: { label:"Finalizada", color:"#1D4ED8", bg:"#DBEAFE", border:"#93C5FD" },
-  cancelada:  { label:"Cancelada",  color:"#DC2626", bg:"#FEF2F2", border:"#FECACA" },
+  visita:     { label:"Visita",     color:"#7C3AED", bg:"var(--qb-st-visita-bg)",     border:"var(--qb-st-visita-border)" },
+  pendiente:  { label:"Pendiente",  color:"#6B7280", bg:"var(--qb-st-pendiente-bg)",  border:"var(--qb-st-pendiente-border)" },
+  senada:     { label:"Señada",     color:"#0284C7", bg:"var(--qb-st-senada-bg)",     border:"var(--qb-st-senada-border)" },
+  confirmada: { label:"Confirmada", color:"#16A34A", bg:"var(--qb-st-confirmada-bg)", border:"var(--qb-st-confirmada-border)" },
+  finalizada: { label:"Finalizada", color:"#1D4ED8", bg:"var(--qb-st-finalizada-bg)", border:"var(--qb-st-finalizada-border)" },
+  cancelada:  { label:"Cancelada",  color:"#DC2626", bg:"var(--qb-st-cancelada-bg)",  border:"var(--qb-st-cancelada-border)" },
 };
 
 export const TURNOS = {

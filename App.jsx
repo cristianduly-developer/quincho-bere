@@ -535,7 +535,7 @@ function PresupuestoModal({ onClose, onGenerate, onConvertToReserva, clientes, r
       <Input label="Invitados" type="number" value={f.cantInvitados} onChange={set("cantInvitados")} placeholder="Cantidad estimada" />
 
       {/* Precio base */}
-      <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+      <div style={{background:"var(--qb-st-visita-bg)",border:"1.5px solid var(--qb-st-visita-border)",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
         <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>💰 Precio del alquiler</div>
         {turnoSel && precioManual===null && (
           <div style={{fontSize:13,color:"var(--qb-text3)",marginBottom:6}}>Precio automático: <b>{fmtCurrency(precioBase)}</b> ({esFinde(f.fecha)?"fin de semana":"día de semana"})</div>
@@ -574,7 +574,7 @@ function PresupuestoModal({ onClose, onGenerate, onConvertToReserva, clientes, r
       </div>
 
       {/* Descuento */}
-      <div style={{background:"#F0FDF4",border:"1.5px solid #86EFAC",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+      <div style={{background:"var(--qb-st-confirmada-bg)",border:"1.5px solid var(--qb-st-confirmada-border)",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
         <div style={{fontSize:11,fontWeight:700,color:"#16A34A",textTransform:"uppercase",letterSpacing:0.5,marginBottom:8}}>🏷️ Descuento (opcional)</div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <select value={descuentoTipo} onChange={e=>setDescuentoTipo(e.target.value)} style={{...inputStyle,marginBottom:0,width:70}}>
@@ -739,7 +739,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
       {f.clienteId && (()=>{
         const avg = reservas ? getClientAvg(f.clienteId, reservas) : null;
         if(avg!==null && Number(avg)<=2) return (
-          <div style={{padding:"10px 14px",background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:8,marginTop:-8,marginBottom:8,display:"flex",gap:8,alignItems:"center"}}>
+          <div style={{padding:"10px 14px",background:"var(--qb-st-cancelada-bg)",border:"1.5px solid var(--qb-st-cancelada-border)",borderRadius:8,marginTop:-8,marginBottom:8,display:"flex",gap:8,alignItems:"center"}}>
             <span style={{fontSize:18}}>⚠️</span>
             <span style={{fontSize:13,fontWeight:700,color:"#DC2626"}}>ATENCIÓN: Este cliente tiene malas calificaciones previas. Promedio: {avg}/5</span>
           </div>
@@ -755,7 +755,7 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
 
       {/* Selector de turno: custom si hay turnos configurados, genérico si no */}
       {fechaSinTemporada ? (
-        <div style={{padding:"12px 14px",background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:8,marginBottom:14,display:"flex",gap:8,alignItems:"center"}}>
+        <div style={{padding:"12px 14px",background:"var(--qb-st-cancelada-bg)",border:"1.5px solid var(--qb-st-cancelada-border)",borderRadius:8,marginBottom:14,display:"flex",gap:8,alignItems:"center"}}>
           <span style={{fontSize:18}}>📅</span>
           <span style={{fontSize:13,fontWeight:700,color:"#DC2626"}}>Esta fecha no está dentro de ninguna temporada habilitada para este espacio.</span>
         </div>
@@ -806,14 +806,14 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
         </div>
         <Input label="Monto pactado ($)" type="number" value={f.montoPactado} onChange={set("montoPactado")} required placeholder="0" />
         {turnosInfo.temporada && (
-          <div style={{padding:"8px 12px",background:"#FFF8EC",border:"1px solid #F5C842",borderRadius:8,marginBottom:8,fontSize:12,color:"#92680A"}}>🌡️ Precios de <strong>{turnosInfo.temporada.nombre}</strong> aplicados ({esFinde(f.fecha)?"fin de semana":"semana"})</div>
+          <div style={{padding:"8px 12px",background:"var(--qb-warning-bg)",border:"1px solid var(--qb-warning-border)",borderRadius:8,marginBottom:8,fontSize:12,color:"#92680A"}}>🌡️ Precios de <strong>{turnosInfo.temporada.nombre}</strong> aplicados ({esFinde(f.fecha)?"fin de semana":"semana"})</div>
         )}
       </>}
       <div style={{padding:"8px 12px",background:f.estado==="visita"?"#F5F3FF":"#F3F4F6",borderRadius:8,marginBottom:14,fontSize:12,color:f.estado==="visita"?"#7C3AED":"#6B7280"}}>
         {f.estado==="visita" ? "👁️ Estado: Visita — el cliente viene a conocer el espacio" : `🔒 Estado: ${STATUS[f.estado]?.label||"Pendiente"} — cambia automáticamente con los cobros`}
       </div>
       {f.estado==="visita" && (
-        <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+        <div style={{background:"var(--qb-st-visita-bg)",border:"1px solid var(--qb-st-visita-border)",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
           <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>📅 Fecha y hora de la visita</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <Input label="Fecha visita" type="date" value={f.fechaVisita} onChange={set("fechaVisita")} />
@@ -888,10 +888,10 @@ function ClienteModal({ onClose, onSave, cliente, clientes }) {
       </div>
       <TextArea label="Notas internas" value={f.notasInternas} onChange={set("notasInternas")} placeholder="Comportamiento, preferencias..." rows={2} />
       {dupes && dupes.length>0 && (
-        <div style={{background:"#FEF3C7",border:"1px solid #F59E0B",borderRadius:10,padding:"12px 14px",marginTop:8}}>
+        <div style={{background:"var(--qb-warning-bg)",border:"1px solid var(--qb-warning-border)",borderRadius:10,padding:"12px 14px",marginTop:8}}>
           <div style={{fontWeight:700,fontSize:13,color:"#92400E",marginBottom:6}}>⚠️ Ya existe un cliente similar</div>
           {dupes.map(d=>(
-            <div key={d.id} style={{fontSize:12,color:"#78350F",marginBottom:4,padding:"6px 8px",background:"#FFFBEB",borderRadius:6}}>
+            <div key={d.id} style={{fontSize:12,color:"#78350F",marginBottom:4,padding:"6px 8px",background:"var(--qb-warning-bg)",borderRadius:6}}>
               <span style={{fontWeight:600}}>{d.nombre} {d.apellido||""}</span>
               {d.whatsapp && <span style={{color:"#92400E"}}> · {d.whatsapp}</span>}
               {d.estadoCrm && <span style={{color:"#92400E"}}> · {d.estadoCrm}</span>}
@@ -1120,7 +1120,7 @@ function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
   const [confirmAction, setConfirmAction] = useState(null);
   const [motivo, setMotivo] = useState("");
   return (
-    <div style={{background:"#F5F3FF",border:"1.5px solid #DDD6FE",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+    <div style={{background:"var(--qb-st-visita-bg)",border:"1.5px solid var(--qb-st-visita-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
       <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>👁️ Visita programada</div>
       {(reserva.fechaVisita || reserva.horaVisita) && (
         <div style={{fontSize:14,fontWeight:700,color:"var(--qb-text)",marginBottom:10}}>
@@ -1132,29 +1132,29 @@ function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
           <button onClick={()=>setConfirmAction("confirmar")} style={{flex:1,padding:"10px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
             ✅ Confirmar reserva
           </button>
-          <button onClick={()=>setConfirmAction("noconcreto")} style={{flex:1,padding:"10px",background:"#FEF2F2",color:"#DC2626",border:"1.5px solid #FECACA",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+          <button onClick={()=>setConfirmAction("noconcreto")} style={{flex:1,padding:"10px",background:"var(--qb-st-cancelada-bg)",color:"#DC2626",border:"1.5px solid var(--qb-st-cancelada-border)",borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
             ❌ No concretó
           </button>
         </div>
       )}
       {confirmAction==="confirmar" && (
-        <div style={{background:"#DCFCE7",border:"1px solid #86EFAC",borderRadius:8,padding:"10px 12px"}}>
+        <div style={{background:"var(--qb-st-confirmada-bg)",border:"1px solid var(--qb-st-confirmada-border)",borderRadius:8,padding:"10px 12px"}}>
           <div style={{fontSize:13,fontWeight:700,color:"#166534",marginBottom:6}}>¿Confirmar la reserva de {clientName(cliente)}?</div>
           <div style={{fontSize:12,color:"#166534",marginBottom:10}}>La reserva pasará a Pendiente y el cliente a Cliente.</div>
           <div style={{display:"flex",gap:6}}>
             <button onClick={onConfirmVisita} style={{flex:1,padding:"8px",background:"#16A34A",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, confirmar</button>
-            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid #86EFAC",borderRadius:6,fontSize:12,color:"#166534",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+            <button onClick={()=>setConfirmAction(null)} style={{padding:"8px 12px",background:"none",border:"1px solid var(--qb-st-confirmada-border)",borderRadius:6,fontSize:12,color:"#166534",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
           </div>
         </div>
       )}
       {confirmAction==="noconcreto" && (
-        <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px"}}>
+        <div style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:8,padding:"10px 12px"}}>
           <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:6}}>¿Marcar como no concretada?</div>
           <div style={{fontSize:12,color:"#991B1B",marginBottom:8}}>La fecha se liberará y la reserva se cancelará.</div>
-          <input value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo (opcional): ej. muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #FECACA",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"var(--qb-bg-card)"}} />
+          <input value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo (opcional): ej. muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"var(--qb-bg-card)"}} />
           <div style={{display:"flex",gap:6}}>
             <button onClick={()=>onNoConcreto(motivo.trim())} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
-            <button onClick={()=>{setConfirmAction(null);setMotivo("");}} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+            <button onClick={()=>{setConfirmAction(null);setMotivo("");}} style={{padding:"8px 12px",background:"none",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
           </div>
         </div>
       )}
@@ -1201,13 +1201,13 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
         <TurnoBadge turno={reserva.turno} label={reserva.turnoId&&(turnosRecurso||[]).find(t=>t.id===reserva.turnoId)?.nombre} />
         <StatusBadge estado={reserva.estado} />
-        {reserva.tipoEvento && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#7C3AED",background:"#F5F3FF",border:"1px solid #DDD6FE"}}>{reserva.tipoEvento}</span>}
-        {saldo>0 && reserva.estado!=="visita" && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#DC2626",background:"#FEF2F2",border:"1px solid #FECACA"}}>⚠️ Saldo pendiente</span>}
+        {reserva.tipoEvento && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#7C3AED",background:"var(--qb-st-visita-bg)",border:"1px solid var(--qb-st-visita-border)"}}>{reserva.tipoEvento}</span>}
+        {saldo>0 && reserva.estado!=="visita" && <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,color:"#DC2626",background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)"}}>⚠️ Saldo pendiente</span>}
       </div>
 
       {/* Calificación del evento */}
       {reserva.calificacion?.estrellas && (
-        <div style={{...card,padding:"12px 16px",marginBottom:12,background:"#FFFBEB",border:"1px solid #FDE68A"}}>
+        <div style={{...card,padding:"12px 16px",marginBottom:12,background:"var(--qb-warning-bg)",border:"1px solid var(--qb-warning-border)"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <div style={{fontSize:24}}>{"⭐".repeat(reserva.calificacion.estrellas)}{"☆".repeat(5-reserva.calificacion.estrellas)}</div>
@@ -1216,7 +1216,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                 {reserva.calificacion.nota && <div style={{fontSize:12,color:"#78716C",marginTop:2,fontStyle:"italic"}}>"{reserva.calificacion.nota}"</div>}
               </div>
             </div>
-            {onSaveRating&&<button onClick={()=>setEditingRating(true)} style={{padding:"4px 10px",background:"none",border:"1px solid #FDE68A",borderRadius:6,fontSize:11,fontWeight:600,color:"#92400E",cursor:"pointer",fontFamily:"inherit"}}>✏️ Editar</button>}
+            {onSaveRating&&<button onClick={()=>setEditingRating(true)} style={{padding:"4px 10px",background:"none",border:"1px solid var(--qb-warning-border)",borderRadius:6,fontSize:11,fontWeight:600,color:"#92400E",cursor:"pointer",fontFamily:"inherit"}}>✏️ Editar</button>}
           </div>
         </div>
       )}
@@ -1320,9 +1320,9 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
               </div>
               <div style={{display:"flex",gap:6}}>
                 <button onClick={()=>{setPpFecha(reserva.proximoPagoFecha);setPpMonto(reserva.proximoPagoMonto);setShowProximoPago(true);}}
-                  style={{background:"#EFF6FF",border:"1px solid #93C5FD",color:"#2563EB",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit"}}>✏️</button>
+                  style={{background:"var(--qb-st-finalizada-bg)",border:"1px solid var(--qb-st-finalizada-border)",color:"#2563EB",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit"}}>✏️</button>
                 <button onClick={()=>onEditProximoPago(null,null)}
-                  style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit"}}>✕</button>
+                  style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",color:"#DC2626",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit"}}>✕</button>
               </div>
             </div>
           ) : !showProximoPago ? (
@@ -1332,7 +1332,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
             </button>
           ) : null}
           {showProximoPago && (
-            <div style={{background:"#FFF8E1",border:"1px solid #FFD54F",borderRadius:10,padding:"12px 14px",marginTop:4}}>
+            <div style={{background:"var(--qb-warning-bg)",border:"1px solid var(--qb-warning-border)",borderRadius:10,padding:"12px 14px",marginTop:4}}>
               <div style={{fontSize:12,fontWeight:700,color:"#6D4C00",marginBottom:10}}>Próximo pago acordado</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:10}}>
                 <div>
@@ -1383,14 +1383,14 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                       <span style={{fontWeight:800,color:"#16A34A",fontSize:15}}>+{fmtCurrency(p.monto)}</span>
                       {canModifyCaja&&!readOnly&&(
                         <>
-                          <button onClick={()=>setEditingPago(p)} style={{background:"#EFF6FF",border:"1px solid #93C5FD",color:"#2563EB",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit"}}>✏️</button>
+                          <button onClick={()=>setEditingPago(p)} style={{background:"var(--qb-st-finalizada-bg)",border:"1px solid var(--qb-st-finalizada-border)",color:"#2563EB",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit"}}>✏️</button>
                           {confirmDelPagoId===p.id ? (
                             <div style={{display:"flex",gap:4}}>
-                              <button onClick={()=>setConfirmDelPagoId(null)} style={{background:"#F3F4F6",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontFamily:"inherit",color:"#6B7280"}}>No</button>
+                              <button onClick={()=>setConfirmDelPagoId(null)} style={{background:"var(--qb-muted)",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontFamily:"inherit",color:"#6B7280"}}>No</button>
                               <button onClick={()=>{onDeletePago(p.id);setConfirmDelPagoId(null);}} style={{background:"#DC2626",border:"none",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"inherit",color:"#FFF"}}>Sí</button>
                             </div>
                           ) : (
-                            <button onClick={()=>setConfirmDelPagoId(p.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit"}}>🗑️</button>
+                            <button onClick={()=>setConfirmDelPagoId(p.id)} style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",color:"#DC2626",borderRadius:6,padding:"4px 8px",cursor:"pointer",fontSize:12,fontWeight:700,fontFamily:"inherit"}}>🗑️</button>
                           )}
                         </>
                       )}
@@ -1412,7 +1412,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
 
       {/* Reprogramar */}
       {showReschedule&&(
-        <div style={{background:"#EFF6FF",border:"1.5px solid #93C5FD",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+        <div style={{background:"var(--qb-st-finalizada-bg)",border:"1.5px solid var(--qb-st-finalizada-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13,color:"#1D4ED8",marginBottom:8}}>📅 Reprogramar evento</div>
           <div style={{fontSize:12,color:"#3B82F6",marginBottom:10}}>Fecha original: <b>{fmtDate(reserva.fecha)}</b> — quedará asentada en las notas.</div>
           <input type="date" value={rescheduleDate} onChange={e=>setRescheduleDate(e.target.value)}
@@ -1433,7 +1433,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
 
       {/* Cancelación — Step 1: confirmación */}
       {cancelStep==="confirm"&&(
-        <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+        <div style={{background:"var(--qb-st-cancelada-bg)",border:"1.5px solid var(--qb-st-cancelada-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13,color:"#DC2626",marginBottom:6}}>⚠️ ¿Cancelar este evento?</div>
           <div style={{fontSize:12,color:"var(--qb-text3)",marginBottom:12}}>Esta acción cambiará el estado a "Cancelada". No se puede deshacer fácilmente.</div>
           <div style={{display:"flex",gap:8}}>
@@ -1445,7 +1445,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
 
       {/* Cancelación — Step 2: devolución de seña */}
       {cancelStep==="refund"&&(
-        <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
+        <div style={{background:"var(--qb-st-cancelada-bg)",border:"1.5px solid var(--qb-st-cancelada-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13,color:"#DC2626",marginBottom:6}}>💰 Seña cobrada: {fmtCurrency(totalPagado)}</div>
           <div style={{fontSize:12,color:"var(--qb-text3)",marginBottom:12}}>¿Se reintegra la seña al cliente?</div>
           <div style={{display:"flex",gap:8}}>
@@ -1467,7 +1467,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
         )}
         {!readOnly&&(!confirmDelete
           ? <Btn small variant="danger" onClick={()=>setConfirmDelete(true)}>🗑️</Btn>
-          : <div style={{display:"flex",gap:6,alignItems:"center",background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"4px 8px"}}>
+          : <div style={{display:"flex",gap:6,alignItems:"center",background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:8,padding:"4px 8px"}}>
               <span style={{fontSize:11,fontWeight:700,color:"#DC2626"}}>¿Eliminar?</span>
               <Btn small variant="danger" onClick={onDelete}>Sí</Btn>
               <Btn small variant="ghost" onClick={()=>setConfirmDelete(false)}>No</Btn>
@@ -1529,7 +1529,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                 </details>
 
                 {/* Regalito */}
-                <div style={{marginTop:16,padding:14,background:"#FFF8E6",borderRadius:12,border:"1px solid #FFD54F"}}>
+                <div style={{marginTop:16,padding:14,background:"var(--qb-warning-bg)",borderRadius:12,border:"1px solid var(--qb-warning-border)"}}>
                   <div style={{fontWeight:700,fontSize:13,color:"var(--qb-text)",marginBottom:4}}>🎁 Regalito para el cliente</div>
                   {reserva.regaloDescuento ? (
                     <div>
@@ -1631,7 +1631,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
           {cliente.email && <div style={{fontSize:13,color:"var(--qb-text2)",marginTop:2}}>✉️ {cliente.email}</div>}
           <div style={{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"}}>
             {cliente.estadoCrm && cliente.estadoCrm !== "Cliente" && <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99,background:cliente.estadoCrm==="Potencial"?"#FEF9C3":"#F3F4F6",color:cliente.estadoCrm==="Potencial"?"#A16207":"#6B7280",border:`1px solid ${cliente.estadoCrm==="Potencial"?"#FDE68A":"#E5E7EB"}`}}>{cliente.estadoCrm}</span>}
-            {cliente.origen && <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99,background:"#F5F3FF",color:"#7C3AED",border:"1px solid #DDD6FE"}}>{cliente.origen}</span>}
+            {cliente.origen && <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99,background:"var(--qb-st-visita-bg)",color:"#7C3AED",border:"1px solid var(--qb-st-visita-border)"}}>{cliente.origen}</span>}
           </div>
         </div>
       </div>
@@ -1649,7 +1649,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
             <StarRating value={Math.round(Number(avg))} readOnly />
             <span style={{fontSize:20,fontWeight:800,color:"#F59E0B",fontFamily:"'Playfair Display',serif"}}>{avg}/5</span>
           </div>
-          {Number(avg)<=2&&<div style={{marginTop:8,padding:"8px 10px",background:"#FEF2F2",color:"#DC2626",borderRadius:8,fontSize:12,fontWeight:700}}>⚠️ Cliente con malas calificaciones previas</div>}
+          {Number(avg)<=2&&<div style={{marginTop:8,padding:"8px 10px",background:"var(--qb-st-cancelada-bg)",color:"#DC2626",borderRadius:8,fontSize:12,fontWeight:700}}>⚠️ Cliente con malas calificaciones previas</div>}
         </div>
       )}
       {notas.length>0&&(
@@ -1714,7 +1714,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
               <div key={"portal-"+r.id} style={{...card,padding:"12px 14px",marginBottom:8,borderLeft:`3px solid ${activo?"#16A34A":"var(--qb-border)"}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                   <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text)"}}>{r.nombreEvento||r.tipoEvento||"Evento"} · {fmtDate(r.fecha)}</div>
-                  {activo&&<span style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,background:"#DCFCE7",color:"#16A34A",border:"1px solid #BBF7D0"}}>Activo</span>}
+                  {activo&&<span style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,background:"var(--qb-st-confirmada-bg)",color:"#16A34A",border:"1px solid var(--qb-cobro-border)"}}>Activo</span>}
                 </div>
                 <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
                   <span style={{fontSize:11,color:s.visitas>0?"#059669":"var(--qb-text2)",fontWeight:600}}>👁 {s.visitas} visitas</span>
@@ -1741,7 +1741,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
               <div style={{fontSize:13,fontWeight:600,color:"var(--qb-text)"}}>{fmtDate(r.fecha)}</div>
               <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
                 <TurnoBadge turno={r.turno} label={r.turnoId&&(turnosRecurso||[]).find(t=>t.id===r.turnoId)?.nombre} />
-                {r.tipoEvento && <span style={{fontSize:10,fontWeight:600,color:"#7C3AED",background:"#F5F3FF",borderRadius:4,padding:"1px 6px",border:"1px solid #DDD6FE"}}>{r.tipoEvento}</span>}
+                {r.tipoEvento && <span style={{fontSize:10,fontWeight:600,color:"#7C3AED",background:"var(--qb-st-visita-bg)",borderRadius:4,padding:"1px 6px",border:"1px solid var(--qb-st-visita-border)"}}>{r.tipoEvento}</span>}
               </div>
             </>}
             {esVisitaNoConcreto && <div style={{fontSize:11,color:"#7C3AED",marginTop:3,fontWeight:600}}>🟣 Visitó el {fmtDate(r.fechaVisita)} — no concretó</div>}
@@ -1750,12 +1750,12 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
             {esVisitaNoConcreto
               ? <>
-                  <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:99,background:"#F5F3FF",color:"#7C3AED",border:"1px solid #DDD6FE"}}>Visita</span>
-                  {r.fecha>=todayStr && confirmReactivar!==r.id && <button onClick={(e)=>{e.stopPropagation();setConfirmReactivar(r.id);}} style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:99,background:"#DCFCE7",color:"#16A34A",border:"1px solid #BBF7D0",cursor:"pointer",fontFamily:"inherit"}}>🔄 Reactivar</button>}
+                  <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:99,background:"var(--qb-st-visita-bg)",color:"#7C3AED",border:"1px solid var(--qb-st-visita-border)"}}>Visita</span>
+                  {r.fecha>=todayStr && confirmReactivar!==r.id && <button onClick={(e)=>{e.stopPropagation();setConfirmReactivar(r.id);}} style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:99,background:"var(--qb-st-confirmada-bg)",color:"#16A34A",border:"1px solid var(--qb-cobro-border)",cursor:"pointer",fontFamily:"inherit"}}>🔄 Reactivar</button>}
                   {confirmReactivar===r.id && (
                     <div style={{display:"flex",gap:4,marginTop:2}}>
                       <button onClick={(e)=>{e.stopPropagation();onReactivar(r);setConfirmReactivar(null);}} style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:6,background:"#16A34A",color:"#FFF",border:"none",cursor:"pointer",fontFamily:"inherit"}}>Sí, reactivar</button>
-                      <button onClick={(e)=>{e.stopPropagation();setConfirmReactivar(null);}} style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:6,background:"#F3F4F6",color:"#6B7280",border:"none",cursor:"pointer",fontFamily:"inherit"}}>No</button>
+                      <button onClick={(e)=>{e.stopPropagation();setConfirmReactivar(null);}} style={{fontSize:10,fontWeight:600,padding:"3px 8px",borderRadius:6,background:"var(--qb-muted)",color:"#6B7280",border:"none",cursor:"pointer",fontFamily:"inherit"}}>No</button>
                     </div>
                   )}
                 </>
@@ -1968,7 +1968,7 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
                   <span style={{fontSize:12,fontWeight:700,color:"var(--qb-text)"}}>{ocupados} ocupados · {libres} libres</span>
                   <span style={{fontSize:11,fontWeight:700,color:barColor}}>{pct}%</span>
                 </div>
-                <div style={{background:"#E5E7EB",borderRadius:4,height:6,marginBottom:10,overflow:"hidden"}}>
+                <div style={{background:"var(--qb-border)",borderRadius:4,height:6,marginBottom:10,overflow:"hidden"}}>
                   <div style={{width:pct+"%",height:"100%",background:barColor,borderRadius:4,transition:"width 0.3s"}} />
                 </div>
                 {/* Números clave */}
@@ -2284,7 +2284,7 @@ function UsuariosView({ usuarios, setUsuarios, currentUser }) {
             <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>{u.email} · {u.rol}</div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <span style={{padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,background:u.estado==="Activo"?"#D1FAE5":"#FEE2E2",color:u.estado==="Activo"?"#16A34A":"#DC2626"}}>{u.estado}</span>
+            <span style={{padding:"3px 10px",borderRadius:99,fontSize:11,fontWeight:700,background:u.estado==="Activo"?"var(--qb-st-confirmada-bg)":"var(--qb-st-cancelada-bg)",color:u.estado==="Activo"?"#16A34A":"#DC2626"}}>{u.estado}</span>
             <Btn small variant="secondary" onClick={()=>save(usuarios.map(x=>x.id===u.id?{...x,estado:x.estado==="Activo"?"Inactivo":"Activo"}:x))}>
               {u.estado==="Activo"?"Desactivar":"Activar"}
             </Btn>
@@ -2402,7 +2402,7 @@ function PrintModal({ data, onClose }) {
             </a>
           )}
           <button onClick={handlePrint} style={{background:"var(--qb-accent)",color:"#FFF",border:"none",borderRadius:10,padding:"13px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>🖨️ Imprimir / Guardar PDF</button>
-          <button onClick={onClose} style={{background:"#F3F4F6",color:"var(--qb-text)",border:"none",borderRadius:10,padding:"13px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cerrar</button>
+          <button onClick={onClose} style={{background:"var(--qb-muted)",color:"var(--qb-text)",border:"none",borderRadius:10,padding:"13px",fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Cerrar</button>
         </div>
       </div>
     </div>
@@ -2485,12 +2485,12 @@ function BloqueoModal({ date, bloqueoExistente, onClose, onBloquear, onDesbloque
           <div style={{fontSize:36,marginBottom:12}}>🔒</div>
           <div style={{fontWeight:800,fontSize:18,color:"var(--qb-text)",marginBottom:6}}>Fecha bloqueada</div>
           <div style={{fontSize:13,color:"var(--qb-text2)",marginBottom:4}}>{fmtDate(date)}</div>
-          <div style={{background:"#F3F4F6",borderRadius:8,padding:"10px 14px",marginBottom:20,fontSize:13,color:"#374151"}}>
+          <div style={{background:"var(--qb-muted)",borderRadius:8,padding:"10px 14px",marginBottom:20,fontSize:13,color:"#374151"}}>
             <b>{TURNOS[bloqueoExistente.turno]?.icon||"🚫"} {TURNOS[bloqueoExistente.turno]?.label||"Día Completo"}</b><br/>
             {bloqueoExistente.motivo}
           </div>
           <div style={{display:"flex",gap:10}}>
-            <button onClick={onClose} style={{flex:1,padding:"11px",background:"#F3F4F6",border:"none",borderRadius:10,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit",color:"#6B7280"}}>Cancelar</button>
+            <button onClick={onClose} style={{flex:1,padding:"11px",background:"var(--qb-muted)",border:"none",borderRadius:10,fontWeight:600,fontSize:14,cursor:"pointer",fontFamily:"inherit",color:"#6B7280"}}>Cancelar</button>
             <button onClick={()=>onDesbloquear(bloqueoExistente.id)} style={{flex:1,padding:"11px",background:"#DC2626",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",color:"#FFF"}}>🔓 Desbloquear</button>
           </div>
         </div>
@@ -2594,9 +2594,9 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
       </div>
       {multiEspacio && (
         <div style={{padding:"8px 12px",background:"var(--qb-bg-hover)",borderBottom:"1px solid var(--qb-border)",display:"flex",gap:6,overflowX:"auto"}}>
-          <button onClick={()=>setEspacioFiltro("all")} style={{flexShrink:0,padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"1.5px solid "+(espacioFiltro==="all"?"var(--qb-accent)":"var(--qb-border)"),background:espacioFiltro==="all"?"var(--qb-accent)":"#FFF",color:espacioFiltro==="all"?"#FFF":"var(--qb-text2)"}}>Todos</button>
+          <button onClick={()=>setEspacioFiltro("all")} style={{flexShrink:0,padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"1.5px solid "+(espacioFiltro==="all"?"var(--qb-accent)":"var(--qb-border)"),background:espacioFiltro==="all"?"var(--qb-accent)":"var(--qb-bg-card)",color:espacioFiltro==="all"?"#FFF":"var(--qb-text2)"}}>Todos</button>
           {recursos.map(r=>(
-            <button key={r.id} onClick={()=>setEspacioFiltro(r.id)} style={{flexShrink:0,padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"1.5px solid "+(espacioFiltro===r.id?"var(--qb-accent)":"var(--qb-border)"),background:espacioFiltro===r.id?"var(--qb-accent)":"#FFF",color:espacioFiltro===r.id?"#FFF":"var(--qb-text2)"}}>🏠 {r.nombre}</button>
+            <button key={r.id} onClick={()=>setEspacioFiltro(r.id)} style={{flexShrink:0,padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",border:"1.5px solid "+(espacioFiltro===r.id?"var(--qb-accent)":"var(--qb-border)"),background:espacioFiltro===r.id?"var(--qb-accent)":"var(--qb-bg-card)",color:espacioFiltro===r.id?"#FFF":"var(--qb-text2)"}}>🏠 {r.nombre}</button>
           ))}
         </div>
       )}
@@ -2605,13 +2605,13 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"1px",background:"var(--qb-border)"}}>
         {cells.map((day,i)=>{
-          if(!day) return <div key={`empty-${year}-${month}-${i}`} style={{background:"#FAFAF8",minHeight:54}} />;
+          if(!day) return <div key={`empty-${year}-${month}-${i}`} style={{background:"var(--qb-bg-card-alt)",minHeight:54}} />;
           const ds2=`${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
           const dr=getDay(day), isToday=ds2===todayStr, isPast=ds2<todayStr;
           const bloqueo=getBloqueo(day);
           return (
             <div key={`day-${year}-${month}-${day}`} onClick={()=>onDayClick(ds2,dr,espacioFiltro)}
-              style={{background:bloqueo?"#1F2937":isToday&&dr.length===0?"var(--qb-accent-bg)":"#FFF",minHeight:54,display:"flex",flexDirection:"column",cursor:isPast&&dr.length===0?"default":"pointer",padding:"2px",opacity:isPast?0.5:1,pointerEvents:isPast&&dr.length===0?"none":"auto"}}>
+              style={{background:bloqueo?"#1F2937":isToday&&dr.length===0?"var(--qb-accent-bg)":"var(--qb-bg-card)",minHeight:54,display:"flex",flexDirection:"column",cursor:isPast&&dr.length===0?"default":"pointer",padding:"2px",opacity:isPast?0.5:1,pointerEvents:isPast&&dr.length===0?"none":"auto"}}>
               <div style={{textAlign:"center",padding:"2px 1px",flexShrink:0}}>
                 {isToday ? (
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
@@ -2632,7 +2632,7 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
                   const barColor=pct===100?"#DC2626":pct>=60?"#D97706":"#16A34A";
                   return (
                     <div style={{padding:"2px 3px",flex:1,display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:2}}>
-                      <div style={{background:"#E5E7EB",borderRadius:3,height:4,overflow:"hidden"}}>
+                      <div style={{background:"var(--qb-border)",borderRadius:3,height:4,overflow:"hidden"}}>
                         <div style={{width:pct+"%",height:"100%",background:barColor,borderRadius:3,transition:"width 0.3s"}} />
                       </div>
                       <div style={{fontSize:7,fontWeight:800,color:barColor,textAlign:"center",lineHeight:1}}>{ocup}/{total}</div>
@@ -2806,7 +2806,7 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
             <button key={r.id} onClick={()=>setEspacioDia(r.id)}
               style={{flexShrink:0,padding:"4px 12px",borderRadius:16,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",
                 border:"1.5px solid "+(espacioDia===r.id?"var(--qb-accent)":"var(--qb-border)"),
-                background:espacioDia===r.id?"var(--qb-accent)":"#FFF",color:espacioDia===r.id?"#FFF":"var(--qb-text2)"}}>
+                background:espacioDia===r.id?"var(--qb-accent)":"var(--qb-bg-card)",color:espacioDia===r.id?"#FFF":"var(--qb-text2)"}}>
               🏠 {r.nombre}
             </button>
           ))}
@@ -2833,7 +2833,7 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
                 onClick={()=>{if(res){onReservaClick(res);}else if(!bloqueado&&!isPast){onDayClick(diaVista,reservasDia,espacioEfectivo||"all");}}}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,width:"100%",marginBottom:6,
                   border:`1px solid ${bloqueado?"#374151":res?"#FECACA":"var(--qb-border)"}`,
-                  background:bloqueado?"#1F2937":res?"#FEF2F2":"#FFF",
+                  background:bloqueado?"#1F2937":res?"#FEF2F2":"var(--qb-bg-card)",
                   cursor:(res||(!bloqueado&&!isPast))?"pointer":"default",fontFamily:"inherit",textAlign:"left"}}>
                 <div style={{fontSize:11,fontWeight:700,color:bloqueado?"#9CA3AF":"var(--qb-text2)",width:96,flexShrink:0}}>{t.horaInicio} – {t.horaFin}</div>
                 <div style={{flex:1}}>
@@ -2855,7 +2855,7 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
             return (
               <button key={r.id} onClick={()=>onReservaClick(r)}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,width:"100%",marginBottom:6,
-                  border:"1.5px solid #DDD6FE",background:"#F5F3FF",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  border:"1.5px solid var(--qb-st-visita-border)",background:"var(--qb-st-visita-bg)",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",width:96,flexShrink:0}}>👁️ Visita{r.horaVisita?` ${r.horaVisita}`:""}</div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:700,color:"#7C3AED"}}>{cli?clientName(cli):"Cliente"}</div>
@@ -3062,7 +3062,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
         const msg=conReview ? msgBase+`\n\n⭐ Si querés ayudarnos a crecer, te agradecería mucho que nos dejes una reseña en Google. ¡Solo un minuto! → ${negocio.googleReviewUrl}` : msgBase;
         const puede=puedeEnviar(r.id);
         return (
-          <div key={r.id} style={{...card,padding:"14px 16px",marginBottom:12,border:"2px solid #F59E0B",background:"#FFFBEB"}}>
+          <div key={r.id} style={{...card,padding:"14px 16px",marginBottom:12,border:"2px solid var(--qb-warning-border)",background:"var(--qb-st-senada-bg)"}}>
             <div style={{fontWeight:700,fontSize:14,color:"#D97706",marginBottom:4}}>💌 Mensaje post-evento</div>
             <div style={{fontSize:13,color:"var(--qb-text)",marginBottom:8}}>{clientName(c)} · {fmtDate(r.fecha)}</div>
             {negocio?.googleReviewUrl && (
@@ -3072,7 +3072,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
               </label>
             )}
             {!puede&&(
-              <div style={{fontSize:12,color:"#92400E",background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:8,padding:"7px 10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:12,color:"#92400E",background:"var(--qb-warning-bg)",border:"1px solid var(--qb-warning-border)",borderRadius:8,padding:"7px 10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <span>⏰ Fuera de horario comercial</span>
                 <button onClick={()=>setForzarEnvio(p=>({...p,[r.id]:true}))} style={{fontSize:11,fontWeight:700,color:"var(--qb-accent)",background:"none",border:"none",cursor:"pointer",padding:0}}>Enviar igual</button>
               </div>
@@ -3085,7 +3085,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
                   💬 Enviar mensaje
                 </a>
               ) : (
-                <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:"#D1FAE5",color:"#065F46",padding:"9px 12px",borderRadius:8,fontSize:13,fontWeight:600,opacity:0.6}}>
+                <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:"var(--qb-st-confirmada-bg)",color:"#065F46",padding:"9px 12px",borderRadius:8,fontSize:13,fontWeight:600,opacity:0.6}}>
                   💬 Enviar mensaje
                 </div>
               )}
@@ -3112,7 +3112,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
             const turnoLabel=tc?tc.nombre:(TURNOS[r.turno]?.label||r.turno||"");
             const puede=puedeEnviar("rec_"+r.id);
             return (
-              <div key={r.id} style={{background:"#F0FDF4",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
+              <div key={r.id} style={{background:"var(--qb-st-confirmada-bg)",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                   <div>
                     <div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>{clientName(c)}</div>
@@ -3122,7 +3122,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
                   <StatusBadge estado={r.estado} />
                 </div>
                 {!puede&&(
-                  <div style={{fontSize:12,color:"#166534",background:"#DCFCE7",border:"1px solid #BBF7D0",borderRadius:8,padding:"7px 10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{fontSize:12,color:"#166534",background:"var(--qb-st-confirmada-bg)",border:"1px solid var(--qb-cobro-border)",borderRadius:8,padding:"7px 10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <span>⏰ Fuera de horario comercial</span>
                     <button onClick={()=>setForzarEnvio(p=>({...p,["rec_"+r.id]:true}))} style={{fontSize:11,fontWeight:700,color:"var(--qb-accent)",background:"none",border:"none",cursor:"pointer",padding:0}}>Enviar igual</button>
                   </div>
@@ -3135,7 +3135,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
                     💬 Enviar recordatorio
                   </a>
                 ):(
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",background:"#D1FAE5",color:"#065F46",padding:"10px 14px",borderRadius:8,fontSize:13,fontWeight:600,opacity:0.6}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",background:"var(--qb-st-confirmada-bg)",color:"#065F46",padding:"10px 14px",borderRadius:8,fontSize:13,fontWeight:600,opacity:0.6}}>
                     💬 Enviar recordatorio
                   </div>
                 ))}
@@ -3153,7 +3153,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
             const saldo=getSaldo(r,extrasReserva,pagos);
             const st=STATUS[r.estado];
             return (
-              <div key={r.id} onClick={()=>onReservaClick(r)} style={{...card,padding:"12px 14px",marginBottom:8,cursor:"pointer",background:st?.bg||"#FFF",border:`1px solid ${st?.border||"var(--qb-border)"}`,borderLeft:`3px solid ${st?.color||"var(--qb-accent)"}`,borderRadius:"0 12px 12px 0"}}>
+              <div key={r.id} onClick={()=>onReservaClick(r)} style={{...card,padding:"12px 14px",marginBottom:8,cursor:"pointer",background:st?.bg||"var(--qb-bg-card)",border:`1px solid ${st?.border||"var(--qb-border)"}`,borderLeft:`3px solid ${st?.color||"var(--qb-accent)"}`,borderRadius:"0 12px 12px 0"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div><div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>{clientName(c)}</div><div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>{fmtDate(r.fecha)} · {TURNOS[r.turno]?.icon||"📌"} {(r.turnoId&&turnosRecurso?.find(t=>t.id===r.turnoId)?.nombre)||TURNOS[r.turno]?.label||r.turno}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div></div>
                   <div style={{textAlign:"right"}}><StatusBadge estado={r.estado} />{saldo>0&&<div style={{fontSize:11,color:"#DC2626",fontWeight:700,marginTop:4}}>⚠️ {fmtCurrency(saldo)}</div>}</div>
@@ -3264,7 +3264,7 @@ function AddUsuarioForm({ usuarios, setUsuarios }) {
         {roles.map(r=><option key={r} value={r}>{r}</option>)}
       </select>
       <div style={{display:"flex",gap:8}}>
-        <button onClick={()=>setShow(false)} style={{flex:1,padding:"9px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
+        <button onClick={()=>setShow(false)} style={{flex:1,padding:"9px",background:"var(--qb-muted)",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
         <button onClick={handleSave} disabled={saving} style={{flex:2,padding:"9px",background:"var(--qb-accent)",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700,opacity:saving?0.6:1}}>{saving?"Guardando...":"Autorizar"}</button>
       </div>
     </div>
@@ -3326,7 +3326,7 @@ function ColaboradoresSection({ orgId, plan, embedded }) {
                 <div style={{fontSize:11,color:"var(--qb-text2)"}}>{c.email}</div>
               </div>
               <button onClick={()=>handleRemove(c.id)}
-                style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
+                style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
             </div>
           ))}
           {colaboradores.length < maxColab && (
@@ -3548,7 +3548,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
           </div>
           <span style={{marginLeft:"auto",fontSize:16,color:"var(--qb-text2)",transform:expanded?"rotate(180deg)":"none",transition:"transform 0.2s"}}>⌄</span>
         </button>
-        <button onClick={onDelete} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",marginLeft:8,flexShrink:0}}>🗑️</button>
+        <button onClick={onDelete} style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",marginLeft:8,flexShrink:0}}>🗑️</button>
       </div>
 
       {/* Turnos expandidos */}
@@ -3640,7 +3640,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
                       <div style={{fontSize:11,color:"var(--qb-text2)"}}>{t.hora_inicio} – {t.hora_fin} · Sem: {fmtCurrency(t.precio_semana)} · Finde: {fmtCurrency(t.precio_finde)}</div>
                     </div>
                   </div>
-                  <button onClick={()=>handleRemoveTurno(t.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",flexShrink:0}}>🗑️</button>
+                  <button onClick={()=>handleRemoveTurno(t.id)} style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",flexShrink:0}}>🗑️</button>
                 </div>
               ))}
               {!showForm ? (
@@ -3694,7 +3694,7 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
                     </div>
                     <div style={{display:"flex",gap:8,alignItems:"center"}}>
                       <span style={{fontSize:13,color:"var(--qb-text2)",transform:isOpen?"rotate(180deg)":"none",transition:"transform 0.2s"}}>⌄</span>
-                      <button onClick={e=>{e.stopPropagation();if(window.confirm(`¿Eliminás la temporada "${tmp.nombre}"?`))handleRemoveTemporada(tmp.id);}} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"3px 8px",cursor:"pointer",fontSize:11,fontFamily:"inherit"}}>🗑️</button>
+                      <button onClick={e=>{e.stopPropagation();if(window.confirm(`¿Eliminás la temporada "${tmp.nombre}"?`))handleRemoveTemporada(tmp.id);}} style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",color:"#DC2626",borderRadius:6,padding:"3px 8px",cursor:"pointer",fontSize:11,fontFamily:"inherit"}}>🗑️</button>
                     </div>
                   </div>
                   {/* Turnos dentro de la temporada */}
@@ -3865,7 +3865,7 @@ function TurnosEspacioSection({ recursos }) {
                 <div style={{fontWeight:600,fontSize:13}}>{t.nombre}</div>
                 <div style={{fontSize:11,color:"var(--qb-text2)"}}>{t.hora_inicio} – {t.hora_fin} · Sem: {fmtCurrency(t.precio_semana)} · Finde: {fmtCurrency(t.precio_finde)}</div>
               </div>
-              <button onClick={()=>handleRemove(t.id)} style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
+              <button onClick={()=>handleRemove(t.id)} style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>🗑️</button>
             </div>
           ))}
           {!showForm ? (
@@ -4402,7 +4402,7 @@ function AddEspacioForm({ recursos, setRecursos, plan }) {
       <input type="number" placeholder="Capacidad máxima" value={form.capacidadMax} onChange={e=>setForm(p=>({...p,capacidadMax:e.target.value}))}
         style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid var(--qb-border)",fontSize:13,fontFamily:"inherit",marginBottom:10,boxSizing:"border-box",outline:"none"}} />
       <div style={{display:"flex",gap:8}}>
-        <button onClick={()=>setShow(false)} style={{flex:1,padding:"9px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
+        <button onClick={()=>setShow(false)} style={{flex:1,padding:"9px",background:"var(--qb-muted)",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
         <button onClick={async()=>{
           if(!form.nombre) return;
           const nuevo={id:genId(),nombre:form.nombre,capacidadMax:Number(form.capacidadMax)||0,modo:"fijo",orgId:getCurrentOrgId(),org_id:getCurrentOrgId()};
@@ -4438,7 +4438,7 @@ function ServicioExtraRow({ s, onDelete, onUpdate }) {
             {editando?"Cancelar":"✏️"}
           </button>
           <button onClick={onDelete}
-            style={{background:"#FEF2F2",border:"1px solid #FECACA",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
+            style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",color:"#DC2626",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>
             🗑️
           </button>
         </div>
@@ -4513,7 +4513,7 @@ function MercadoProductoRow({ p, onUpdate, onDelete }) {
         <input type="number" style={{...inpS2,width:80}} value={form.precio} onChange={e=>setForm(f=>({...f,precio:e.target.value}))} placeholder="Precio" />
       </div>
       <div style={{display:"flex",gap:6}}>
-        <button onClick={()=>setEditando(false)} style={{flex:1,padding:"8px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Cancelar</button>
+        <button onClick={()=>setEditando(false)} style={{flex:1,padding:"8px",background:"var(--qb-muted)",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Cancelar</button>
         <button onClick={()=>{
           if(!form.nombre.trim()) return;
           onUpdate({nombre:form.nombre.trim(),emoji:form.emoji||"📦",precio:Number(form.precio)||0});
@@ -4550,7 +4550,7 @@ function AddMercadoProductoForm({ productos, onAdd }) {
         <input type="number" style={{...inpS2,width:80}} value={form.precio} onChange={e=>setForm(f=>({...f,precio:e.target.value}))} placeholder="Precio" />
       </div>
       <div style={{display:"flex",gap:6}}>
-        <button onClick={()=>{setShow(false);setForm({nombre:"",emoji:"📦",precio:""});}} style={{flex:1,padding:"8px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Cancelar</button>
+        <button onClick={()=>{setShow(false);setForm({nombre:"",emoji:"📦",precio:""});}} style={{flex:1,padding:"8px",background:"var(--qb-muted)",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:12}}>Cancelar</button>
         <button onClick={()=>{
           if(!form.nombre.trim()){showToast("Ponele un nombre al producto","warn");return;}
           if(!Number(form.precio)){showToast("Poné un precio válido","warn");return;}
@@ -4617,7 +4617,7 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
         )}
       </div>
       <div style={{display:"flex",gap:8}}>
-        <button onClick={()=>{setShow(false);setForm({descripcion:"",precioActual:"",detalle:"",fotoUrl:""});}} style={{flex:1,padding:"8px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
+        <button onClick={()=>{setShow(false);setForm({descripcion:"",precioActual:"",detalle:"",fotoUrl:""});}} style={{flex:1,padding:"8px",background:"var(--qb-muted)",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
         <button onClick={async()=>{
           if(!form.descripcion||!form.precioActual)return;
           const newSrv={id:genId(),descripcion:form.descripcion,precioActual:Number(form.precioActual),costo:form.costo?Number(form.costo):null,activo:true,detalle:form.detalle,fotoUrl:form.fotoUrl,grupo:form.grupo};
@@ -4837,7 +4837,7 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
             rec.lang="es-AR";rec.continuous=false;rec.interimResults=false;
             rec.onresult=(e)=>setInput(e.results[0][0].transcript);
             rec.start();
-          }} style={{background:"#F3F4F6",border:"none",borderRadius:20,width:44,height:44,cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>🎤</button>
+          }} style={{background:"var(--qb-muted)",border:"none",borderRadius:20,width:44,height:44,cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>🎤</button>
           <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
             placeholder="¿Qué fines de semana hay libres?" disabled={loading}
             style={{flex:1,padding:"10px 14px",borderRadius:20,border:"1.5px solid var(--qb-border)",fontSize:14,fontFamily:"inherit",outline:"none",background:"var(--qb-bg-card-alt)"}} />
@@ -4866,7 +4866,7 @@ function PantallaBloqueada({ motivo, negocio }) {
         <div style={{fontWeight:700,fontSize:18,color:"var(--qb-text)",marginBottom:12}}>{m.titulo}</div>
         <div style={{fontSize:14,color:"#6B7280",marginBottom:32,lineHeight:1.6}}>{m.texto}</div>
         <button onClick={()=>supabase.auth.signOut()}
-          style={{padding:"12px 24px",background:"#F3F4F6",border:"none",borderRadius:10,cursor:"pointer",fontSize:14,color:"#6B7280",fontFamily:"inherit"}}>
+          style={{padding:"12px 24px",background:"var(--qb-muted)",border:"none",borderRadius:10,cursor:"pointer",fontSize:14,color:"#6B7280",fontFamily:"inherit"}}>
           Cerrar sesión
         </button>
       </div>
@@ -5205,7 +5205,7 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
         <div style={{fontSize:56,marginBottom:16}}>🏡</div>
         <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,fontWeight:800,color:"var(--qb-text)",marginBottom:4}}>Gestión de Espacios</div>
         <div style={{fontSize:14,color:"var(--qb-text2)",marginBottom:40}}>Iniciá sesión para continuar</div>
-        {error && <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#DC2626",fontSize:13}}>{error}</div>}
+        {error && <div style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:10,padding:"12px 16px",marginBottom:20,color:"#DC2626",fontSize:13}}>{error}</div>}
         <button onClick={handleGoogleLogin} disabled={loading}
           style={{width:"100%",padding:"14px 20px",background:loading?"#F3F4F6":"#FFF",border:"1.5px solid #E5E7EB",borderRadius:12,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:12,fontSize:15,fontWeight:600,color:"var(--qb-text)",fontFamily:"inherit",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",transition:"all 0.2s"}}>
           {loading ? <span style={{color:"var(--qb-text2)"}}>Verificando acceso...</span> : (
@@ -5404,7 +5404,7 @@ function OnboardingWizard({ onFinish, userName }) {
                     <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" style={inpS} value={slotCfg.precioSemana} onChange={e=>setSlotCfg(p=>({...p,precioSemana:e.target.value}))} placeholder="0" /></div>
                     <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Precio sáb–dom ($)</div><input type="number" style={inpS} value={slotCfg.precioFinde} onChange={e=>setSlotCfg(p=>({...p,precioFinde:e.target.value}))} placeholder="0" /></div>
                   </div>
-                  <div style={{background:"#F0FDF4",borderRadius:8,padding:"10px 12px",border:"1px solid #BBF7D0",fontSize:12,color:"#166534"}}>
+                  <div style={{background:"var(--qb-st-confirmada-bg)",borderRadius:8,padding:"10px 12px",border:"1px solid var(--qb-cobro-border)",fontSize:12,color:"#166534"}}>
                     ✓ Turnos de {slotCfg.duracion} min{slotCfg.intervalo>0?` + ${slotCfg.intervalo} min intervalo`:""} entre las {slotCfg.horaInicio} y las {slotCfg.horaFin}
                   </div>
                 </div>
@@ -6320,7 +6320,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 <div style={{padding:"10px 16px",borderBottom:"1px solid var(--qb-border)"}}>
                   <div style={{fontSize:10,color:"var(--qb-text2)",textTransform:"uppercase",letterSpacing:0.5,marginBottom:3}}>Suscripción</div>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{background:"#FEF3C7",color:"#92400E",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,textTransform:"capitalize"}}>
+                    <span style={{background:"var(--qb-warning-bg)",color:"#92400E",borderRadius:6,padding:"2px 8px",fontSize:11,fontWeight:700,textTransform:"capitalize"}}>
                       {currentUser.suscripcionEstado==="sincargo"?"Sin cargo":(currentUser.plan||"Básico")}
                     </span>
                     <span style={{fontSize:11,color:currentUser.suscripcionEstado==="activo"||currentUser.suscripcionEstado==="sincargo"?"#16A34A":"#DC2626",fontWeight:600}}>
