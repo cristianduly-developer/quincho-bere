@@ -57,7 +57,7 @@ export default function GastosView({ gastos, onNewGasto, onEditGasto, onDeleteGa
             <div style={{fontWeight:700,fontSize:15,color:"#DC2626",flexShrink:0}}>-{fmtCurrency(g.monto)}</div>
           </div>
           {confirmDelete===g.id ? (
-            <div style={{display:"flex",gap:8,marginTop:8,padding:"8px 10px",background:"#FEF2F2",borderRadius:8,alignItems:"center"}}>
+            <div style={{display:"flex",gap:8,marginTop:8,padding:"8px 10px",background:"var(--qb-st-cancelada-bg)",borderRadius:8,alignItems:"center"}}>
               <span style={{fontSize:12,color:"#DC2626",fontWeight:600,flex:1}}>¿Eliminar este gasto?</span>
               <button onClick={()=>{onDeleteGasto(g);setConfirmDelete(null);}} style={{padding:"4px 12px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>Sí, eliminar</button>
               <button onClick={()=>setConfirmDelete(null)} style={{padding:"4px 12px",background:"#F3F4F6",color:"#6B7280",border:"none",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>No</button>

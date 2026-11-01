@@ -289,7 +289,7 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
                     {monthNames[m.month]} {isCurrent && "← ahora"}
                   </div>
                   {(isPast || isCurrent) && diff !== 0 && (
-                    <div style={{ fontSize: 10, fontWeight: 800, color: diff > 0 ? "#16A34A" : "#DC2626", background: diff > 0 ? "#F0FDF4" : "#FEF2F2", padding: "1px 6px", borderRadius: 4 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: diff > 0 ? "#16A34A" : "#DC2626", background: diff > 0 ? "var(--qb-st-confirmada-bg)" : "var(--qb-st-cancelada-bg)", padding: "1px 6px", borderRadius: 4 }}>
                       {diff > 0 ? "+" : ""}{diff}
                     </div>
                   )}

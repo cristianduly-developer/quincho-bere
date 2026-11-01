@@ -778,8 +778,8 @@ function ReservaModal({ onClose, onSave, clientes, recursos, reserva, reservas, 
                 <button key={t.id} onClick={()=>{ if(!ocupado) set("turnoId")(t.id); }}
                   disabled={ocupado}
                   style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderRadius:10,
-                    border:`1.5px solid ${ocupado?"#FECACA":sel?"var(--qb-accent)":"var(--qb-border)"}`,
-                    background:ocupado?"#FEF2F2":sel?"var(--qb-accent-bg)":"#FFF",
+                    border:`1.5px solid ${ocupado?"var(--qb-st-cancelada-border)":sel?"var(--qb-accent)":"var(--qb-border)"}`,
+                    background:ocupado?"var(--qb-st-cancelada-bg)":sel?"var(--qb-accent-bg)":"var(--qb-bg-card)",
                     cursor:ocupado?"not-allowed":"pointer",fontFamily:"inherit",textAlign:"left",opacity:ocupado?0.75:1}}>
                   <div>
                     <div style={{fontWeight:700,fontSize:13,color:ocupado?"#DC2626":sel?"var(--qb-accent)":"var(--qb-text)"}}>{t.nombre}{ocupado?" · 🔒 Ocupado":""}</div>
@@ -1309,8 +1309,8 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
       {!readOnly && reserva.estado!=="visita" && canModifyCaja && reserva.estado!=="cancelada" && reserva.estado!=="finalizada" && (
         <div style={{marginBottom:12}}>
           {reserva.proximoPagoFecha && reserva.proximoPagoMonto ? (
-            <div style={{background: new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "#FEF2F2":"#FFF8E1",
-              border:`1px solid ${new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "#FECACA":"#FFD54F"}`,
+            <div style={{background: new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "var(--qb-st-cancelada-bg)":"var(--qb-warning-bg)",
+              border:`1px solid ${new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "var(--qb-st-cancelada-border)":"var(--qb-warning-border)"}`,
               borderRadius:10,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color: new Date(reserva.proximoPagoFecha+"T12:00:00") < new Date() ? "#DC2626":"#6D4C00"}}>
@@ -2009,8 +2009,8 @@ function DayModal({ date, dayRes, clientes, onClose, onNewReserva, onReservaClic
                     <button key={t.id}
                       onClick={()=>{ if(busy&&res){onReservaClick(res);onClose();}else if(!finalBusy){onNewReserva(date,t.id,t);onClose();} }}
                       style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderRadius:7,
-                        border:`1px solid ${bloqueado?"#374151":busy?"#FECACA":"var(--qb-border)"}`,
-                        background:bloqueado?"#1F2937":busy?"#FEF2F2":"#FFF",
+                        border:`1px solid ${bloqueado?"#374151":busy?"var(--qb-st-cancelada-border)":"var(--qb-border)"}`,
+                        background:bloqueado?"#1F2937":busy?"var(--qb-st-cancelada-bg)":"var(--qb-bg-card)",
                         cursor:(busy&&res)||!finalBusy?"pointer":"default",fontFamily:"inherit",textAlign:"left"}}>
                       <div style={{fontSize:11,fontWeight:700,color:bloqueado?"#9CA3AF":"var(--qb-text2)",width:90,flexShrink:0}}>{t.horaInicio} – {t.horaFin}</div>
                       {busy ? (
@@ -2832,8 +2832,8 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
               <button key={t.id}
                 onClick={()=>{if(res){onReservaClick(res);}else if(!bloqueado&&!isPast){onDayClick(diaVista,reservasDia,espacioEfectivo||"all");}}}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,width:"100%",marginBottom:6,
-                  border:`1px solid ${bloqueado?"#374151":res?"#FECACA":"var(--qb-border)"}`,
-                  background:bloqueado?"#1F2937":res?"#FEF2F2":"var(--qb-bg-card)",
+                  border:`1px solid ${bloqueado?"#374151":res?"var(--qb-st-cancelada-border)":"var(--qb-border)"}`,
+                  background:bloqueado?"#1F2937":res?"var(--qb-st-cancelada-bg)":"var(--qb-bg-card)",
                   cursor:(res||(!bloqueado&&!isPast))?"pointer":"default",fontFamily:"inherit",textAlign:"left"}}>
                 <div style={{fontSize:11,fontWeight:700,color:bloqueado?"#9CA3AF":"var(--qb-text2)",width:96,flexShrink:0}}>{t.horaInicio} – {t.horaFin}</div>
                 <div style={{flex:1}}>
@@ -4035,10 +4035,10 @@ function MiPlanView({ currentUser, onBack }) {
                 )}
               </div>
             ))}
-            <div style={{background:'#FFF8F5',border:'1px solid #EDE0D0',borderRadius:12,padding:'10px 14px',marginBottom:14,fontSize:12,color:'#8B7355'}}>
+            <div style={{background:'var(--qb-bg-card-alt)',border:'1px solid var(--qb-border)',borderRadius:12,padding:'10px 14px',marginBottom:14,fontSize:12,color:'var(--qb-text2)'}}>
               💳 El pago se procesa por <strong>Mercado Pago</strong>. Se renueva automáticamente cada mes.
             </div>
-            {error && <div style={{color:'#DC2626',fontSize:12,background:'#FEF2F2',border:'1px solid #FECACA',borderRadius:10,padding:'10px 14px',marginBottom:12}}>{error}</div>}
+            {error && <div style={{color:'#DC2626',fontSize:12,background:'var(--qb-st-cancelada-bg)',border:'1px solid var(--qb-st-cancelada-border)',borderRadius:10,padding:'10px 14px',marginBottom:12}}>{error}</div>}
             <button onClick={iniciarUpgrade} disabled={cargando}
               style={{width:'100%',padding:'14px',background:cargando?'#EDE0D0':'linear-gradient(135deg,#C4602B,#9E4A1E)',border:'none',borderRadius:12,color:'#FFF',fontWeight:700,fontSize:14,cursor:cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:cargando?0.7:1}}>
               {cargando ? 'Redirigiendo...' : `Suscribirme — Plan ${planesDB.find(p=>p.id===planSel)?.label??planSel}`}
@@ -4048,12 +4048,12 @@ function MiPlanView({ currentUser, onBack }) {
 
         {confirmarCancel && (
           <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'flex-end',justifyContent:'center',zIndex:999,padding:16}}>
-            <div style={{background:'#FFF',borderRadius:20,padding:20,width:'100%',maxWidth:400}}>
-              <h3 style={{margin:'0 0 8px',fontSize:16,color:'#1C1C1E'}}>¿Cancelar débito automático?</h3>
-              <p style={{margin:'0 0 20px',fontSize:14,color:'#6B7280'}}>Tu acceso continúa hasta el vencimiento.</p>
+            <div style={{background:'var(--qb-bg-card)',borderRadius:20,padding:20,width:'100%',maxWidth:400}}>
+              <h3 style={{margin:'0 0 8px',fontSize:16,color:'var(--qb-text)'}}>¿Cancelar débito automático?</h3>
+              <p style={{margin:'0 0 20px',fontSize:14,color:'var(--qb-text2)'}}>Tu acceso continúa hasta el vencimiento.</p>
               {error && <div style={{color:'#DC2626',fontSize:12,marginBottom:10}}>{error}</div>}
               <div style={{display:'flex',gap:10}}>
-                <button onClick={()=>setConfirmarCancel(false)} style={{flex:1,padding:'12px',background:'#F3F4F6',border:'none',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontSize:13,color:'#6B7280'}}>No, mantener</button>
+                <button onClick={()=>setConfirmarCancel(false)} style={{flex:1,padding:'12px',background:'var(--qb-muted)',border:'none',borderRadius:12,cursor:'pointer',fontFamily:'inherit',fontSize:13,color:'var(--qb-text2)'}}>No, mantener</button>
                 <button onClick={cancelarSuscripcion} disabled={cancelando}
                   style={{flex:1,padding:'12px',background:'#DC2626',border:'none',borderRadius:12,cursor:cancelando?'not-allowed':'pointer',fontFamily:'inherit',fontSize:13,color:'#FFF',fontWeight:700,opacity:cancelando?0.6:1}}>
                   {cancelando?'Cancelando...':'Sí, cancelar'}
@@ -4878,8 +4878,8 @@ function BannerDemo({ diasRestantes }) {
   const urgente = diasRestantes <= 3;
   return (
     <div style={{
-      background: urgente ? "#FEF2F2" : "#FFFBEB",
-      borderBottom: `1px solid ${urgente ? "#FECACA" : "#FDE68A"}`,
+      background: urgente ? "var(--qb-st-cancelada-bg)" : "var(--qb-warning-bg)",
+      borderBottom: `1px solid ${urgente ? "var(--qb-st-cancelada-border)" : "var(--qb-warning-border)"}`,
       padding:"8px 16px",
       display:"flex",alignItems:"center",justifyContent:"center",gap:8,
       fontSize:13,fontWeight:600,
@@ -4967,11 +4967,11 @@ function SelectorPlanesMP({ orgId, titulo, subtitulo, onSignOut }) {
           </div>
         ))}
 
-        <div style={{background:'#FFF8F5',border:'1px solid #EDE0D0',borderRadius:12,padding:'10px 14px',marginBottom:16,fontSize:12,color:'#8B7355'}}>
+        <div style={{background:'var(--qb-bg-card-alt)',border:'1px solid var(--qb-border)',borderRadius:12,padding:'10px 14px',marginBottom:16,fontSize:12,color:'var(--qb-text2)'}}>
           💳 El pago se procesa por <strong>Mercado Pago</strong>. Se renueva automáticamente cada mes.
         </div>
 
-        {error && <div style={{color:'#DC2626',fontSize:12,background:'#FEF2F2',border:'1px solid #FECACA',borderRadius:10,padding:'10px 14px',marginBottom:12}}>{error}</div>}
+        {error && <div style={{color:'#DC2626',fontSize:12,background:'var(--qb-st-cancelada-bg)',border:'1px solid var(--qb-st-cancelada-border)',borderRadius:10,padding:'10px 14px',marginBottom:12}}>{error}</div>}
 
         <button onClick={pagar} disabled={cargando || !planInfo}
           style={{width:'100%',padding:'14px 20px',background:cargando?'#EDE0D0':'linear-gradient(135deg,#C4602B,#9E4A1E)',border:'none',borderRadius:12,cursor:cargando?'not-allowed':'pointer',fontSize:15,fontWeight:700,color:'#FFF',fontFamily:'inherit',marginBottom:12,opacity:cargando?0.7:1}}>

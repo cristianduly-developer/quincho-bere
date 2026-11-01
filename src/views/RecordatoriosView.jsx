@@ -52,7 +52,7 @@ export default function RecordatoriosView({ recordatorios, setRecordatorios, res
                 {rec.nota&&<div style={{fontSize:12,color:"var(--qb-text3)",marginTop:2}}>📝 {rec.nota}</div>}
                 <div style={{fontSize:11,color:overdue?"#DC2626":"var(--qb-text2)",marginTop:2}}>🗓 {fmtDate(rec.fechaAlerta)} {rec.horaAlerta}</div>
               </div>
-              <span style={{padding:"3px 8px",borderRadius:99,fontSize:10,fontWeight:700,background:rec.estado==="Procesado"?"#DCFCE7":rec.estado==="Pospuesto"?"#FEF3C7":"#FEF2F2",color:rec.estado==="Procesado"?"#16A34A":rec.estado==="Pospuesto"?"#D97706":"#DC2626"}}>{rec.estado}</span>
+              <span style={{padding:"3px 8px",borderRadius:99,fontSize:10,fontWeight:700,background:rec.estado==="Procesado"?"var(--qb-st-confirmada-bg)":rec.estado==="Pospuesto"?"var(--qb-warning-bg)":"var(--qb-st-cancelada-bg)",color:rec.estado==="Procesado"?"#16A34A":rec.estado==="Pospuesto"?"#D97706":"#DC2626"}}>{rec.estado}</span>
             </div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {c&&<Btn small variant="secondary" onClick={()=>onVerCliente(c)}>👤 Ver cliente</Btn>}

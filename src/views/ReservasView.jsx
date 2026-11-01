@@ -573,15 +573,15 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
         if (!resMes.length && !bloqMes.length) return null;
         return (
           <div style={{display:"flex",gap:8,marginTop:14}}>
-            {resMes.length>0&&<div style={{flex:1,background:"#FEF2F2",border:"0.5px solid #FECACA",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
+            {resMes.length>0&&<div style={{flex:1,background:"var(--qb-st-cancelada-bg)",border:"0.5px solid var(--qb-st-cancelada-border)",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
               <div style={{fontSize:20,fontWeight:800,color:"#991B1B"}}>{resMes.length}</div>
               <div style={{fontSize:11,color:"#991B1B"}}>Reservas</div>
             </div>}
-            {bloqMes.length>0&&<div style={{flex:1,background:"#F3F4F6",border:"0.5px solid #D1D5DB",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
+            {bloqMes.length>0&&<div style={{flex:1,background:"var(--qb-muted)",border:"0.5px solid var(--qb-border)",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
               <div style={{fontSize:20,fontWeight:800,color:"#6B7280"}}>{bloqMes.length}</div>
               <div style={{fontSize:11,color:"#6B7280"}}>Bloqueados</div>
             </div>}
-            <div style={{flex:1,background:"#ECFDF5",border:"0.5px solid #6EE7B7",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
+            <div style={{flex:1,background:"var(--qb-st-confirmada-bg)",border:"0.5px solid var(--qb-st-confirmada-border)",borderRadius:8,padding:"8px 12px",textAlign:"center"}}>
               <div style={{fontSize:20,fontWeight:800,color:"#065F46"}}>{diasMes - new Set(resMes.map(r=>r.fecha)).size - new Set(bloqMes.map(b=>b.fecha)).size}</div>
               <div style={{fontSize:11,color:"#065F46"}}>Días libres</div>
             </div>
@@ -608,7 +608,7 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
               {bloqDelDia.length > 0 && bloqDelDia.map(b => {
                 const tn = todosLosTurnos.find(t=>t.id===b.turno);
                 return (
-                  <div key={b.id} style={{background:"#F3F4F6",borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
+                  <div key={b.id} style={{background:"var(--qb-muted)",borderRadius:10,padding:"10px 14px",marginBottom:8,display:"flex",gap:10,alignItems:"center"}}>
                     <span style={{fontSize:16}}>🚫</span>
                     <div>
                       <div style={{fontSize:13,fontWeight:700,color:"#374151"}}>{tn?.nombre||"Día completo"} — Bloqueado</div>
@@ -623,9 +623,9 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
                 const tn = todosLosTurnos.find(t=>t.id===r.turnoId);
                 return (
                   <div key={r.id} onClick={()=>{onReservaClick&&onReservaClick(r);setDiaModal(null);}}
-                    style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:"10px 14px",marginBottom:8,cursor:"pointer",display:"flex",gap:10,alignItems:"center"}}
-                    onMouseEnter={e=>e.currentTarget.style.background="#FEE2E2"}
-                    onMouseLeave={e=>e.currentTarget.style.background="#FEF2F2"}>
+                    style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:10,padding:"10px 14px",marginBottom:8,cursor:"pointer",display:"flex",gap:10,alignItems:"center"}}
+                    onMouseEnter={e=>e.currentTarget.style.background="var(--qb-st-cancelada-bg)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="var(--qb-st-cancelada-bg)"}>
                     <span style={{fontSize:16}}>🔴</span>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:700,color:"#991B1B"}}>{tn?.nombre||"Turno"} — {c?clientName(c):"Cliente"}</div>
