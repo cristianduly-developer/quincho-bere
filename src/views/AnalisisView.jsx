@@ -16,6 +16,24 @@ const HIST_TOTAL_EV = 87;
 const HIST_TOTAL_FAC = 29580000;
 const HIST_PROM = Math.round(HIST_TOTAL_FAC / HIST_TOTAL_EV);
 
+const HIST_QUINCENAL = [
+  { date: "2025-08-31", label: "Ago", cum: 2 },
+  { date: "2025-09-15", label: "15 Sep", cum: 9 },
+  { date: "2025-09-30", label: "30 Sep", cum: 12 },
+  { date: "2025-10-15", label: "15 Oct", cum: 21 },
+  { date: "2025-10-31", label: "31 Oct", cum: 29 },
+  { date: "2025-11-15", label: "15 Nov", cum: 40 },
+  { date: "2025-11-30", label: "30 Nov", cum: 51 },
+  { date: "2025-12-15", label: "15 Dic", cum: 54 },
+  { date: "2025-12-31", label: "31 Dic", cum: 61 },
+  { date: "2026-01-15", label: "15 Ene", cum: 65 },
+  { date: "2026-01-31", label: "31 Ene", cum: 75 },
+  { date: "2026-02-15", label: "15 Feb", cum: 78 },
+  { date: "2026-02-28", label: "28 Feb", cum: 82 },
+  { date: "2026-03-15", label: "15 Mar", cum: 84 },
+  { date: "2026-03-30", label: "30 Mar", cum: 87 },
+];
+
 const SEASON_MONTHS = ["09","10","11","12","01","02","03","04"];
 const seasonKey = (y, m) => `${m <= 4 ? y : y}-${String(m).padStart(2,"0")}`;
 const seasonYear = (y, m) => m >= 9 ? y : y - 1;
@@ -85,7 +103,7 @@ function ProgressRing({ pct, size = 110, stroke = 10, color, children }) {
 }
 
 export default function AnalisisView({ reservas, pagos, extrasReserva, serviciosExtras, gastos, negocio }) {
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const currentSeasonStart = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1;
 
   const [meta, setMeta] = useState(() => {
@@ -159,6 +177,48 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
   const eventosRestantes = Math.max(0, metaEventos - totalEventos);
   const mesesRestantes = Math.max(1, 8 - monthsPassed);
   const necesitasPorMes = Math.ceil(eventosRestantes / mesesRestantes);
+
+  const quincenalData = useMemo(() => {
+    const validStates = ["pendiente", "senada", "confirmada", "finalizada"];
+    const sorted = reservas
+      .filter(r => validStates.includes(r.estado) && (r.creadoEn || r.fechaCreacion))
+      .map(r => ({ ...r, ts: new Date(r.creadoEn || r.fechaCreacion + "T12:00:00").getTime() }))
+      .sort((a, b) => a.ts - b.ts);
+
+    const seasonStart = new Date(currentSeasonStart, 8, 1);
+    const points = [];
+    const biweeklyDates = [];
+    for (let d = new Date(seasonStart); d <= today; ) {
+      biweeklyDates.push(new Date(d));
+      if (d.getDate() === 1) {
+        d = new Date(d.getFullYear(), d.getMonth(), 15);
+      } else {
+        const nextMonth = d.getMonth() + 1;
+        d = new Date(d.getFullYear(), nextMonth, 1);
+      }
+    }
+    if (biweeklyDates.length === 0 || biweeklyDates[biweeklyDates.length - 1].getTime() < today.getTime()) {
+      biweeklyDates.push(new Date(today));
+    }
+
+    const mShort = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    biweeklyDates.forEach(bd => {
+      const cum = sorted.filter(r => r.ts <= bd.getTime()).length;
+      points.push({
+        date: bd,
+        label: `${bd.getDate()} ${mShort[bd.getMonth() + 1]}`,
+        cum,
+      });
+    });
+
+    const prevPoints = HIST_QUINCENAL.map(h => {
+      const offsetDate = new Date(h.date);
+      offsetDate.setFullYear(offsetDate.getFullYear() + 1);
+      return { ...h, offsetDate };
+    }).filter(h => h.offsetDate <= today);
+
+    return { current: points, prev: prevPoints };
+  }, [reservas, currentSeasonStart, today]);
 
   const insights = useMemo(() => {
     const list = [];
@@ -350,6 +410,126 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
           );
         })()}
       </div>
+
+      {/* ── BLOQUE 2C: CURVA QUINCENAL ── */}
+      {quincenalData.current.length > 1 && (
+        <div style={{ ...card, padding: 20, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--qb-text)", marginBottom: 4 }}>📉 Curva de crecimiento quincenal</div>
+          <div style={{ fontSize: 11, color: "var(--qb-text2)", marginBottom: 14 }}>Reservas acumuladas — año anterior vs actual</div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--qb-text2)" }}>
+              <div style={{ width: 16, height: 3, borderRadius: 2, background: "var(--qb-accent-light)" }} /> {currentSeasonStart - 1}/{currentSeasonStart}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--qb-text2)" }}>
+              <div style={{ width: 16, height: 3, borderRadius: 2, background: "var(--qb-accent)" }} /> {currentSeasonStart}/{currentSeasonStart + 1}
+            </div>
+          </div>
+          {(() => {
+            const W = 520, H = 200, PAD_L = 36, PAD_R = 10, PAD_T = 10, PAD_B = 40;
+            const chartW = W - PAD_L - PAD_R;
+            const chartH = H - PAD_T - PAD_B;
+            const prev = quincenalData.prev;
+            const curr = quincenalData.current;
+            const maxVal = Math.max(
+              ...prev.map(p => p.cum),
+              ...curr.map(p => p.cum),
+              metaEventos || 1,
+              1
+            );
+            const totalPoints = Math.max(prev.length, curr.length);
+            const xScale = (i, total) => PAD_L + (total > 1 ? (i / (total - 1)) * chartW : 0);
+            const yScale = (v) => PAD_T + chartH - (v / maxVal) * chartH;
+
+            const prevLine = prev.length > 1 ? prev.map((p, i) => `${i === 0 ? "M" : "L"}${xScale(i, prev.length).toFixed(1)},${yScale(p.cum).toFixed(1)}`).join(" ") : "";
+            const currLine = curr.length > 1 ? curr.map((p, i) => `${i === 0 ? "M" : "L"}${xScale(i, curr.length).toFixed(1)},${yScale(p.cum).toFixed(1)}`).join(" ") : "";
+
+            const prevArea = prevLine ? prevLine + ` L${xScale(prev.length - 1, prev.length).toFixed(1)},${yScale(0).toFixed(1)} L${xScale(0, prev.length).toFixed(1)},${yScale(0).toFixed(1)} Z` : "";
+            const currArea = currLine ? currLine + ` L${xScale(curr.length - 1, curr.length).toFixed(1)},${yScale(0).toFixed(1)} L${xScale(0, curr.length).toFixed(1)},${yScale(0).toFixed(1)} Z` : "";
+
+            const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(maxVal * f));
+
+            const currLast = curr[curr.length - 1];
+            const prevAtSameIdx = prev.length > 0 ? prev[Math.min(prev.length - 1, curr.length - 1)] : null;
+
+            return (
+              <div style={{ overflowX: "auto" }}>
+                <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", maxWidth: W, height: "auto" }}>
+                  {gridLines.map((gv, gi) => (
+                    <g key={gi}>
+                      <line x1={PAD_L} y1={yScale(gv)} x2={W - PAD_R} y2={yScale(gv)} stroke="var(--qb-border)" strokeWidth={0.5} strokeDasharray={gi === 0 ? "none" : "3,3"} />
+                      <text x={PAD_L - 4} y={yScale(gv) + 3} textAnchor="end" fontSize={9} fill="var(--qb-text3)">{gv}</text>
+                    </g>
+                  ))}
+
+                  {metaEventos > 0 && metaEventos <= maxVal && (
+                    <g>
+                      <line x1={PAD_L} y1={yScale(metaEventos)} x2={W - PAD_R} y2={yScale(metaEventos)} stroke="#16A34A" strokeWidth={1} strokeDasharray="6,3" opacity={0.6} />
+                      <text x={W - PAD_R} y={yScale(metaEventos) - 4} textAnchor="end" fontSize={8} fill="#16A34A" fontWeight={700}>Meta {metaEventos}</text>
+                    </g>
+                  )}
+
+                  {prevArea && <path d={prevArea} fill="var(--qb-accent-light)" opacity={0.15} />}
+                  {currArea && <path d={currArea} fill="var(--qb-accent)" opacity={0.12} />}
+                  {prevLine && <path d={prevLine} fill="none" stroke="var(--qb-accent-light)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />}
+                  {currLine && <path d={currLine} fill="none" stroke="var(--qb-accent)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />}
+
+                  {prev.map((p, i) => (
+                    <circle key={`p${i}`} cx={xScale(i, prev.length)} cy={yScale(p.cum)} r={2.5} fill="var(--qb-accent-light)" />
+                  ))}
+                  {curr.map((p, i) => (
+                    <circle key={`c${i}`} cx={xScale(i, curr.length)} cy={yScale(p.cum)} r={i === curr.length - 1 ? 4 : 2.5} fill="var(--qb-accent)" stroke={i === curr.length - 1 ? "var(--qb-bg-card)" : "none"} strokeWidth={i === curr.length - 1 ? 2 : 0} />
+                  ))}
+
+                  {currLast && (
+                    <text x={xScale(curr.length - 1, curr.length)} y={yScale(currLast.cum) - 8} textAnchor="middle" fontSize={11} fontWeight={800} fill="var(--qb-accent)">
+                      {currLast.cum}
+                    </text>
+                  )}
+
+                  {curr.filter((_, i) => i % Math.max(1, Math.floor(curr.length / 6)) === 0 || i === curr.length - 1).map((p, i, arr) => (
+                    <text key={`xl${i}`} x={xScale(curr.indexOf(p), curr.length)} y={H - 6} textAnchor="middle" fontSize={8} fill="var(--qb-text3)">
+                      {p.label}
+                    </text>
+                  ))}
+                </svg>
+              </div>
+            );
+          })()}
+
+          {/* Resumen quincenal */}
+          {quincenalData.prev.length > 0 && (
+            <div style={{ display: "flex", gap: 10, marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--qb-border)", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 120, textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "var(--qb-text2)", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Año pasado</div>
+                <div style={{ fontSize: 11, color: "var(--qb-text3)", marginTop: 2 }}>
+                  {quincenalData.prev[quincenalData.prev.length - 1]?.cum || 0} reservas al {quincenalData.prev[quincenalData.prev.length - 1]?.label}
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 120, textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "var(--qb-text2)", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Este año</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "var(--qb-accent)", marginTop: 2 }}>
+                  {quincenalData.current[quincenalData.current.length - 1]?.cum || 0} reservas al hoy
+                </div>
+              </div>
+              {(() => {
+                const prevVal = quincenalData.prev[quincenalData.prev.length - 1]?.cum || 0;
+                const currVal = quincenalData.current[quincenalData.current.length - 1]?.cum || 0;
+                const diff = currVal - prevVal;
+                if (prevVal === 0) return null;
+                const pctDiff = Math.round((diff / prevVal) * 100);
+                return (
+                  <div style={{ flex: 1, minWidth: 120, textAlign: "center" }}>
+                    <div style={{ fontSize: 10, color: "var(--qb-text2)", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5 }}>Diferencia</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: diff >= 0 ? "#16A34A" : "#DC2626", marginTop: 2 }}>
+                      {diff >= 0 ? "+" : ""}{diff} ({pctDiff >= 0 ? "+" : ""}{pctDiff}%)
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── BLOQUE 3: INDICADORES ── */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>

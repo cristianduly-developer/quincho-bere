@@ -255,9 +255,9 @@ function AlertaItem({ icon, texto, urgente }) {
   return (
     <div style={{
       display:"flex", gap:10, alignItems:"flex-start", padding:"10px 12px",
-      background: urgente ? "#FFF7ED" : "var(--qb-bg-card-alt)",
+      background: urgente ? "var(--qb-warning-bg)" : "var(--qb-bg-card-alt)",
       borderRadius:10, marginBottom:6,
-      border: `1px solid ${urgente?"#FED7AA":"var(--qb-border)"}`,
+      border: `1px solid ${urgente?"var(--qb-warning-border)":"var(--qb-border)"}`,
     }}>
       <span style={{fontSize:18,flexShrink:0,marginTop:1}}>{icon}</span>
       <span style={{fontSize:13,color:"var(--qb-text)",lineHeight:1.5}}>{texto}</span>
