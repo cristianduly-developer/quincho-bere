@@ -386,30 +386,48 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
         </div>
       </div>
 
-      {/* ── BLOQUE 2B: ACUMULADO ── */}
+      {/* ── BLOQUE 2B: ACUMULADO REAL ── */}
       <div style={{ ...card, padding: 20, marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: "var(--qb-text)", marginBottom: 14 }}>📈 Reservas acumuladas</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "var(--qb-text)", marginBottom: 4 }}>📈 Reservas existentes por mes</div>
+        <div style={{ fontSize: 11, color: "var(--qb-text2)", marginBottom: 14 }}>Cuántas reservas existían al final de cada mes</div>
         {(() => {
-          let accPrev = 0, accCurr = 0;
-          const rows = seasonMonths.map((m, i) => {
-            accPrev += HIST_2025[prevSeasonMonths[i]?.key]?.eventos || 0;
-            accCurr += currentData[m.key]?.eventos || 0;
+          const endOfMonthPrev = {
+            "Ago": 2, "Sep": 12, "Oct": 29, "Nov": 51,
+            "Dic": 61, "Ene": 75, "Feb": 82, "Mar": 87, "Abr": 87,
+          };
+          const validStates = ["pendiente", "senada", "confirmada", "finalizada"];
+          const allSorted = reservas
+            .filter(r => validStates.includes(r.estado) && (r.creadoEn || r.fechaCreacion))
+            .map(r => new Date(r.creadoEn || r.fechaCreacion + "T12:00:00").getTime());
+
+          const mLabels = ["Sep","Oct","Nov","Dic","Ene","Feb","Mar","Abr"];
+          const rows = mLabels.map((label, i) => {
+            const m = seasonMonths[i];
+            const lastDay = new Date(m.year, m.month, 0, 23, 59, 59).getTime();
+            const cumCurr = allSorted.filter(ts => ts <= lastDay).length;
             const isCurrent = m.month === (today.getMonth() + 1) && m.year === today.getFullYear();
             const monthDate = new Date(m.year, m.month - 1, 1);
             const isPast = monthDate < new Date(today.getFullYear(), today.getMonth(), 1);
-            return { month: monthNames[m.month], accPrev, accCurr, isCurrent, show: isPast || isCurrent || accCurr > 0 };
+            return { label, prev: endOfMonthPrev[label] || 0, curr: cumCurr, isCurrent, show: isPast || isCurrent || cumCurr > 0 };
           });
-          const maxAcc = Math.max(metaEventos, HIST_TOTAL_EV, totalEventos, 1);
+          const maxAcc = Math.max(metaEventos, HIST_TOTAL_EV, ...rows.map(r => Math.max(r.prev, r.curr)), 1);
           return (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {rows.filter(r => r.show).map((r, i) => (
                 <div key={i}>
-                  <div style={{ fontSize: 11, fontWeight: r.isCurrent ? 800 : 600, color: r.isCurrent ? "var(--qb-accent)" : "var(--qb-text3)", marginBottom: 2 }}>
-                    {r.month} {r.isCurrent && "←"}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                    <div style={{ fontSize: 11, fontWeight: r.isCurrent ? 800 : 600, color: r.isCurrent ? "var(--qb-accent)" : "var(--qb-text3)" }}>
+                      {r.label} {r.isCurrent && "←"}
+                    </div>
+                    {r.show && r.curr !== r.prev && (
+                      <div style={{ fontSize: 10, fontWeight: 700, color: r.curr > r.prev ? "#16A34A" : "#DC2626" }}>
+                        {r.curr > r.prev ? "+" : ""}{r.curr - r.prev}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: "flex", gap: 3 }}>
-                    <div style={{ flex: 1 }}><MiniBar val={r.accPrev} max={maxAcc} color="var(--qb-accent-light)" label="" /></div>
-                    <div style={{ flex: 1 }}><MiniBar val={r.accCurr} max={maxAcc} color="var(--qb-accent)" label="" /></div>
+                    <div style={{ flex: 1 }}><MiniBar val={r.prev} max={maxAcc} color="var(--qb-accent-light)" label="" /></div>
+                    <div style={{ flex: 1 }}><MiniBar val={r.curr} max={maxAcc} color="var(--qb-accent)" label="" /></div>
                   </div>
                 </div>
               ))}
