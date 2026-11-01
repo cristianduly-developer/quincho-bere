@@ -14,7 +14,7 @@ export function mapPago(p){
 }
 export function mapGasto(g){
   const org = g.orgId || getCurrentOrgId();
-  return {id:g.id,org_id:org,concepto:g.concepto||"",monto:g.monto||0,fecha:g.fecha,categoria:g.categoria||"Otros",metodo:g.metodo||"Efectivo",creado_por:g.creadoPor||"",creado_en:g.creadoEn||new Date().toISOString()};
+  return {id:g.id,org_id:org,concepto:g.concepto||"",monto:g.monto||0,fecha:g.fecha,categoria:g.categoria||"Otros",metodo:g.metodo||"Efectivo",creado_por:g.creadoPor||"",creado_en:g.creadoEn||new Date().toISOString(),extra_origen_id:g.extraOrigenId||null};
 }
 export function mapExtra(e){
   const org = e.orgId || getCurrentOrgId();

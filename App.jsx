@@ -5862,7 +5862,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       const _t2d=(i)=>_t2[i].status==="fulfilled"?_t2[i].value?.data:null;
       const [p,g,er,se,t,bl,rec,tmp,com,cns,mprod,mped]=[0,1,2,3,4,5,6,7,8,9,10,11].map(_t2d);
       if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",comprobante:x.comprobante||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
-      if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
+      if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||"",extraOrigenId:x.extra_origen_id||null})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
       setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,costo:x.costo?Number(x.costo):null,activo:x.activo!==false,detalle:x.detalle||"",fotoUrl:x.foto_url||"",grupo:x.grupo||""})) : []);
       if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
@@ -6145,21 +6145,36 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
     const res=reservas.find(r=>r.id===data.reservaId);
     if(res&&['cancelada','finalizada','visita'].includes(res.estado)){showToast("No se puede agregar un extra a una reserva en estado "+res.estado+".","error");return;}
     setSavingExtra(true);
-    try{ await saveER([...extrasReserva,{id:genId(),...data,creadoEn:new Date().toISOString()}]); setModal(null); setExtraReservaId(null); }
+    try{
+      const extraId=genId();
+      await saveER([...extrasReserva,{id:extraId,...data,creadoEn:new Date().toISOString()}]);
+      if(data.servicioId){
+        const svc=serviciosExtras.find(s=>s.id===data.servicioId);
+        if(svc?.costo>0){
+          const cli=clientes.find(c=>c.id===res?.clienteId);
+          const costoTotal=svc.costo*Number(data.cantidad||1);
+          await saveG([...gastos,{id:genId(),fecha:res?.fecha||toDateStr(new Date()),concepto:`Costo ${svc.descripcion} x${data.cantidad||1} - ${clientName(cli)}`,monto:costoTotal,categoria:"Servicios",metodo:"Efectivo",extraOrigenId:extraId,creadoPor:currentUser?.nombre||"",creadoEn:new Date().toISOString()}]);
+        }
+      }
+      setModal(null); setExtraReservaId(null);
+    }
     finally{ setSavingExtra(false); }
   };
   const handleDeleteReserva=async(id)=>{
     const prevReservas=reservas; const prevPagos=pagos; const prevExtras=extrasReserva;
+    const resExtIds=prevExtras.filter(e=>e.reservaId===id).map(e=>e.id);
     const {error}=await supabase.from("reservas").delete().eq("id",id);
     if(error){ showToast("Error al eliminar la reserva. Intentá de nuevo.","error"); return; }
     const [{error:ep},{error:ee}]=await Promise.all([
       supabase.from("pagos").delete().eq("reserva_id",id),
       supabase.from("extras_reserva").delete().eq("reserva_id",id),
     ]);
+    if(resExtIds.length) await supabase.from("gastos").delete().in("extra_origen_id",resExtIds);
     if(ep||ee) console.error("Error limpiando datos asociados a reserva eliminada",ep||ee);
     setReservas(prevReservas.filter(r=>r.id!==id));
     setPagos(prevPagos.filter(p=>p.reservaId!==id));
     setExtrasReserva(prevExtras.filter(e=>e.reservaId!==id));
+    setGastos(prev=>prev.filter(g=>!g.extraOrigenId||!resExtIds.includes(g.extraOrigenId)));
     setDetailReserva(null);
   };
   const handleBloquear=(date,{turno,motivo})=>{
