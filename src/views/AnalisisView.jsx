@@ -223,9 +223,9 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
   const insights = useMemo(() => {
     const list = [];
     const diff = totalEventos - prevAtThisPoint;
-    if (diff > 0) list.push({ icon: "📈", text: `Llevás ${diff} reservas más que a esta altura del año pasado`, type: "good" });
-    else if (diff < 0) list.push({ icon: "⚠️", text: `Vas ${Math.abs(diff)} reservas por debajo del año pasado a esta fecha`, type: "warn" });
-    else list.push({ icon: "🔄", text: "Vas al mismo ritmo que el año pasado", type: "neutral" });
+    if (diff > 0) list.push({ icon: "📈", text: `Llevás ${totalEventos} reservas en ${monthsPassed} meses — ${diff} más que las ${prevAtThisPoint} del año pasado al mismo punto`, type: "good" });
+    else if (diff < 0) list.push({ icon: "⚠️", text: `Llevás ${totalEventos} reservas en ${monthsPassed} meses — ${Math.abs(diff)} menos que las ${prevAtThisPoint} del año pasado al mismo punto`, type: "warn" });
+    else list.push({ icon: "🔄", text: `Llevás ${totalEventos} reservas — mismo ritmo que el año pasado (${prevAtThisPoint})`, type: "neutral" });
 
     if (ticketProm > HIST_PROM) {
       const mejora = Math.round(((ticketProm - HIST_PROM) / HIST_PROM) * 100);
