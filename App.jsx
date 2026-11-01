@@ -12,6 +12,7 @@ const ReportesViewLazy      = lazy(() => import("./src/views/ReportesView.jsx"))
 const RecordatoriosViewLazy = lazy(() => import("./src/views/RecordatoriosView.jsx"));
 const ClientesViewLazy      = lazy(() => import("./src/views/ClientesView.jsx"));
 const ReservasViewLazy      = lazy(() => import("./src/views/ReservasView.jsx"));
+const AnalisisViewLazy      = lazy(() => import("./src/views/AnalisisView.jsx"));
 
 // ─── VIEW LOADER (Suspense fallback) ──────────────────────
 function ViewLoader() {
@@ -43,6 +44,7 @@ function DesktopNav({ negocio, onNavigate, tab, currentUser, onNewCobro, onNewGa
     { id:"reservas",      label:"Reservas",      icon:"📋" },
     { id:"clientes",      label:"Clientes",      icon:"👥" },
     { id:"reportes",      label:"Reportes",      icon:"📊", adminOnly: true },
+    { id:"analisis",      label:"Análisis",      icon:"🎯", adminOnly: true },
     { id:"gastos",        label:"Gastos",        icon:"💸" },
     ...(limits.recordatorios !== false ? [{ id:"recordatorios", label:"Recordatorios", icon:"🔔" }] : []),
     { id:"config",        label:"Configuración", icon:"⚙️" },
@@ -4698,6 +4700,7 @@ function SideMenu({ open, onClose, onNavigate, tab, currentUser, negocio }) {
     {icon:"📋",label:"Reservas",view:"reservas"},
     {icon:"👥",label:"Clientes",view:"clientes"},
     ...(isAdmin?[{icon:"📈",label:"Reportes",view:"reportes"}]:[]),
+    ...(isAdmin?[{icon:"🎯",label:"Análisis",view:"analisis"}]:[]),
     ...(isAdmin?[{icon:"💸",label:"Gastos",view:"gastos"}]:[]),
     ...(tieneRecordatorios?[{icon:"🔔",label:"Recordatorios",view:"recordatorios"}]:[]),
     ...(isAdmin?[{icon:"⚙️",label:"Configuración",view:"config"}]:[]),
@@ -6402,6 +6405,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {tab==="recordatorios" && <Suspense fallback={<ViewLoader/>}><RecordatoriosViewLazy recordatorios={recordatorios} setRecordatorios={saveRecordatorios} reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} onVerCliente={c=>{setDetailCliente(c);setTab("clientes");}} onVerEvento={r=>{setDetailReserva(r);setTab("reservas");}} onNewPago={(rid)=>{setPagoReservaId(rid);setModal("pago");}} negocio={negocio} /></Suspense>}
       {tab==="usuarios" && <UsuariosView usuarios={usuarios} setUsuarios={setUsuarios} currentUser={currentUser} />}
       {tab==="reportes" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><ReportesViewLazy pagos={pagos} gastos={gastos} reservas={reservas} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} clientes={clientes} negocio={negocio} turnosRecurso={turnosRecurso} recursos={recursos} bloqueos={bloqueos} tareas={tareas} consultas={consultas} /></Suspense></ErrorBoundary>}
+      {tab==="analisis" && <ErrorBoundary><Suspense fallback={<ViewLoader/>}><AnalisisViewLazy reservas={reservas} pagos={pagos} extrasReserva={extrasReserva} serviciosExtras={serviciosExtras} gastos={gastos} negocio={negocio} /></Suspense></ErrorBoundary>}
 
       {/* Bottom Tab Bar — oculto en desktop, la nav está en el sidebar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"#FFF",borderTop:"1px solid #EDE0D0",display:isDesktop?"none":"flex",zIndex:500,boxShadow:"0 -4px 20px rgba(0,0,0,0.07)"}}>
