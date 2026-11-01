@@ -228,6 +228,8 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
     return { current: points, prev: prevPoints };
   }, [reservas, currentSeasonStart, today]);
 
+  const monthNames = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
   const insights = useMemo(() => {
     const list = [];
     const diff = currentAtThisPoint - prevAtThisPoint;
@@ -264,7 +266,6 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
   }, [totalEventos, currentAtThisPoint, prevAtThisPoint, ticketProm, currentData, seasonMonths, monthsPassed, monthNames, eventosRestantes, necesitasPorMes, mesesRestantes, metaEventos, projection, projectionFac]);
 
   const card = { background: "var(--qb-bg-card)", borderRadius: 16, border: "1px solid var(--qb-border)", boxShadow: "var(--qb-shadow)" };
-  const monthNames = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
   return (
     <div style={{ padding: "16px 16px 120px", maxWidth: 600, margin: "0 auto" }}>
