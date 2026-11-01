@@ -160,6 +160,14 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
     return sum;
   })();
 
+  const currentAtThisPoint = (() => {
+    let sum = 0;
+    for (let i = 0; i < monthsPassed && i < seasonMonths.length; i++) {
+      sum += currentData[seasonMonths[i].key]?.eventos || 0;
+    }
+    return sum;
+  })();
+
   const projection = monthsPassed > 0 ? Math.round((totalEventos / monthsPassed) * 8) : 0;
   const projectionFac = monthsPassed > 0 ? Math.round((totalFac / monthsPassed) * 8) : 0;
 
@@ -222,10 +230,13 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
   const insights = useMemo(() => {
     const list = [];
-    const diff = totalEventos - prevAtThisPoint;
-    if (diff > 0) list.push({ icon: "📈", text: `Llevás ${totalEventos} reservas en ${monthsPassed} meses — ${diff} más que las ${prevAtThisPoint} del año pasado al mismo punto`, type: "good" });
-    else if (diff < 0) list.push({ icon: "⚠️", text: `Llevás ${totalEventos} reservas en ${monthsPassed} meses — ${Math.abs(diff)} menos que las ${prevAtThisPoint} del año pasado al mismo punto`, type: "warn" });
-    else list.push({ icon: "🔄", text: `Llevás ${totalEventos} reservas — mismo ritmo que el año pasado (${prevAtThisPoint})`, type: "neutral" });
+    const diff = currentAtThisPoint - prevAtThisPoint;
+    if (diff > 0) list.push({ icon: "📈", text: `En Sep–${monthNames[seasonMonths[monthsPassed - 1]?.month]} ocurrieron ${currentAtThisPoint} eventos — ${diff} más que los ${prevAtThisPoint} del mismo período el año pasado`, type: "good" });
+    else if (diff < 0) list.push({ icon: "⚠️", text: `En Sep–${monthNames[seasonMonths[monthsPassed - 1]?.month]} ocurrieron ${currentAtThisPoint} eventos — ${Math.abs(diff)} menos que los ${prevAtThisPoint} del mismo período el año pasado`, type: "warn" });
+    else list.push({ icon: "🔄", text: `${currentAtThisPoint} eventos en los mismos meses — mismo ritmo que el año pasado`, type: "neutral" });
+    if (totalEventos > currentAtThisPoint) {
+      list.push({ icon: "📅", text: `Tenés ${totalEventos - currentAtThisPoint} reservas más agendadas para los próximos meses (${totalEventos} en total esta temporada)`, type: "good" });
+    }
 
     if (ticketProm > HIST_PROM) {
       const mejora = Math.round(((ticketProm - HIST_PROM) / HIST_PROM) * 100);
@@ -250,7 +261,7 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
     }
 
     return list;
-  }, [totalEventos, prevAtThisPoint, ticketProm, currentData, seasonMonths, eventosRestantes, necesitasPorMes, mesesRestantes, metaEventos, projection, projectionFac]);
+  }, [totalEventos, currentAtThisPoint, prevAtThisPoint, ticketProm, currentData, seasonMonths, monthsPassed, monthNames, eventosRestantes, necesitasPorMes, mesesRestantes, metaEventos, projection, projectionFac]);
 
   const card = { background: "var(--qb-bg-card)", borderRadius: 16, border: "1px solid var(--qb-border)", boxShadow: "var(--qb-shadow)" };
   const monthNames = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
