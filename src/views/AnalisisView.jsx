@@ -326,9 +326,9 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
             {/* Context line */}
             <div style={{ textAlign: "center", padding: "10px 14px", background: "var(--qb-bg-card-alt)", borderRadius: 10, fontSize: 12, color: "var(--qb-text3)" }}>
-              <span style={{ fontWeight: 800 }}>{totalEventos}</span> reservas esta temporada — el año pasado a esta altura ibas <span style={{ fontWeight: 800 }}>{prevAtThisPoint}</span>
-              {totalEventos > prevAtThisPoint && <span style={{ color: "#16A34A", fontWeight: 700 }}> (+{totalEventos - prevAtThisPoint})</span>}
-              {totalEventos < prevAtThisPoint && <span style={{ color: "#DC2626", fontWeight: 700 }}> ({totalEventos - prevAtThisPoint})</span>}
+              <span style={{ fontWeight: 800 }}>{totalEventos}</span> reservas en total (<span style={{ fontWeight: 800 }}>{currentAtThisPoint}</span> en meses transcurridos) — el año pasado en Sep–{monthNames[seasonMonths[monthsPassed - 1]?.month]} tenías <span style={{ fontWeight: 800 }}>{prevAtThisPoint}</span>
+              {currentAtThisPoint > prevAtThisPoint && <span style={{ color: "#16A34A", fontWeight: 700 }}> (+{currentAtThisPoint - prevAtThisPoint})</span>}
+              {currentAtThisPoint < prevAtThisPoint && <span style={{ color: "#DC2626", fontWeight: 700 }}> ({currentAtThisPoint - prevAtThisPoint})</span>}
             </div>
           </>
         )}
