@@ -4345,7 +4345,7 @@ function ConfigView({ config, saveConfig, serviciosExtras, setServiciosExtras, r
                     onUpdate={async(changes)=>{
                       const updated={...s,...changes};
                       setServiciosExtras(prev=>prev.map(x=>x.id===s.id?updated:x));
-                      await sb.upsert("servicios_extras",[{id:s.id,org_id:getCurrentOrgId(),descripcion:s.descripcion,precio_actual:changes.precioActual,activo:true,detalle:changes.detalle||null,foto_url:changes.fotoUrl||null,grupo:changes.grupo||null}]);
+                      await sb.upsert("servicios_extras",[{id:s.id,org_id:getCurrentOrgId(),descripcion:s.descripcion,precio_actual:changes.precioActual,costo:changes.costo||null,activo:true,detalle:changes.detalle||null,foto_url:changes.fotoUrl||null,grupo:changes.grupo||null}]);
                     }}
                   />
                 ))}
@@ -4411,7 +4411,7 @@ function AddEspacioForm({ recursos, setRecursos, plan }) {
 
 function ServicioExtraRow({ s, onDelete, onUpdate }) {
   const [editando, setEditando] = useState(false);
-  const [form, setForm] = useState({precio:String(s.precioActual),detalle:s.detalle||"",fotoUrl:s.fotoUrl||"",grupo:s.grupo||""});
+  const [form, setForm] = useState({precio:String(s.precioActual),costo:s.costo?String(s.costo):"",detalle:s.detalle||"",fotoUrl:s.fotoUrl||"",grupo:s.grupo||""});
   const [uploading, setUploading] = useState(false);
   return (
     <div style={{padding:"12px 0",borderBottom:"1px solid #F5EDE4"}}>
@@ -4420,13 +4420,13 @@ function ServicioExtraRow({ s, onDelete, onUpdate }) {
           {s.fotoUrl && <img src={s.fotoUrl} alt="" style={{width:40,height:40,borderRadius:8,objectFit:"cover",flexShrink:0}} />}
           <div style={{minWidth:0}}>
             <div style={{fontWeight:600,fontSize:13,color:"#1C1C1E"}}>{s.descripcion}</div>
-            {!editando && <div style={{fontSize:12,color:"#8B7355"}}>{fmtCurrency(s.precioActual)}</div>}
+            {!editando && <div style={{fontSize:12,color:"#8B7355"}}>{fmtCurrency(s.precioActual)}{s.costo>0 && <span style={{color:"#16A34A",marginLeft:6}}>→ ganancia {fmtCurrency(s.precioActual-s.costo)}</span>}</div>}
             {!editando && s.grupo && <div style={{fontSize:10,color:"#C4602B",fontWeight:700,marginTop:2,background:"#FDF8F3",display:"inline-block",padding:"1px 6px",borderRadius:4}}>Grupo: {s.grupo}</div>}
             {!editando && s.detalle && <div style={{fontSize:11,color:"#A8A29E",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.detalle}</div>}
           </div>
         </div>
         <div style={{display:"flex",gap:6,flexShrink:0}}>
-          <button onClick={()=>{setEditando(p=>!p);setForm({precio:String(s.precioActual),detalle:s.detalle||"",fotoUrl:s.fotoUrl||"",grupo:s.grupo||""});}}
+          <button onClick={()=>{setEditando(p=>!p);setForm({precio:String(s.precioActual),costo:s.costo?String(s.costo):"",detalle:s.detalle||"",fotoUrl:s.fotoUrl||"",grupo:s.grupo||""});}}
             style={{background:"#FDF8F3",border:"1px solid #EDE0D0",color:"#C4602B",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:12,fontFamily:"inherit",fontWeight:600}}>
             {editando?"Cancelar":"✏️"}
           </button>
@@ -4438,8 +4438,13 @@ function ServicioExtraRow({ s, onDelete, onUpdate }) {
       </div>
       {editando && (
         <div style={{marginTop:10,display:"flex",flexDirection:"column",gap:8}}>
-          <input type="number" placeholder="Precio $" value={form.precio} onChange={e=>setForm(p=>({...p,precio:e.target.value}))}
-            style={{padding:"7px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",outline:"none"}} />
+          <div style={{display:"flex",gap:8}}>
+            <input type="number" placeholder="Precio $" value={form.precio} onChange={e=>setForm(p=>({...p,precio:e.target.value}))}
+              style={{flex:1,padding:"7px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",outline:"none"}} />
+            <input type="number" placeholder="Costo $ (opcional)" value={form.costo} onChange={e=>setForm(p=>({...p,costo:e.target.value}))}
+              style={{flex:1,padding:"7px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",outline:"none"}} />
+          </div>
+          {form.costo && Number(form.precio)>0 && <div style={{fontSize:11,color:"#16A34A",marginTop:-4,marginBottom:4,paddingLeft:2}}>💰 Ganancia: {fmtCurrency(Number(form.precio)-Number(form.costo))}</div>}
           <input placeholder="Grupo (ej: Gazebo, Parrillero, Candy) — dejar vacío si es suelto" value={form.grupo} onChange={e=>setForm(p=>({...p,grupo:e.target.value}))}
             style={{padding:"7px 10px",borderRadius:8,border:"1.5px solid #C4602B",fontSize:12,fontFamily:"inherit",outline:"none",background:"#FDF8F3"}} />
           <textarea placeholder="Descripcion para el cliente (ej: Incluye parrillero profesional con experiencia en asados para 30+ personas)" value={form.detalle} onChange={e=>setForm(p=>({...p,detalle:e.target.value.slice(0,300)}))}
@@ -4477,7 +4482,7 @@ function ServicioExtraRow({ s, onDelete, onUpdate }) {
             <button onClick={async()=>{
               const v=Number(form.precio);
               if(!v||v<0) return showToast("Ingresá un precio válido.","warn");
-              await onUpdate({precioActual:v,detalle:form.detalle,fotoUrl:form.fotoUrl,grupo:form.grupo});
+              await onUpdate({precioActual:v,costo:form.costo?Number(form.costo):null,detalle:form.detalle,fotoUrl:form.fotoUrl,grupo:form.grupo});
               setEditando(false);
             }} style={{padding:"7px 14px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:8,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
               Guardar
@@ -4552,7 +4557,7 @@ function AddMercadoProductoForm({ productos, onAdd }) {
 }
 
 function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
-  const [form, setForm] = useState({descripcion:"",precioActual:"",detalle:"",fotoUrl:"",grupo:""});
+  const [form, setForm] = useState({descripcion:"",precioActual:"",costo:"",detalle:"",fotoUrl:"",grupo:""});
   const [show, setShow] = useState(false);
   const [uploading, setUploading] = useState(false);
   if(!show) return <button onClick={()=>setShow(true)} style={{marginTop:12,width:"100%",padding:"10px",background:"#FDF8F3",border:"1.5px dashed #C4602B",borderRadius:10,color:"#C4602B",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Agregar servicio</button>;
@@ -4560,9 +4565,15 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
     <div style={{marginTop:12,padding:12,background:"#FDF8F3",borderRadius:10,border:"1px solid #EDE0D0"}}>
       <input placeholder="Nombre del servicio" value={form.descripcion} onChange={e=>setForm(p=>({...p,descripcion:e.target.value}))}
         style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
-      <input type="number" placeholder="Precio $" value={form.precioActual} onChange={e=>setForm(p=>({...p,precioActual:e.target.value}))}
-        onFocus={e=>e.target.select()}
-        style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none"}} />
+      <div style={{display:"flex",gap:8,marginBottom:8}}>
+        <input type="number" placeholder="Precio $" value={form.precioActual} onChange={e=>setForm(p=>({...p,precioActual:e.target.value}))}
+          onFocus={e=>e.target.select()}
+          style={{flex:1,padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}} />
+        <input type="number" placeholder="Costo $ (opcional)" value={form.costo} onChange={e=>setForm(p=>({...p,costo:e.target.value}))}
+          onFocus={e=>e.target.select()}
+          style={{flex:1,padding:"8px 10px",borderRadius:8,border:"1.5px solid #EDE0D0",fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}} />
+      </div>
+      {form.costo && Number(form.precioActual)>0 && <div style={{fontSize:11,color:"#16A34A",marginBottom:6,paddingLeft:2}}>💰 Ganancia: {fmtCurrency(Number(form.precioActual)-Number(form.costo))}</div>}
       <input placeholder="Grupo (ej: Gazebo, Parrillero, Candy) — vacío = extra suelto" value={form.grupo} onChange={e=>setForm(p=>({...p,grupo:e.target.value}))}
         style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1.5px solid #C4602B",fontSize:12,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box",outline:"none",background:"#FDF8F3"}} />
       <textarea placeholder="Descripcion para el cliente (opcional)" value={form.detalle} onChange={e=>setForm(p=>({...p,detalle:e.target.value.slice(0,300)}))}
@@ -4602,11 +4613,11 @@ function AddSrvForm({ serviciosExtras, setServiciosExtras }) {
         <button onClick={()=>{setShow(false);setForm({descripcion:"",precioActual:"",detalle:"",fotoUrl:""});}} style={{flex:1,padding:"8px",background:"#F3F4F6",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13}}>Cancelar</button>
         <button onClick={async()=>{
           if(!form.descripcion||!form.precioActual)return;
-          const newSrv={id:genId(),descripcion:form.descripcion,precioActual:Number(form.precioActual),activo:true,detalle:form.detalle,fotoUrl:form.fotoUrl,grupo:form.grupo};
+          const newSrv={id:genId(),descripcion:form.descripcion,precioActual:Number(form.precioActual),costo:form.costo?Number(form.costo):null,activo:true,detalle:form.detalle,fotoUrl:form.fotoUrl,grupo:form.grupo};
           const updated=[...serviciosExtras,newSrv];
           setServiciosExtras(updated);
-          await sb.upsert("servicios_extras",[{id:newSrv.id,org_id:getCurrentOrgId(),descripcion:newSrv.descripcion,precio_actual:newSrv.precioActual,activo:true,detalle:form.detalle||null,foto_url:form.fotoUrl||null,grupo:form.grupo||null,creado_en:new Date().toISOString()}]);
-          setForm({descripcion:"",precioActual:"",detalle:"",fotoUrl:"",grupo:""});setShow(false);
+          await sb.upsert("servicios_extras",[{id:newSrv.id,org_id:getCurrentOrgId(),descripcion:newSrv.descripcion,precio_actual:newSrv.precioActual,costo:newSrv.costo,activo:true,detalle:form.detalle||null,foto_url:form.fotoUrl||null,grupo:form.grupo||null,creado_en:new Date().toISOString()}]);
+          setForm({descripcion:"",precioActual:"",costo:"",detalle:"",fotoUrl:"",grupo:""});setShow(false);
         }} style={{flex:2,padding:"8px",background:"#C4602B",border:"none",borderRadius:8,cursor:"pointer",fontFamily:"inherit",fontSize:13,color:"#FFF",fontWeight:700}}>Guardar</button>
       </div>
     </div>
@@ -5853,7 +5864,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(p?.length) setPagos(p.map(x=>({id:x.id,reservaId:x.reserva_id||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",metodo:x.metodo||"Transferencia",notas:x.notas||"",comprobante:x.comprobante||"",creadoPor:x.creado_por||"",creadoEn:x.creado_en})));
       if(g?.length) setGastos(g.map(x=>({id:x.id,concepto:x.concepto||"",monto:Number(x.monto)||0,fecha:x.fecha?.slice(0,10)||"",categoria:x.categoria||"Otros",metodo:x.metodo||"Efectivo",creadoPor:x.creado_por||""})));
       if(er?.length) setExtrasReserva(er.map(x=>({id:x.id,reservaId:x.reserva_id||"",servicioId:x.servicio_id||"",descripcion:x.descripcion||"",cantidad:x.cantidad||1,precioHistorico:Number(x.precio_historico)||0})));
-      setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,activo:x.activo!==false,detalle:x.detalle||"",fotoUrl:x.foto_url||"",grupo:x.grupo||""})) : []);
+      setServiciosExtras(se?.length ? se.map(x=>({id:x.id,descripcion:x.descripcion||"",precioActual:Number(x.precio_actual)||0,costo:x.costo?Number(x.costo):null,activo:x.activo!==false,detalle:x.detalle||"",fotoUrl:x.foto_url||"",grupo:x.grupo||""})) : []);
       if(t?.length) setTareas(t.map(x=>({id:x.id,descripcion:x.descripcion||"",estado:x.estado||"pendiente",fechaRegistro:x.fecha_registro||""})));
       if(bl?.length) setBloqueos(bl.map(x=>({id:x.id,fecha:x.fecha?.slice(0,10)||"",turno:x.turno||"completo",motivo:x.motivo||"",creadoPor:x.creado_por||""})));
       if(rec?.length) setRecordatorios(rec.map(x=>({id:x.id,reservaId:x.reserva_id||"",clienteId:x.cliente_id||"",tipo:x.tipo||"",nota:x.nota||"",fechaAlerta:x.fecha_alerta?.slice(0,10)||"",horaAlerta:x.hora_alerta||"09:00",estado:x.estado||"Pendiente"})));
