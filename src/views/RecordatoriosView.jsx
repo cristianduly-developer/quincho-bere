@@ -28,29 +28,29 @@ export default function RecordatoriosView({ recordatorios, setRecordatorios, res
   return (
     <div style={{padding:"16px 16px 100px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>📋 Recordatorios</div>
+        <div style={{fontWeight:700,fontSize:15,color:"var(--qb-text)"}}>📋 Recordatorios</div>
         <Btn small onClick={()=>setShowForm(true)}>+ Nuevo</Btn>
       </div>
-      <div style={{display:"flex",gap:0,marginBottom:16,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0"}}>
+      <div style={{display:"flex",gap:0,marginBottom:16,borderRadius:10,overflow:"hidden",border:"1px solid var(--qb-border)"}}>
         {[{v:"hoy",l:`Para hoy (${hoy.length})`},{v:"proximos",l:`Próximos (${proximos.length})`},{v:"historial",l:"Historial"}].map(o=>(
-          <button key={o.v} onClick={()=>setTab(o.v)} style={{flex:1,padding:"9px 4px",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",fontFamily:"inherit",background:tab===o.v?"#C4602B":"#FDF8F3",color:tab===o.v?"#FFF":"#8B7355"}}>{o.l}</button>
+          <button key={o.v} onClick={()=>setTab(o.v)} style={{flex:1,padding:"9px 4px",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",fontFamily:"inherit",background:tab===o.v?"var(--qb-accent)":"var(--qb-bg-card-alt)",color:tab===o.v?"#FFF":"var(--qb-text2)"}}>{o.l}</button>
         ))}
       </div>
 
-      {lista.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:"#8B7355"}}><div style={{fontSize:36,marginBottom:8}}>✅</div><div>Sin recordatorios en esta sección</div></div>}
+      {lista.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:"var(--qb-text2)"}}><div style={{fontSize:36,marginBottom:8}}>✅</div><div>Sin recordatorios en esta sección</div></div>}
 
       {lista.map(rec=>{
         const c=clientes.find(x=>x.id===rec.clienteId);
         const r=reservas.find(x=>x.id===rec.reservaId);
         const overdue=rec.fechaAlerta<today&&rec.estado==="Pendiente";
         return (
-          <div key={rec.id} style={{...card,padding:"14px 16px",marginBottom:10,borderLeft:`3px solid ${overdue?"#DC2626":"#C4602B"}`}}>
+          <div key={rec.id} style={{...card,padding:"14px 16px",marginBottom:10,borderLeft:`3px solid ${overdue?"#DC2626":"var(--qb-accent)"}`}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
               <div>
-                <div style={{fontWeight:700,fontSize:13,color:overdue?"#DC2626":"#1C1C1E"}}>{rec.tipo}</div>
-                {c&&<div style={{fontSize:12,color:"#8B7355",marginTop:2}}>👤 {clientName(c)}</div>}
-                {rec.nota&&<div style={{fontSize:12,color:"#5C4033",marginTop:2}}>📝 {rec.nota}</div>}
-                <div style={{fontSize:11,color:overdue?"#DC2626":"#8B7355",marginTop:2}}>🗓 {fmtDate(rec.fechaAlerta)} {rec.horaAlerta}</div>
+                <div style={{fontWeight:700,fontSize:13,color:overdue?"#DC2626":"var(--qb-text)"}}>{rec.tipo}</div>
+                {c&&<div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>👤 {clientName(c)}</div>}
+                {rec.nota&&<div style={{fontSize:12,color:"var(--qb-text3)",marginTop:2}}>📝 {rec.nota}</div>}
+                <div style={{fontSize:11,color:overdue?"#DC2626":"var(--qb-text2)",marginTop:2}}>🗓 {fmtDate(rec.fechaAlerta)} {rec.horaAlerta}</div>
               </div>
               <span style={{padding:"3px 8px",borderRadius:99,fontSize:10,fontWeight:700,background:rec.estado==="Procesado"?"#DCFCE7":rec.estado==="Pospuesto"?"#FEF3C7":"#FEF2F2",color:rec.estado==="Procesado"?"#16A34A":rec.estado==="Pospuesto"?"#D97706":"#DC2626"}}>{rec.estado}</span>
             </div>

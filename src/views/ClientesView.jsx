@@ -32,13 +32,13 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
   return (
     <div style={{paddingBottom:100}}>
       {/* Tabs principales */}
-      <div style={{display:"flex",gap:0,borderBottom:"1px solid #EDE0D0",background:"#FDF8F3"}}>
+      <div style={{display:"flex",gap:0,borderBottom:"1px solid var(--qb-border)",background:"var(--qb-bg-card-alt)"}}>
         {[{v:"clientes",l:"👥 Clientes"},{v:"recontactos",l:"📣 Recontactos"}].map(o=>(
           <button key={o.v} onClick={()=>setTab(o.v)} style={{
             flex:1,padding:"12px 0",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",
             background:"transparent",
-            color:tab===o.v?"#C4602B":"#8B7355",
-            borderBottom:`2px solid ${tab===o.v?"#C4602B":"transparent"}`,
+            color:tab===o.v?"var(--qb-accent)":"var(--qb-text2)",
+            borderBottom:`2px solid ${tab===o.v?"var(--qb-accent)":"transparent"}`,
             transition:"all 0.15s",
           }}>{o.l}</button>
         ))}
@@ -54,8 +54,8 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
             ].map(o=>(
               <button key={o.v} onClick={()=>setScope(o.v)} style={{
                 padding:"7px 14px",borderRadius:20,fontSize:12,fontWeight:600,flexShrink:0,whiteSpace:"nowrap",fontFamily:"inherit",cursor:"pointer",
-                background:scope===o.v?"#C4602B":"#FDF8F3",color:scope===o.v?"#FFF":"#8B7355",
-                border:`1px solid ${scope===o.v?"#C4602B":"#EDE0D0"}`,
+                background:scope===o.v?"var(--qb-accent)":"var(--qb-bg-card-alt)",color:scope===o.v?"#FFF":"var(--qb-text2)",
+                border:`1px solid ${scope===o.v?"var(--qb-accent)":"var(--qb-border)"}`,
               }}>{o.l}</button>
             ))}
           </div>
@@ -64,7 +64,7 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
             <Btn small onClick={onNewCliente}>+ Nuevo</Btn>
           </div>
           {filtered.length === 0 ? (
-            <div style={{textAlign:"center",padding:"48px 0",color:"#8B7355"}}>
+            <div style={{textAlign:"center",padding:"48px 0",color:"var(--qb-text2)"}}>
               <div style={{fontSize:44,marginBottom:10}}>👥</div>
               <div style={{fontWeight:600}}>{scope==="potenciales"?"No hay potenciales registrados":"Aún no hay clientes"}</div>
               <div style={{marginTop:14}}><Btn small onClick={onNewCliente}>+ Nuevo cliente</Btn></div>
@@ -76,20 +76,20 @@ export default function ClientesView({ clientes, reservas, onClienteClick, onNew
             const badge = CRM_BADGE[c.estadoCrm];
             return (
               <div key={c.id} onClick={()=>onClienteClick(c)} style={{...card,padding:"14px 16px",marginBottom:10,cursor:"pointer",display:"flex",alignItems:"center",gap:12}}
-                onMouseEnter={e=>e.currentTarget.style.background="#FDF5EE"}
-                onMouseLeave={e=>e.currentTarget.style.background="#FFF"}>
+                onMouseEnter={e=>e.currentTarget.style.background="var(--qb-bg-hover)"}
+                onMouseLeave={e=>e.currentTarget.style.background="var(--qb-bg-card)"}>
                 <Avatar nombre={c.nombre} />
                 <div style={{flex:1}}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{fontWeight:700,fontSize:15,color:"#1C1C1E"}}>{clientName(c)}</span>
+                    <span style={{fontWeight:700,fontSize:15,color:"var(--qb-text)"}}>{clientName(c)}</span>
                     {badge && c.estadoCrm !== "Cliente" && <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:99,background:badge.bg,color:badge.color,border:`1px solid ${badge.border}`}}>{c.estadoCrm}</span>}
                   </div>
-                  <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
+                  <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>
                     {c.localidad&&`📍 ${c.localidad}`}{c.localidad&&c.whatsapp&&" · "}{c.whatsapp&&`📱 ${c.whatsapp}`}{c.origen?` · ${c.origen}`:""}
                   </div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontSize:11,color:"#8B7355"}}>{reales.length>0&&`${reales.length} reserva${reales.length!==1?"s":""}`}{reales.length>0&&visitas.length>0&&" · "}{visitas.length>0&&<span style={{color:"#7C3AED"}}>{visitas.length} visita{visitas.length!==1?"s":""}</span>}{reales.length===0&&visitas.length===0&&"Sin reservas"}</div>
+                  <div style={{fontSize:11,color:"var(--qb-text2)"}}>{reales.length>0&&`${reales.length} reserva${reales.length!==1?"s":""}`}{reales.length>0&&visitas.length>0&&" · "}{visitas.length>0&&<span style={{color:"#7C3AED"}}>{visitas.length} visita{visitas.length!==1?"s":""}</span>}{reales.length===0&&visitas.length===0&&"Sin reservas"}</div>
                   {c.whatsapp && (
                     <a href={`https://wa.me/${waNumber(c.whatsapp)}`} target="_blank" rel="noreferrer"
                       onClick={e=>e.stopPropagation()} style={{display:"inline-block",marginTop:4,padding:"3px 8px",borderRadius:6,background:"#25D366",color:"#FFF",fontSize:11,fontWeight:600,textDecoration:"none"}}>💬</a>

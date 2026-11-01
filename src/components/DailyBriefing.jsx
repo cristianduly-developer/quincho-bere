@@ -255,12 +255,12 @@ function AlertaItem({ icon, texto, urgente }) {
   return (
     <div style={{
       display:"flex", gap:10, alignItems:"flex-start", padding:"10px 12px",
-      background: urgente ? "#FFF7ED" : "#FAFAFA",
+      background: urgente ? "#FFF7ED" : "var(--qb-bg-card-alt)",
       borderRadius:10, marginBottom:6,
-      border: `1px solid ${urgente?"#FED7AA":"#F0EBE4"}`,
+      border: `1px solid ${urgente?"#FED7AA":"var(--qb-border)"}`,
     }}>
       <span style={{fontSize:18,flexShrink:0,marginTop:1}}>{icon}</span>
-      <span style={{fontSize:13,color:"#1C1C1E",lineHeight:1.5}}>{texto}</span>
+      <span style={{fontSize:13,color:"var(--qb-text)",lineHeight:1.5}}>{texto}</span>
     </div>
   );
 }
@@ -279,16 +279,16 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
       <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
         <span style={{fontSize:20,flexShrink:0,cursor:onClickDetail?"pointer":"default"}} onClick={onClickDetail?()=>onClickDetail(reserva):undefined}>👁️</span>
         <div style={{flex:1,cursor:onClickDetail?"pointer":"default"}} onClick={onClickDetail?()=>onClickDetail(reserva):undefined}>
-          <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{clientName(cliente)}</div>
+          <div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>{clientName(cliente)}</div>
           <div style={{fontSize:12,color:"#7C3AED",fontWeight:600,marginTop:2}}>
             📅 Visita: {fmtDate(reserva.fechaVisita||reserva.fecha)}{reserva.horaVisita ? ` · ${reserva.horaVisita} hs` : ""}
           </div>
-          {reserva.fecha && <div style={{fontSize:12,color:"#5C4033",marginTop:2}}>🎯 Fecha de interés: {fmtDate(reserva.fecha)}</div>}
-          <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
+          {reserva.fecha && <div style={{fontSize:12,color:"var(--qb-text3)",marginTop:2}}>🎯 Fecha de interés: {fmtDate(reserva.fecha)}</div>}
+          <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>
             {reserva.tipoEvento ? `🎉 ${reserva.tipoEvento}` : ""}{reserva.cantInvitados>0 ? ` · 👥 ${reserva.cantInvitados} personas` : ""}{reserva.montoPactado ? ` · 💰 ${fmtCurrency(reserva.montoPactado)}` : ""}
           </div>
         </div>
-        <button onClick={()=>{setOpen(v=>!v);setShowRepro(false);setShowPosponer(false);setConfirmAction(null);}} style={{background:open?"#7C3AED":"#EDE0D0",border:"none",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:open?"#FFF":"#8B7355",flexShrink:0,transition:"all 0.15s"}}>
+        <button onClick={()=>{setOpen(v=>!v);setShowRepro(false);setShowPosponer(false);setConfirmAction(null);}} style={{background:open?"#7C3AED":"var(--qb-border)",border:"none",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:14,color:open?"#FFF":"var(--qb-text2)",flexShrink:0,transition:"all 0.15s"}}>
           {open ? "✕" : "···"}
         </button>
       </div>
@@ -304,7 +304,7 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
           <button onClick={()=>setShowRepro(true)} style={{flex:1,padding:"8px 10px",background:"#EFF6FF",color:"#2563EB",border:"1px solid #93C5FD",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             📅 Reprogramar
           </button>
-          <button onClick={()=>onEditVisita(reserva)} style={{flex:1,padding:"8px 10px",background:"#FDF8F3",color:"#8B7355",border:"1px solid #EDE0D0",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
+          <button onClick={()=>onEditVisita(reserva)} style={{flex:1,padding:"8px 10px",background:"var(--qb-bg-card-alt)",color:"var(--qb-text2)",border:"1px solid #EDE0D0",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
             ✏️ Editar
           </button>
           <button onClick={()=>setConfirmAction("noconcreto")} style={{flex:1,padding:"8px 10px",background:"#FEF2F2",color:"#DC2626",border:"1px solid #FECACA",borderRadius:8,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit",minWidth:80}}>
@@ -346,7 +346,7 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
               </button>
             ))}
           </div>
-          <button onClick={()=>setShowPosponer(false)} style={{width:"100%",marginTop:6,padding:"6px",background:"none",border:"none",fontSize:11,color:"#8B7355",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+          <button onClick={()=>setShowPosponer(false)} style={{width:"100%",marginTop:6,padding:"6px",background:"none",border:"none",fontSize:11,color:"var(--qb-text2)",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
         </div>
       )}
 
@@ -393,26 +393,26 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.55)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:3000}}>
       <div style={{
-        background:"#FFF", borderRadius:"20px 20px 0 0", width:"100%", maxWidth:500,
+        background:"var(--qb-bg-card)", borderRadius:"20px 20px 0 0", width:"100%", maxWidth:500,
         maxHeight:"85vh", display:"flex", flexDirection:"column",
         boxShadow:"0 -8px 40px rgba(0,0,0,0.18)",
       }}>
         {/* Handle */}
         <div style={{display:"flex",justifyContent:"center",padding:"12px 0 0"}}>
-          <div style={{width:36,height:4,borderRadius:2,background:"#EDE0D0"}} />
+          <div style={{width:36,height:4,borderRadius:2,background:"var(--qb-border)"}} />
         </div>
 
         {/* Header */}
         <div style={{padding:"14px 20px 12px",borderBottom:"0.5px solid #EDE0D0"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
-              <div style={{fontSize:11,color:"#8B7355",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>{diaLabel}</div>
-              <div style={{fontSize:20,fontWeight:800,color:"#1C1C1E",marginTop:2}}>{saludo} 👋</div>
-              <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
+              <div style={{fontSize:11,color:"var(--qb-text2)",fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>{diaLabel}</div>
+              <div style={{fontSize:20,fontWeight:800,color:"var(--qb-text)",marginTop:2}}>{saludo} 👋</div>
+              <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>
                 {totalEventos === 0 ? "Sin eventos esta semana" : `${totalEventos} evento${totalEventos!==1?"s":""} esta semana`}
               </div>
             </div>
-            <button onClick={onClose} style={{background:"#F3F0EB",border:"none",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:"#8B7355"}}>✕</button>
+            <button onClick={onClose} style={{background:"var(--qb-bg-card-alt)",border:"none",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,color:"var(--qb-text2)"}}>✕</button>
           </div>
         </div>
 
@@ -452,14 +452,14 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
           )}
 
           {!hayAlgo && !weather && (
-            <div style={{textAlign:"center",padding:"32px 0",color:"#8B7355"}}>
+            <div style={{textAlign:"center",padding:"32px 0",color:"var(--qb-text2)"}}>
               <div style={{fontSize:40,marginBottom:8}}>✅</div>
               <div style={{fontWeight:600}}>Todo tranquilo por hoy</div>
             </div>
           )}
 
           {!hayAlgo && weather && !recHoy.length && !tareasPendientes.length && !visitasHoy.length && (
-            <div style={{textAlign:"center",padding:"16px 0",color:"#8B7355"}}>
+            <div style={{textAlign:"center",padding:"16px 0",color:"var(--qb-text2)"}}>
               <div style={{fontSize:28,marginBottom:4}}>✅</div>
               <div style={{fontWeight:600,fontSize:13}}>Sin alertas por hoy</div>
             </div>
@@ -485,7 +485,7 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
 
           {alertasHoy.length > 0 && (
             <div style={{marginBottom:16}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#C4602B",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>🔴 Hoy</div>
+              <div style={{fontSize:11,fontWeight:700,color:"var(--qb-accent)",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>🔴 Hoy</div>
               {alertasHoy.map((a,i) => <AlertaItem key={i} {...a} />)}
             </div>
           )}
@@ -517,7 +517,7 @@ export default function DailyBriefing({ reservas, clientes, pagos, extrasReserva
         {/* Footer */}
         <div style={{padding:"12px 20px 28px",borderTop:"0.5px solid #EDE0D0"}}>
           <button onClick={onClose} style={{
-            width:"100%",padding:"13px",background:"#C4602B",color:"#FFF",border:"none",
+            width:"100%",padding:"13px",background:"var(--qb-accent)",color:"#FFF",border:"none",
             borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",fontFamily:"inherit",
           }}>Entendido ✓</button>
         </div>

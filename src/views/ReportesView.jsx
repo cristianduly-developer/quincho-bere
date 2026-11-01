@@ -243,41 +243,41 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   return (
     <div style={{padding:"16px 16px 100px"}}>
 
-      <div style={{display:"flex",gap:0,marginBottom:14,borderBottom:"1px solid #EDE0D0",background:"#FDF8F3",borderRadius:"10px 10px 0 0",overflow:"hidden"}}>
+      <div style={{display:"flex",gap:0,marginBottom:14,borderBottom:"1px solid var(--qb-border)",background:"var(--qb-bg-card-alt)",borderRadius:"10px 10px 0 0",overflow:"hidden"}}>
         {[{v:"financiero",l:"💰 Financiero"},{v:"captacion",l:"📊 Captación"},{v:"portal",l:"📱 Portal"}].map(o=>(
-          <button key={o.v} onClick={()=>setSubtab(o.v)} style={{flex:1,padding:"11px 0",fontWeight:600,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:"transparent",color:subtab===o.v?"#C4602B":"#8B7355",borderBottom:"2px solid "+(subtab===o.v?"#C4602B":"transparent"),transition:"all 0.15s"}}>{o.l}</button>
+          <button key={o.v} onClick={()=>setSubtab(o.v)} style={{flex:1,padding:"11px 0",fontWeight:600,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:"transparent",color:subtab===o.v?"var(--qb-accent)":"var(--qb-text2)",borderBottom:"2px solid "+(subtab===o.v?"var(--qb-accent)":"transparent"),transition:"all 0.15s"}}>{o.l}</button>
         ))}
       </div>
 
       {subtab==="financiero" && <>
       {/* Selector de modo */}
-      <div style={{display:"flex",gap:0,marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px solid #EDE0D0"}}>
+      <div style={{display:"flex",gap:0,marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px solid var(--qb-border)"}}>
         {[{v:"mes",l:"📅 Por mes"},{v:"rango",l:"📆 Por fechas"}].map(o=>(
-          <button key={o.v} onClick={()=>setModo(o.v)} style={{flex:1,padding:"10px 0",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:modo===o.v?"#C4602B":"#FDF8F3",color:modo===o.v?"#FFF":"#8B7355",transition:"all 0.15s"}}>{o.l}</button>
+          <button key={o.v} onClick={()=>setModo(o.v)} style={{flex:1,padding:"10px 0",fontWeight:700,fontSize:13,border:"none",cursor:"pointer",fontFamily:"inherit",background:modo===o.v?"var(--qb-accent)":"var(--qb-bg-card-alt)",color:modo===o.v?"#FFF":"var(--qb-text2)",transition:"all 0.15s"}}>{o.l}</button>
         ))}
       </div>
 
       {modo==="mes" && (
         <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
           <button onClick={()=>{if(selMonth===0){setSelMonth(11);setSelYear(y=>y-1);}else setSelMonth(m=>m-1);}}
-            style={{background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:16}}>‹</button>
-          <div style={{...card,flex:1,padding:"9px 14px",textAlign:"center",fontWeight:700,fontSize:14,color:"#1C1C1E"}}>{MONTHS[selMonth]} {selYear}</div>
+            style={{background:"var(--qb-bg-card-alt)",border:"1px solid var(--qb-border)",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:16}}>‹</button>
+          <div style={{...card,flex:1,padding:"9px 14px",textAlign:"center",fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>{MONTHS[selMonth]} {selYear}</div>
           <button onClick={()=>{if(selMonth===11){setSelMonth(0);setSelYear(y=>y+1);}else setSelMonth(m=>m+1);}}
-            style={{background:"#FDF8F3",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:16}}>›</button>
+            style={{background:"var(--qb-bg-card-alt)",border:"1px solid var(--qb-border)",borderRadius:8,padding:"8px 12px",cursor:"pointer",fontSize:16}}>›</button>
         </div>
       )}
 
       {modo==="rango" && (
         <div style={{display:"flex",gap:8,marginBottom:16,alignItems:"center"}}>
           <div style={{flex:1}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>DESDE</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",marginBottom:4}}>DESDE</div>
             <input type="date" value={desde} onChange={e=>setDesde(e.target.value)}
-              style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 10px",fontSize:13,fontFamily:"inherit",color:"#1C1C1E",background:"#FDF8F3"}} />
+              style={{width:"100%",boxSizing:"border-box",border:"1px solid var(--qb-border)",borderRadius:8,padding:"8px 10px",fontSize:13,fontFamily:"inherit",color:"var(--qb-text)",background:"var(--qb-bg-card-alt)"}} />
           </div>
           <div style={{flex:1}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:4}}>HASTA</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",marginBottom:4}}>HASTA</div>
             <input type="date" value={hasta} onChange={e=>setHasta(e.target.value)}
-              style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"8px 10px",fontSize:13,fontFamily:"inherit",color:"#1C1C1E",background:"#FDF8F3"}} />
+              style={{width:"100%",boxSizing:"border-box",border:"1px solid var(--qb-border)",borderRadius:8,padding:"8px 10px",fontSize:13,fontFamily:"inherit",color:"var(--qb-text)",background:"var(--qb-bg-card-alt)"}} />
           </div>
         </div>
       )}
@@ -285,27 +285,27 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
       {subtab==="portal" && (
         <div style={{padding:"10px 0 6px",marginBottom:8,textAlign:"center"}}>
-          <span style={{fontSize:13,fontWeight:700,color:"#8B7355"}}>📱 Portales activos</span>
-          <span style={{fontSize:12,color:"#A89279",marginLeft:6}}>(últimos 30 días + próximos eventos)</span>
+          <span style={{fontSize:13,fontWeight:700,color:"var(--qb-text2)"}}>📱 Portales activos</span>
+          <span style={{fontSize:12,color:"var(--qb-text2)",marginLeft:6}}>(últimos 30 días + próximos eventos)</span>
         </div>
       )}
 
       {subtab==="financiero" && <>
-      <button onClick={generarPDF} style={{width:"100%",padding:"13px",background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>📄 Generar PDF / Imprimir reporte</button>
+      <button onClick={generarPDF} style={{width:"100%",padding:"13px",background:"var(--qb-accent)",color:"#FFF",border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>📄 Generar PDF / Imprimir reporte</button>
 
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
         <div style={{...card,padding:"14px 16px"}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Ingresos</div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Ingresos</div>
           <div style={{fontSize:26,fontWeight:800,color:"#16A34A",fontFamily:"'Playfair Display',serif"}}>{fmtCurrency(ingresos)}</div>
-          <div style={{marginTop:8,borderTop:"1px solid #EDE0D0",paddingTop:6,display:"flex",flexDirection:"column",gap:3}}>
+          <div style={{marginTop:8,borderTop:"1px solid var(--qb-border)",paddingTop:6,display:"flex",flexDirection:"column",gap:3}}>
             <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}><span>💵 Efectivo</span><span style={{fontWeight:700,color:"#16A34A"}}>{fmtCurrency(ingEfectivo)}</span></div>
             <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}><span>🏦 Transf.</span><span style={{fontWeight:700,color:"#16A34A"}}>{fmtCurrency(ingTransf)}</span></div>
           </div>
         </div>
         <div style={{...card,padding:"14px 16px"}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Gastos</div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Gastos</div>
           <div style={{fontSize:26,fontWeight:800,color:"#DC2626",fontFamily:"'Playfair Display',serif"}}>{fmtCurrency(gastosTotal)}</div>
-          <div style={{marginTop:8,borderTop:"1px solid #EDE0D0",paddingTop:6,display:"flex",flexDirection:"column",gap:3}}>
+          <div style={{marginTop:8,borderTop:"1px solid var(--qb-border)",paddingTop:6,display:"flex",flexDirection:"column",gap:3}}>
             <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}><span>💵 Efectivo</span><span style={{fontWeight:700,color:"#DC2626"}}>{fmtCurrency(gstEfectivo)}</span></div>
             <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}><span>🏦 Transf.</span><span style={{fontWeight:700,color:"#DC2626"}}>{fmtCurrency(gstTransf)}</span></div>
           </div>
@@ -339,42 +339,42 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
             <div onClick={()=>setDesgloseOpen(v=>!v)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase"}}>💰 Desglose de ingresos</div>
-              <span style={{fontSize:14,color:"#8B7355",transition:"transform 0.2s",transform:desgloseOpen?"rotate(180deg)":"rotate(0deg)"}}>▾</span>
+              <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase"}}>💰 Desglose de ingresos</div>
+              <span style={{fontSize:14,color:"var(--qb-text2)",transition:"transform 0.2s",transform:desgloseOpen?"rotate(180deg)":"rotate(0deg)"}}>▾</span>
             </div>
-            {!desgloseOpen && <div style={{fontSize:11,color:"#A8A29E",marginTop:4}}>Tocá para ver el detalle de los cobros</div>}
+            {!desgloseOpen && <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:4}}>Tocá para ver el detalle de los cobros</div>}
 
             {desgloseOpen && <>
-              <div style={{fontSize:11,color:"#A8A29E",marginTop:8,marginBottom:12}}>¿De dónde viene la plata cobrada este período?</div>
+              <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:8,marginBottom:12}}>¿De dónde viene la plata cobrada este período?</div>
 
               {conceptoEntries.length > 1 && <>
-                <div style={{fontSize:10,fontWeight:700,color:"#8B7355",marginBottom:6}}>POR CONCEPTO</div>
+                <div style={{fontSize:10,fontWeight:700,color:"var(--qb-text2)",marginBottom:6}}>POR CONCEPTO</div>
                 {conceptoEntries.map(([concepto, monto]) => {
                   const pct = Math.round((monto / ingresos) * 100);
                   return (
                     <div key={concepto} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                      <div style={{flex:1,fontSize:12,color:"#1C1C1E"}}>{concepto}</div>
+                      <div style={{flex:1,fontSize:12,color:"var(--qb-text)"}}>{concepto}</div>
                       <div style={{fontSize:12,fontWeight:700,color:"#16A34A"}}>{fmtCurrency(monto)}</div>
-                      <div style={{width:36,fontSize:10,color:"#8B7355",textAlign:"right"}}>{pct}%</div>
+                      <div style={{width:36,fontSize:10,color:"var(--qb-text2)",textAlign:"right"}}>{pct}%</div>
                     </div>
                   );
                 })}
-                <div style={{borderTop:"1px solid #EDE0D0",marginTop:8,marginBottom:10}} />
+                <div style={{borderTop:"1px solid var(--qb-border)",marginTop:8,marginBottom:10}} />
               </>}
 
-              <div style={{fontSize:10,fontWeight:700,color:"#8B7355",marginBottom:6}}>POR RESERVA</div>
+              <div style={{fontSize:10,fontWeight:700,color:"var(--qb-text2)",marginBottom:6}}>POR RESERVA</div>
               {reservaEntries.map((re,i) => (
-                <div key={i} style={{padding:"8px 0",borderBottom:i<reservaEntries.length-1?"1px solid #F5EDE4":"none"}}>
+                <div key={i} style={{padding:"8px 0",borderBottom:i<reservaEntries.length-1?"1px solid var(--qb-border-light)":"none"}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <div>
-                      <div style={{fontSize:12,fontWeight:600,color:"#1C1C1E"}}>{re.nombre}</div>
-                      <div style={{fontSize:10,color:"#8B7355"}}>Cobro: {fmtDate(re.pagos[re.pagos.length-1]?.fecha)}{re.fecha ? ` · Evento: ${fmtDate(re.fecha)}` : ""}</div>
+                      <div style={{fontSize:12,fontWeight:600,color:"var(--qb-text)"}}>{re.nombre}</div>
+                      <div style={{fontSize:10,color:"var(--qb-text2)"}}>Cobro: {fmtDate(re.pagos[re.pagos.length-1]?.fecha)}{re.fecha ? ` · Evento: ${fmtDate(re.fecha)}` : ""}</div>
                     </div>
                     <div style={{fontWeight:800,fontSize:14,color:"#16A34A"}}>{fmtCurrency(re.total)}</div>
                   </div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
                     {re.pagos.map((p,j) => (
-                      <span key={j} style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"#F0FDF4",color:"#16A34A",border:"1px solid #BBF7D0"}}>
+                      <span key={j} style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:"var(--qb-cobro-bg)",color:"#16A34A",border:"1px solid var(--qb-cobro-border)"}}>
                         {p.concepto} · {fmtCurrency(p.monto)} · {p.metodo==="Efectivo"?"💵":"🏦"} · {fmtDate(p.fecha)}
                       </span>
                     ))}
@@ -388,12 +388,12 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
       <div style={{...card,padding:"14px 16px",marginBottom:10}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-          <div><div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:4}}>Ganancia Neta</div>
+          <div><div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:4}}>Ganancia Neta</div>
           <div style={{fontSize:28,fontWeight:800,fontFamily:"'Playfair Display',serif",color:ganancia>=0?"#16A34A":"#DC2626"}}>{fmtCurrency(Math.abs(ganancia))}</div></div>
           <div style={{textAlign:"right"}}>
-            <div style={{fontSize:11,color:"#8B7355",marginBottom:4}}>Caja física</div>
+            <div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:4}}>Caja física</div>
             <div style={{fontWeight:700,fontSize:16,color:cajaFisica>=0?"#16A34A":"#DC2626"}}>{fmtCurrency(cajaFisica)}</div>
-            <div style={{fontSize:11,color:"#8B7355",marginTop:6,marginBottom:2}}>Cuentas banco</div>
+            <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:6,marginBottom:2}}>Cuentas banco</div>
             <div style={{fontWeight:700,fontSize:16,color:cuentas>=0?"#16A34A":"#DC2626"}}>{fmtCurrency(cuentas)}</div>
           </div>
         </div>
@@ -407,14 +407,14 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         const promedio = monthRes.length>0 ? Math.round(facturacion/monthRes.length) : 0;
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10,border:"1.5px solid #D4A574"}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>🏠 Rendimiento del período</div>
-            <div style={{fontSize:11,color:"#A8A29E",marginBottom:12}}>Eventos que ocurrieron en este período y cuánto facturaron</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:10}}>🏠 Rendimiento del período</div>
+            <div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:12}}>Eventos que ocurrieron en este período y cuánto facturaron</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-              <div style={{background:"#FDF8F3",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid #EDE0D0"}}>
-                <div style={{fontSize:24,fontWeight:800,color:"#C4602B"}}>{monthRes.length}</div>
-                <div style={{fontSize:10,color:"#8B7355",fontWeight:600}}>Alquileres</div>
+              <div style={{background:"var(--qb-bg-card-alt)",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid var(--qb-border)"}}>
+                <div style={{fontSize:24,fontWeight:800,color:"var(--qb-accent)"}}>{monthRes.length}</div>
+                <div style={{fontSize:10,color:"var(--qb-text2)",fontWeight:600}}>Alquileres</div>
               </div>
-              <div style={{background:"#F0FDF4",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid #BBF7D0"}}>
+              <div style={{background:"var(--qb-cobro-bg)",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid var(--qb-cobro-border)"}}>
                 <div style={{fontSize:20,fontWeight:800,color:"#16A34A"}}>{fmtCurrency(facturacion)}</div>
                 <div style={{fontSize:10,color:"#16A34A",fontWeight:600}}>Facturación total</div>
               </div>
@@ -424,11 +424,11 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 <div style={{fontSize:14,fontWeight:800,color:"#2563EB"}}>{fmtCurrency(promedio)}</div>
                 <div style={{fontSize:9,color:"#2563EB",fontWeight:600}}>Promedio</div>
               </div>
-              <div style={{background:"#F0FDF4",borderRadius:10,padding:"8px 6px",textAlign:"center",border:"1px solid #BBF7D0"}}>
+              <div style={{background:"var(--qb-cobro-bg)",borderRadius:10,padding:"8px 6px",textAlign:"center",border:"1px solid var(--qb-cobro-border)"}}>
                 <div style={{fontSize:14,fontWeight:800,color:"#16A34A"}}>{fmtCurrency(cobrado)}</div>
                 <div style={{fontSize:9,color:"#16A34A",fontWeight:600}}>Cobrado</div>
               </div>
-              <div style={{background:pendiente>0?"#FEF3C7":"#F0FDF4",borderRadius:10,padding:"8px 6px",textAlign:"center",border:`1px solid ${pendiente>0?"#FCD34D":"#BBF7D0"}`}}>
+              <div style={{background:pendiente>0?"#FEF3C7":"var(--qb-cobro-bg)",borderRadius:10,padding:"8px 6px",textAlign:"center",border:`1px solid ${pendiente>0?"#FCD34D":"var(--qb-cobro-border)"}`}}>
                 <div style={{fontSize:14,fontWeight:800,color:pendiente>0?"#D97706":"#16A34A"}}>{fmtCurrency(pendiente)}</div>
                 <div style={{fontSize:9,color:pendiente>0?"#D97706":"#16A34A",fontWeight:600}}>Pendiente</div>
               </div>
@@ -439,13 +439,13 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
       {isFutureMonth ? (
         <div style={{...card,padding:"14px 16px",marginBottom:10,border:"2px solid #C4602B"}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#C4602B",textTransform:"uppercase",marginBottom:4}}>📈 Proyección de caja</div>
-          <div style={{fontSize:24,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif"}}>{fmtCurrency(proyeccion)}</div>
-          <div style={{fontSize:11,color:"#8B7355",marginTop:4}}>Saldo pendiente de {monthRes.length} reserva{monthRes.length!==1?"s":""} confirmadas</div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--qb-accent)",textTransform:"uppercase",marginBottom:4}}>📈 Proyección de caja</div>
+          <div style={{fontSize:24,fontWeight:800,color:"var(--qb-accent)",fontFamily:"'Playfair Display',serif"}}>{fmtCurrency(proyeccion)}</div>
+          <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:4}}>Saldo pendiente de {monthRes.length} reserva{monthRes.length!==1?"s":""} confirmadas</div>
         </div>
       ) : porCobrar>0 && (
         <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:4}}>⚠️ Por cobrar</div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:4}}>⚠️ Por cobrar</div>
           <div style={{fontSize:24,fontWeight:800,color:"#D97706",fontFamily:"'Playfair Display',serif"}}>{fmtCurrency(porCobrar)}</div>
         </div>
       )}
@@ -489,18 +489,18 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         const hasYoy=yoyOcc.size>0;
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>📊 Ocupación del mes</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:10}}>📊 Ocupación del mes</div>
             <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:12}}>
               <div style={{position:"relative",width:72,height:72,flexShrink:0}}>
                 <svg viewBox="0 0 36 36" style={{width:72,height:72,transform:"rotate(-90deg)"}}>
-                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="#EDE0D0" strokeWidth="3"/>
+                  <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--qb-border)" strokeWidth="3"/>
                   <circle cx="18" cy="18" r="15.5" fill="none" stroke={pct>=70?"#16A34A":pct>=40?"#D97706":"#DC2626"} strokeWidth="3"
                     strokeDasharray={`${pct*0.974} 100`} strokeLinecap="round"/>
                 </svg>
-                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:18,color:"#1C1C1E"}}>{pct}%</div>
+                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:18,color:"var(--qb-text)"}}>{pct}%</div>
               </div>
               <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E",marginBottom:4}}>{occupiedCount} de {daysInMonth} días</div>
+                <div style={{fontSize:13,fontWeight:700,color:"var(--qb-text)",marginBottom:4}}>{occupiedCount} de {daysInMonth} días</div>
                 <div style={{fontSize:12,color:"#16A34A",fontWeight:600}}>{libre} días libres</div>
                 {diff!==0&&<div style={{fontSize:11,color:diff>0?"#16A34A":"#DC2626",marginTop:4,fontWeight:600}}>
                   {diff>0?"▲":"▼"} {Math.abs(diff)}% vs mes anterior ({prevPct}%)
@@ -510,10 +510,10 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 </div>}
               </div>
             </div>
-            <div style={{height:8,background:"#EDE0D0",borderRadius:4,overflow:"hidden"}}>
+            <div style={{height:8,background:"var(--qb-border)",borderRadius:4,overflow:"hidden"}}>
               <div style={{height:"100%",width:pct+"%",background:pct>=70?"#16A34A":pct>=40?"#D97706":"#DC2626",borderRadius:4,transition:"width .3s"}}/>
             </div>
-            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"#8B7355"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"var(--qb-text2)"}}>
               <span>0%</span><span>50%</span><span>100%</span>
             </div>
           </div>
@@ -523,28 +523,28 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
         {avgLead!==null&&(
           <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Anticipación promedio</div>
-            <div style={{fontSize:28,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif"}}>{avgLead}</div>
-            <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>días de anticipación</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Anticipación promedio</div>
+            <div style={{fontSize:28,fontWeight:800,color:"var(--qb-accent)",fontFamily:"'Playfair Display',serif"}}>{avgLead}</div>
+            <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>días de anticipación</div>
           </div>
         )}
         <div style={{...card,padding:"14px 16px"}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:4}}>Reservas por turno</div>
-          <div style={{fontSize:20,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif",marginBottom:8}}>{monthRes.length} <span style={{fontSize:12,color:"#8B7355",fontWeight:400}}>total mes</span></div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:4}}>Reservas por turno</div>
+          <div style={{fontSize:20,fontWeight:800,color:"var(--qb-accent)",fontFamily:"'Playfair Display',serif",marginBottom:8}}>{monthRes.length} <span style={{fontSize:12,color:"var(--qb-text2)",fontWeight:400}}>total mes</span></div>
           {(()=>{
             const porT={};
             monthRes.forEach(r=>{ const k=getTurnoNombre(r); porT[k]=(porT[k]||0)+1; });
             return Object.entries(porT).sort((a,b)=>b[1]-a[1]).map(([nombre,cant])=>(
               <div key={nombre} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <span style={{fontSize:12,color:"#1C1C1E"}}>📌 {nombre}</span>
-                <span style={{fontWeight:700,fontSize:14,color:"#C4602B"}}>{cant}</span>
+                <span style={{fontSize:12,color:"var(--qb-text)"}}>📌 {nombre}</span>
+                <span style={{fontWeight:700,fontSize:14,color:"var(--qb-accent)"}}>{cant}</span>
               </div>
             ));
           })()}
           {ticketPromedio!==null&&(
-            <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #EDE0D0"}}>
-              <div style={{fontSize:11,color:"#8B7355"}}>Ticket promedio</div>
-              <div style={{fontWeight:800,fontSize:16,color:"#1C1C1E"}}>{fmtCurrency(ticketPromedio)}</div>
+            <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid var(--qb-border)"}}>
+              <div style={{fontSize:11,color:"var(--qb-text2)"}}>Ticket promedio</div>
+              <div style={{fontWeight:800,fontSize:16,color:"var(--qb-text)"}}>{fmtCurrency(ticketPromedio)}</div>
             </div>
           )}
         </div>
@@ -558,10 +558,10 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         if(items.length===0 || (items.length===1 && items[0][0]==="Sin especificar")) return null;
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:8}}>🎉 Por tipo de evento</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:8}}>🎉 Por tipo de evento</div>
             {items.map(([tipo,cant])=>(
               <div key={tipo} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <span style={{fontSize:12,color:"#1C1C1E"}}>{tipo}</span>
+                <span style={{fontSize:12,color:"var(--qb-text)"}}>{tipo}</span>
                 <span style={{fontWeight:700,fontSize:14,color:"#7C3AED"}}>{cant}</span>
               </div>
             ))}
@@ -571,12 +571,12 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
       {topCats.length>0&&(
         <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>🏆 Top 3 gastos del mes</div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:10}}>🏆 Top 3 gastos del mes</div>
           {topCats.map((c,i)=>(
-            <div key={c.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:i<topCats.length-1?"1px solid #F5EDE4":"none"}}>
+            <div key={c.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:i<topCats.length-1?"1px solid var(--qb-border-light)":"none"}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{width:20,height:20,borderRadius:10,background:["#C4602B","#D97706","#6B7280"][i],display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontSize:11,fontWeight:800}}>{i+1}</span>
-                <span style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{c.name}</span>
+                <span style={{width:20,height:20,borderRadius:10,background:["var(--qb-accent)","#D97706","#6B7280"][i],display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontSize:11,fontWeight:800}}>{i+1}</span>
+                <span style={{fontSize:13,fontWeight:600,color:"var(--qb-text)"}}>{c.name}</span>
               </div>
               <span style={{fontWeight:800,color:"#DC2626",fontSize:14}}>{fmtCurrency(c.value)}</span>
             </div>
@@ -598,9 +598,9 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         const pctExtras=monthRes.length>0?Math.round((resConExtras/monthRes.length)*100):0;
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>🎉 Extras contratados</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:10}}>🎉 Extras contratados</div>
             <div style={{display:"flex",gap:10,marginBottom:12}}>
-              <div style={{flex:1,background:"#F0FDF4",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid #BBF7D0"}}>
+              <div style={{flex:1,background:"var(--qb-cobro-bg)",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid var(--qb-cobro-border)"}}>
                 <div style={{fontSize:18,fontWeight:800,color:"#16A34A"}}>{fmtCurrency(totalExtrasIngreso)}</div>
                 <div style={{fontSize:10,color:"#16A34A",fontWeight:600}}>Ingreso extras</div>
               </div>
@@ -610,11 +610,11 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               </div>
             </div>
             {items.map(function(it){return (
-              <div key={it.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #EDE0D0",fontSize:13}}>
+              <div key={it.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid var(--qb-border)",fontSize:13}}>
                 <span>{it.name}</span>
                 <div style={{display:"flex",gap:10,alignItems:"center"}}>
                   <span style={{fontSize:12,color:"#16A34A",fontWeight:600}}>{fmtCurrency(it.ingresos)}</span>
-                  <span style={{fontWeight:700,color:"#C4602B",minWidth:50,textAlign:"right"}}>{it.total}x</span>
+                  <span style={{fontWeight:700,color:"var(--qb-accent)",minWidth:50,textAlign:"right"}}>{it.total}x</span>
                 </div>
               </div>
             );})}
@@ -642,8 +642,8 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         ];
         return (
           <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Conversión de visitas</div>
-            <div style={{fontSize:11,color:"#8B7355",marginBottom:12}}>Solo reservas que arrancaron como visita</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:12}}>📊 Conversión de visitas</div>
+            <div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:12}}>Solo reservas que arrancaron como visita</div>
             {steps.map((step,i)=>{
               const pct=totalVisitas>0?Math.round((step.count/totalVisitas)*100):0;
               const prevCount=i>0?steps[i-1].count:null;
@@ -651,22 +651,22 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               return (
                 <div key={step.label} style={{marginBottom:i<steps.length-1?8:0}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                    <span style={{fontSize:12,fontWeight:600,color:"#1C1C1E"}}>{step.label}</span>
+                    <span style={{fontSize:12,fontWeight:600,color:"var(--qb-text)"}}>{step.label}</span>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
                       {convRate!==null&&<span style={{fontSize:10,color:convRate>=50?"#16A34A":"#DC2626",fontWeight:600}}>{convRate}%</span>}
                       <span style={{fontWeight:800,fontSize:14,color:step.color}}>{step.count}</span>
                     </div>
                   </div>
-                  <div style={{height:8,background:"#EDE0D0",borderRadius:4,overflow:"hidden"}}>
+                  <div style={{height:8,background:"var(--qb-border)",borderRadius:4,overflow:"hidden"}}>
                     <div style={{height:"100%",width:pct+"%",background:step.color,borderRadius:4,transition:"width .3s",minWidth:step.count>0?4:0}}/>
                   </div>
                 </div>
               );
             })}
             {(pendientes>0||canceladas>0)&&(
-              <div style={{marginTop:10,paddingTop:8,borderTop:"1px solid #EDE0D0",display:"flex",gap:16}}>
+              <div style={{marginTop:10,paddingTop:8,borderTop:"1px solid var(--qb-border)",display:"flex",gap:16}}>
                 {pendientes>0&&<div style={{fontSize:12}}>
-                  <span style={{color:"#8B7355",fontWeight:600}}>Pendientes: </span>
+                  <span style={{color:"var(--qb-text2)",fontWeight:600}}>Pendientes: </span>
                   <span style={{fontWeight:800,color:"#EC4899"}}>{pendientes}</span>
                 </div>}
                 {canceladas>0&&<div style={{fontSize:12}}>
@@ -682,12 +682,12 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
       {/* Top clientes del mes */}
       {topClientes.length>0&&(
         <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>⭐ Top clientes del mes</div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:10}}>⭐ Top clientes del mes</div>
           {topClientes.map((c,i)=>(
-            <div key={c.nombre} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<topClientes.length-1?"1px solid #F5EDE4":"none"}}>
+            <div key={c.nombre} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:i<topClientes.length-1?"1px solid var(--qb-border-light)":"none"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{width:22,height:22,borderRadius:11,background:["#C4602B","#D97706","#6B7280"][i],display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontSize:11,fontWeight:800,flexShrink:0}}>{i+1}</span>
-                <span style={{fontSize:13,fontWeight:600,color:"#1C1C1E"}}>{c.nombre}</span>
+                <span style={{width:22,height:22,borderRadius:11,background:["var(--qb-accent)","#D97706","#6B7280"][i],display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontSize:11,fontWeight:800,flexShrink:0}}>{i+1}</span>
+                <span style={{fontSize:13,fontWeight:600,color:"var(--qb-text)"}}>{c.nombre}</span>
               </div>
               <span style={{fontWeight:800,color:"#16A34A",fontSize:14}}>{fmtCurrency(c.total)}</span>
             </div>
@@ -696,7 +696,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
       )}
 
       <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-        <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Últimos 6 meses</div>
+        <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:12}}>📊 Últimos 6 meses</div>
         <div style={{display:"flex",alignItems:"flex-end",gap:6,height:100,marginBottom:8}}>
           {last6.map((d,i)=>(
             <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
@@ -704,13 +704,13 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 <div style={{flex:1,background:"#16A34A",borderRadius:"3px 3px 0 0",height:Math.max(4,Math.round((d.ingresos/maxBar)*76))+"px"}} />
                 <div style={{flex:1,background:"#DC2626",borderRadius:"3px 3px 0 0",height:Math.max(4,Math.round((d.gastos/maxBar)*76))+"px"}} />
               </div>
-              <div style={{fontSize:9,color:"#8B7355",fontWeight:600}}>{d.mes}</div>
+              <div style={{fontSize:9,color:"var(--qb-text2)",fontWeight:600}}>{d.mes}</div>
             </div>
           ))}
         </div>
         <div style={{display:"flex",gap:12,justifyContent:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#8B7355"}}><div style={{width:10,height:10,background:"#16A34A",borderRadius:2}} />Ingresos</div>
-          <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#8B7355"}}><div style={{width:10,height:10,background:"#DC2626",borderRadius:2}} />Gastos</div>
+          <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"var(--qb-text2)"}}><div style={{width:10,height:10,background:"#16A34A",borderRadius:2}} />Ingresos</div>
+          <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"var(--qb-text2)"}}><div style={{width:10,height:10,background:"#DC2626",borderRadius:2}} />Gastos</div>
         </div>
       </div>
 
@@ -729,19 +729,19 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
         return (
           <div style={{...card,padding:"14px 16px",marginTop:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📩 Embudo de consultas</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:12}}>📩 Embudo de consultas</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
               <div style={{textAlign:"center",background:"#E0F2FE",borderRadius:10,padding:"10px 6px",border:"1px solid #BAE6FD"}}>
                 <div style={{fontSize:22,fontWeight:800,color:"#0284C7"}}>{totalCons}</div>
                 <div style={{fontSize:10,fontWeight:600,color:"#0284C7"}}>Consultas</div>
               </div>
-              <div style={{textAlign:"center",background:"#F0FDF4",borderRadius:10,padding:"10px 6px",border:"1px solid #BBF7D0"}}>
+              <div style={{textAlign:"center",background:"var(--qb-cobro-bg)",borderRadius:10,padding:"10px 6px",border:"1px solid var(--qb-cobro-border)"}}>
                 <div style={{fontSize:22,fontWeight:800,color:"#16A34A"}}>{reservasRango}</div>
                 <div style={{fontSize:10,fontWeight:600,color:"#16A34A"}}>Reservas</div>
               </div>
-              <div style={{textAlign:"center",background:"#FDF8F3",borderRadius:10,padding:"10px 6px",border:"1px solid #EDE0D0"}}>
-                <div style={{fontSize:22,fontWeight:800,color:"#C4602B"}}>{conversion}%</div>
-                <div style={{fontSize:10,fontWeight:600,color:"#C4602B"}}>Conversión</div>
+              <div style={{textAlign:"center",background:"var(--qb-bg-card-alt)",borderRadius:10,padding:"10px 6px",border:"1px solid var(--qb-border)"}}>
+                <div style={{fontSize:22,fontWeight:800,color:"var(--qb-accent)"}}>{conversion}%</div>
+                <div style={{fontSize:10,fontWeight:600,color:"var(--qb-accent)"}}>Conversión</div>
               </div>
             </div>
             {gastoPub > 0 && (
@@ -756,7 +756,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 </div>
               </div>
             )}
-            <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:8}}>POR CANAL</div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",marginBottom:8}}>POR CANAL</div>
             {canales.map(([canal, cnt]) => {
               const pct = Math.round((cnt / totalCons) * 100);
               const resCanal = reservas.filter(r => {
@@ -767,10 +767,10 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               return (
                 <div key={canal} style={{marginBottom:8}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-                    <span style={{fontSize:12,color:"#1C1C1E"}}>{canal}</span>
+                    <span style={{fontSize:12,color:"var(--qb-text)"}}>{canal}</span>
                     <span style={{fontSize:12,fontWeight:700,color:"#0284C7"}}>{cnt} consultas → {resCanal} reservas</span>
                   </div>
-                  <div style={{height:6,background:"#EDE0D0",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:6,background:"var(--qb-border)",borderRadius:3,overflow:"hidden"}}>
                     <div style={{height:"100%",width:pct+"%",background:"#0284C7",borderRadius:3}} />
                   </div>
                 </div>
@@ -830,64 +830,64 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
         return <>
           <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
-            <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 12}}>📊 Resumen de captación</div>
+            <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 12}}>📊 Resumen de captación</div>
             <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12}}>
               <div style={{background: "#EFF6FF", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid #BFDBFE"}}>
                 <div style={{fontSize: 22, fontWeight: 800, color: "#2563EB"}}>{conFecha.length}</div>
                 <div style={{fontSize: 10, color: "#2563EB", fontWeight: 600}}>Reservas con fecha</div>
               </div>
-              <div style={{background: "#F0FDF4", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid #BBF7D0"}}>
+              <div style={{background: "var(--qb-cobro-bg)", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid var(--qb-cobro-border)"}}>
                 <div style={{fontSize: 22, fontWeight: 800, color: "#16A34A"}}>{promedioAnticipacion} días</div>
                 <div style={{fontSize: 10, color: "#16A34A", fontWeight: 600}}>Anticipación promedio</div>
               </div>
             </div>
             <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8}}>
-              <div style={{background: "#FDF8F3", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid #EDE0D0"}}>
-                <div style={{fontSize: 16, fontWeight: 800, color: "#C4602B"}}>{DIAS_SEMANA[mejorDia]}</div>
-                <div style={{fontSize: 10, color: "#8B7355", fontWeight: 600}}>Mejor día para publicar</div>
+              <div style={{background: "var(--qb-bg-card-alt)", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid var(--qb-border)"}}>
+                <div style={{fontSize: 16, fontWeight: 800, color: "var(--qb-accent)"}}>{DIAS_SEMANA[mejorDia]}</div>
+                <div style={{fontSize: 10, color: "var(--qb-text2)", fontWeight: 600}}>Mejor día para publicar</div>
               </div>
-              <div style={{background: "#FDF8F3", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid #EDE0D0"}}>
-                <div style={{fontSize: 16, fontWeight: 800, color: "#C4602B"}}>{mejorHora}:00 hs</div>
-                <div style={{fontSize: 10, color: "#8B7355", fontWeight: 600}}>Mejor hora para publicar</div>
+              <div style={{background: "var(--qb-bg-card-alt)", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid var(--qb-border)"}}>
+                <div style={{fontSize: 16, fontWeight: 800, color: "var(--qb-accent)"}}>{mejorHora}:00 hs</div>
+                <div style={{fontSize: 10, color: "var(--qb-text2)", fontWeight: 600}}>Mejor hora para publicar</div>
               </div>
             </div>
           </div>
 
           <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
-            <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>📅 Día que más reservan</div>
-            <div style={{fontSize: 11, color: "#A8A29E", marginBottom: 12}}>¿Qué día de la semana la gente hace más reservas?</div>
+            <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 10}}>📅 Día que más reservan</div>
+            <div style={{fontSize: 11, color: "var(--qb-text2)", marginBottom: 12}}>¿Qué día de la semana la gente hace más reservas?</div>
             {DIAS_SEMANA.map((dia, i) => {
               const pct = Math.round((porDia[i] / maxDia) * 100);
               const esMejor = i === mejorDia && porDia[i] > 0;
               return (
                 <div key={dia} style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 6}}>
-                  <div style={{width: 70, fontSize: 12, fontWeight: esMejor ? 800 : 500, color: esMejor ? "#C4602B" : "#1C1C1E"}}>{dia.slice(0,3)}</div>
-                  <div style={{flex: 1, height: 18, background: "#EDE0D0", borderRadius: 4, overflow: "hidden"}}>
-                    <div style={{height: "100%", width: pct + "%", background: esMejor ? "#C4602B" : "#D4A574", borderRadius: 4, transition: "width 0.3s"}} />
+                  <div style={{width: 70, fontSize: 12, fontWeight: esMejor ? 800 : 500, color: esMejor ? "var(--qb-accent)" : "var(--qb-text)"}}>{dia.slice(0,3)}</div>
+                  <div style={{flex: 1, height: 18, background: "var(--qb-border)", borderRadius: 4, overflow: "hidden"}}>
+                    <div style={{height: "100%", width: pct + "%", background: esMejor ? "var(--qb-accent)" : "var(--qb-accent-light)", borderRadius: 4, transition: "width 0.3s"}} />
                   </div>
-                  <div style={{width: 30, fontSize: 12, fontWeight: 700, color: esMejor ? "#C4602B" : "#8B7355", textAlign: "right"}}>{porDia[i]}</div>
+                  <div style={{width: 30, fontSize: 12, fontWeight: 700, color: esMejor ? "var(--qb-accent)" : "var(--qb-text2)", textAlign: "right"}}>{porDia[i]}</div>
                 </div>
               );
             })}
           </div>
 
           <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
-            <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>🕐 Hora que más reservan</div>
-            <div style={{fontSize: 11, color: "#A8A29E", marginBottom: 12}}>¿A qué hora del día la gente crea la reserva?</div>
+            <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 10}}>🕐 Hora que más reservan</div>
+            <div style={{fontSize: 11, color: "var(--qb-text2)", marginBottom: 12}}>¿A qué hora del día la gente crea la reserva?</div>
             <div style={{display: "flex", alignItems: "flex-end", gap: 2, height: 100}}>
               {porHora.map((count, h) => {
                 const pct = maxHora > 0 ? (count / maxHora) * 100 : 0;
                 const esMejor = h === mejorHora && count > 0;
                 return (
                   <div key={h} style={{flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2}}>
-                    <div style={{width: "100%", height: Math.max(pct, 2), background: esMejor ? "#C4602B" : count > 0 ? "#D4A574" : "#EDE0D0", borderRadius: "3px 3px 0 0", transition: "height 0.3s"}} />
+                    <div style={{width: "100%", height: Math.max(pct, 2), background: esMejor ? "var(--qb-accent)" : count > 0 ? "var(--qb-accent-light)" : "var(--qb-border)", borderRadius: "3px 3px 0 0", transition: "height 0.3s"}} />
                   </div>
                 );
               })}
             </div>
             <div style={{display: "flex", gap: 2, marginTop: 4}}>
               {porHora.map((_, h) => (
-                <div key={h} style={{flex: 1, textAlign: "center", fontSize: 7, color: h === mejorHora ? "#C4602B" : "#A8A29E", fontWeight: h === mejorHora ? 800 : 400}}>{h % 3 === 0 ? h : ""}</div>
+                <div key={h} style={{flex: 1, textAlign: "center", fontSize: 7, color: h === mejorHora ? "var(--qb-accent)" : "var(--qb-text2)", fontWeight: h === mejorHora ? 800 : 400}}>{h % 3 === 0 ? h : ""}</div>
               ))}
             </div>
           </div>
@@ -906,38 +906,38 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             const mejorTercio = tercios.reduce((best, t) => t.count > best.count ? t : best, tercios[0]);
             return conFecha.length > 0 ? (
               <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
-                <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>📆 Momento del mes</div>
-                <div style={{fontSize: 11, color: "#A8A29E", marginBottom: 12}}>¿En qué parte del mes la gente reserva más?</div>
+                <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 10}}>📆 Momento del mes</div>
+                <div style={{fontSize: 11, color: "var(--qb-text2)", marginBottom: 12}}>¿En qué parte del mes la gente reserva más?</div>
                 {tercios.map(t => {
                   const pct = Math.round((t.count / maxT) * 100);
                   const esMejor = t === mejorTercio && t.count > 0;
                   return (
                     <div key={t.label} style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
-                      <div style={{width: 110, fontSize: 12, fontWeight: esMejor ? 800 : 500, color: esMejor ? "#C4602B" : "#1C1C1E"}}>{t.label}</div>
-                      <div style={{flex: 1, height: 22, background: "#EDE0D0", borderRadius: 4, overflow: "hidden"}}>
-                        <div style={{height: "100%", width: pct + "%", background: esMejor ? "#C4602B" : "#D4A574", borderRadius: 4, transition: "width 0.3s"}} />
+                      <div style={{width: 110, fontSize: 12, fontWeight: esMejor ? 800 : 500, color: esMejor ? "var(--qb-accent)" : "var(--qb-text)"}}>{t.label}</div>
+                      <div style={{flex: 1, height: 22, background: "var(--qb-border)", borderRadius: 4, overflow: "hidden"}}>
+                        <div style={{height: "100%", width: pct + "%", background: esMejor ? "var(--qb-accent)" : "var(--qb-accent-light)", borderRadius: 4, transition: "width 0.3s"}} />
                       </div>
-                      <div style={{width: 30, fontSize: 13, fontWeight: 700, color: esMejor ? "#C4602B" : "#8B7355", textAlign: "right"}}>{t.count}</div>
+                      <div style={{width: 30, fontSize: 13, fontWeight: 700, color: esMejor ? "var(--qb-accent)" : "var(--qb-text2)", textAlign: "right"}}>{t.count}</div>
                     </div>
                   );
                 })}
-                <div style={{marginTop: 8, padding: "8px 12px", background: "#FDF8F3", borderRadius: 8, border: "1px solid #EDE0D0", fontSize: 12, color: "#5C4033"}}>
-                  💡 La gente reserva más a <strong style={{color: "#C4602B"}}>{mejorTercio.label.toLowerCase()}</strong> de mes
+                <div style={{marginTop: 8, padding: "8px 12px", background: "var(--qb-bg-card-alt)", borderRadius: 8, border: "1px solid var(--qb-border)", fontSize: 12, color: "var(--qb-text3)"}}>
+                  💡 La gente reserva más a <strong style={{color: "var(--qb-accent)"}}>{mejorTercio.label.toLowerCase()}</strong> de mes
                 </div>
               </div>
             ) : null;
           })()}
 
           <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
-            <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>📈 Reservas creadas por mes</div>
+            <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 10}}>📈 Reservas creadas por mes</div>
             <div style={{display: "flex", alignItems: "flex-end", gap: 6, height: 100}}>
               {mesesData.map((m, i) => {
                 const pct = maxMes > 0 ? (m.count / maxMes) * 100 : 0;
                 return (
                   <div key={i} style={{flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4}}>
-                    <div style={{fontSize: 11, fontWeight: 700, color: "#C4602B"}}>{m.count}</div>
-                    <div style={{width: "100%", height: Math.max(pct, 4), background: "#C4602B", borderRadius: 4, transition: "height 0.3s"}} />
-                    <div style={{fontSize: 10, color: "#8B7355", fontWeight: 600}}>{m.label}</div>
+                    <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-accent)"}}>{m.count}</div>
+                    <div style={{width: "100%", height: Math.max(pct, 4), background: "var(--qb-accent)", borderRadius: 4, transition: "height 0.3s"}} />
+                    <div style={{fontSize: 10, color: "var(--qb-text2)", fontWeight: 600}}>{m.label}</div>
                   </div>
                 );
               })}
@@ -946,14 +946,14 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
           {origenEntries.length > 0 && (
             <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
-              <div style={{fontSize: 11, fontWeight: 700, color: "#8B7355", textTransform: "uppercase", marginBottom: 10}}>📣 Canal de origen</div>
-              <div style={{fontSize: 11, color: "#A8A29E", marginBottom: 12}}>¿De dónde vienen los clientes que reservan?</div>
+              <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 10}}>📣 Canal de origen</div>
+              <div style={{fontSize: 11, color: "var(--qb-text2)", marginBottom: 12}}>¿De dónde vienen los clientes que reservan?</div>
               {origenEntries.map(([origen, count]) => {
                 const pct = Math.round((count / maxOrigen) * 100);
                 return (
                   <div key={origen} style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 6}}>
-                    <div style={{width: 100, fontSize: 12, fontWeight: 600, color: "#1C1C1E"}}>{origen}</div>
-                    <div style={{flex: 1, height: 18, background: "#EDE0D0", borderRadius: 4, overflow: "hidden"}}>
+                    <div style={{width: 100, fontSize: 12, fontWeight: 600, color: "var(--qb-text)"}}>{origen}</div>
+                    <div style={{flex: 1, height: 18, background: "var(--qb-border)", borderRadius: 4, overflow: "hidden"}}>
                       <div style={{height: "100%", width: pct + "%", background: "#7C3AED", borderRadius: 4}} />
                     </div>
                     <div style={{width: 30, fontSize: 12, fontWeight: 700, color: "#7C3AED", textAlign: "right"}}>{count}</div>
@@ -966,8 +966,8 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           {conFecha.length === 0 && (
             <div style={{...card, padding: "40px 20px", textAlign: "center"}}>
               <div style={{fontSize: 36, marginBottom: 8}}>📊</div>
-              <div style={{fontWeight: 600, color: "#8B7355"}}>Aún no hay datos de captación</div>
-              <div style={{fontSize: 12, color: "#A8A29E", marginTop: 4}}>Las reservas creadas irán apareciendo acá</div>
+              <div style={{fontWeight: 600, color: "var(--qb-text2)"}}>Aún no hay datos de captación</div>
+              <div style={{fontSize: 12, color: "var(--qb-text2)", marginTop: 4}}>Las reservas creadas irán apareciendo acá</div>
             </div>
           )}
         </>;
@@ -977,7 +977,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         portalLoading ? (
           <div style={{...card,padding:"40px 20px",textAlign:"center"}}>
             <div style={{fontSize:32,marginBottom:12}}>📱</div>
-            <div style={{fontSize:14,color:"#8B7355",fontWeight:600}}>Cargando datos del portal...</div>
+            <div style={{fontSize:14,color:"var(--qb-text2)",fontWeight:600}}>Cargando datos del portal...</div>
           </div>
         ) : (()=>{
           const portalRes = reservas.filter(r => r.shareToken && r.estado !== "cancelada");
@@ -1053,52 +1053,52 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           if (totalPortales === 0) return (
             <div style={{...card,padding:"40px 20px",textAlign:"center"}}>
               <div style={{fontSize:40,marginBottom:12}}>📱</div>
-              <div style={{fontSize:16,fontWeight:700,color:"#1C1C1E",marginBottom:8}}>Sin portales activos</div>
-              <div style={{fontSize:13,color:"#8B7355"}}>Cuando generes portales para tus reservas, acá vas a ver las métricas de uso</div>
+              <div style={{fontSize:16,fontWeight:700,color:"var(--qb-text)",marginBottom:8}}>Sin portales activos</div>
+              <div style={{fontSize:13,color:"var(--qb-text2)"}}>Cuando generes portales para tus reservas, acá vas a ver las métricas de uso</div>
             </div>
           );
 
           return <>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Portales activos</div>
-                <div style={{fontSize:28,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif"}}>{totalPortales}</div>
-                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{pctAdopcion}% de reservas</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Portales activos</div>
+                <div style={{fontSize:28,fontWeight:800,color:"var(--qb-accent)",fontFamily:"'Playfair Display',serif"}}>{totalPortales}</div>
+                <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>{pctAdopcion}% de reservas</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Visitas clientes</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Visitas clientes</div>
                 <div style={{fontSize:28,fontWeight:800,color:"#059669",fontFamily:"'Playfair Display',serif"}}>{visitasCliente}</div>
-                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>aperturas mi-evento</div>
+                <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>aperturas mi-evento</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Visitas invitados</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Visitas invitados</div>
                 <div style={{fontSize:28,fontWeight:800,color:"#7C3AED",fontFamily:"'Playfair Display',serif"}}>{visitasInvitado}</div>
-                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>aperturas link compartido</div>
+                <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>aperturas link compartido</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Clicks Instagram</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Clicks Instagram</div>
                 <div style={{fontSize:28,fontWeight:800,color:"#E1306C",fontFamily:"'Playfair Display',serif"}}>{clicksInstagram}</div>
-                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>desde portales</div>
+                <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>desde portales</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>RSVPs recibidos</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>RSVPs recibidos</div>
                 <div style={{fontSize:28,fontWeight:800,color:"#3B82F6",fontFamily:"'Playfair Display',serif"}}>{totalRsvps}</div>
                 <div style={{fontSize:11,color:"#16A34A",marginTop:2}}>{rsvpConfirmados} confirmados</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Fotos subidas</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Fotos subidas</div>
                 <div style={{fontSize:28,fontWeight:800,color:"#3B82F6",fontFamily:"'Playfair Display',serif"}}>{totalFotos}</div>
-                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>por invitados</div>
+                <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>por invitados</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Sobres abiertos</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Sobres abiertos</div>
                 <div style={{fontSize:28,fontWeight:800,color:"#D97706",fontFamily:"'Playfair Display',serif"}}>{sobresAbiertos}</div>
-                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>de {sobresActivos} activos</div>
+                <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>de {sobresActivos} activos</div>
               </div>
               <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Mensajes mural</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Mensajes mural</div>
                 <div style={{fontSize:28,fontWeight:800,color:"#9333EA",fontFamily:"'Playfair Display',serif"}}>{mensajesMural}</div>
-                <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>desde sobre digital</div>
+                <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>desde sobre digital</div>
               </div>
             </div>
 
@@ -1106,29 +1106,29 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
                 {pwaInstaladas > 0 && (
                   <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                    <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>PWA instalada</div>
+                    <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>PWA instalada</div>
                     <div style={{fontSize:28,fontWeight:800,color:"#059669",fontFamily:"'Playfair Display',serif"}}>{pwaInstaladas}</div>
-                    <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>clientes la guardaron</div>
+                    <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>clientes la guardaron</div>
                   </div>
                 )}
                 {pwaAbiertas > 0 && (
                   <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                    <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>PWA aperturas</div>
+                    <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>PWA aperturas</div>
                     <div style={{fontSize:28,fontWeight:800,color:"#0891B2",fontFamily:"'Playfair Display',serif"}}>{pwaAbiertas}</div>
-                    <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>desde acceso directo</div>
+                    <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>desde acceso directo</div>
                   </div>
                 )}
                 {totalPedidos > 0 && (
                   <>
                     <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                      <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Pedidos mercado</div>
-                      <div style={{fontSize:28,fontWeight:800,color:"#C4602B",fontFamily:"'Playfair Display',serif"}}>{totalPedidos}</div>
-                      <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>desde portales</div>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Pedidos mercado</div>
+                      <div style={{fontSize:28,fontWeight:800,color:"var(--qb-accent)",fontFamily:"'Playfair Display',serif"}}>{totalPedidos}</div>
+                      <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>desde portales</div>
                     </div>
                     <div style={{...card,padding:"14px 16px",textAlign:"center"}}>
-                      <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:6}}>Ingresos mercado</div>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:6}}>Ingresos mercado</div>
                       <div style={{fontSize:28,fontWeight:800,color:"#16A34A",fontFamily:"'Playfair Display',serif"}}>{fmtCurrency(ingresosMercado)}</div>
-                      <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>facturado day-of</div>
+                      <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>facturado day-of</div>
                     </div>
                   </>
                 )}
@@ -1136,29 +1136,29 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             )}
 
             <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-              <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📊 Adopción de funciones</div>
+              <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:12}}>📊 Adopción de funciones</div>
               {secciones.map(s => {
                 const cnt = sectionCounts[s.key];
                 const pct = Math.round((cnt / totalPortales) * 100);
                 return (
                   <div key={s.key} style={{marginBottom:8}}>
                     <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                      <span style={{fontSize:12,color:"#1C1C1E"}}>{s.label}</span>
+                      <span style={{fontSize:12,color:"var(--qb-text)"}}>{s.label}</span>
                       <span style={{fontSize:12,fontWeight:700,color:pct>=50?"#16A34A":pct>=20?"#D97706":"#DC2626"}}>{pct}% ({cnt})</span>
                     </div>
-                    <div style={{height:6,background:"#EDE0D0",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:6,background:"var(--qb-border)",borderRadius:3,overflow:"hidden"}}>
                       <div style={{height:"100%",width:pct+"%",background:pct>=50?"#16A34A":pct>=20?"#D97706":"#DC2626",borderRadius:3,transition:"width .3s"}} />
                     </div>
                   </div>
                 );
               })}
-              <div style={{borderTop:"1px solid #EDE0D0",paddingTop:10,marginTop:4}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",marginBottom:8}}>PERSONALIZACIÓN</div>
+              <div style={{borderTop:"1px solid var(--qb-border)",paddingTop:10,marginTop:4}}>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",marginBottom:8}}>PERSONALIZACIÓN</div>
                 {[{l:"Foto de portada",c:conFoto},{l:"Mensaje personalizado",c:conMensaje},{l:"Nombre del evento",c:conNombre}].map(it => {
                   const pct = Math.round((it.c / totalPortales) * 100);
                   return (
                     <div key={it.l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                      <span style={{fontSize:12,color:"#1C1C1E"}}>{it.l}</span>
+                      <span style={{fontSize:12,color:"var(--qb-text)"}}>{it.l}</span>
                       <span style={{fontSize:12,fontWeight:700,color:pct>=50?"#16A34A":"#D97706"}}>{pct}% ({it.c})</span>
                     </div>
                   );
@@ -1168,19 +1168,19 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
             {eventosConPortal.length > 0 && (
               <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:12}}>📱 Engagement por evento</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:12}}>📱 Engagement por evento</div>
                 {eventosConPortal.slice(0, 10).map(ev => (
-                  <div key={ev.id} style={{padding:"10px 0",borderBottom:"1px solid #EDE0D0"}}>
+                  <div key={ev.id} style={{padding:"10px 0",borderBottom:"1px solid var(--qb-border)"}}>
                     <div style={{marginBottom:4}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E"}}>{ev.nombre}</div>
-                      <div style={{fontSize:11,color:"#8B7355"}}>{fmtDate(ev.fecha)} · {ev.cliente}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:"var(--qb-text)"}}>{ev.nombre}</div>
+                      <div style={{fontSize:11,color:"var(--qb-text2)"}}>{fmtDate(ev.fecha)} · {ev.cliente}</div>
                     </div>
                     <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
                       <span style={{fontSize:11,color:"#059669",fontWeight:600}}>👁 {ev.visitasInv + ev.visitasCli} visitas</span>
                       <span style={{fontSize:11,color:"#7C3AED",fontWeight:600}}>📋 {ev.rsvpConfirmados}/{ev.cantInvitados} RSVP</span>
                       <span style={{fontSize:11,color:"#3B82F6",fontWeight:600}}>📸 {ev.fotosCount} fotos</span>
                       {ev.sobreActivo && <span style={{fontSize:11,color:"#D97706",fontWeight:600}}>💝 Sobre activo</span>}
-                      {ev.pedidosCount > 0 && <span style={{fontSize:11,color:"#C4602B",fontWeight:600}}>🛒 {ev.pedidosCount} pedidos · {fmtCurrency(ev.pedidosTotal)}</span>}
+                      {ev.pedidosCount > 0 && <span style={{fontSize:11,color:"var(--qb-accent)",fontWeight:600}}>🛒 {ev.pedidosCount} pedidos · {fmtCurrency(ev.pedidosTotal)}</span>}
                     </div>
                   </div>
                 ))}
@@ -1189,21 +1189,21 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
             {solicitudes.length > 0 && (
               <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",marginBottom:10}}>📦 Extras solicitados desde portal</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:10}}>📦 Extras solicitados desde portal</div>
                 <div style={{display:"flex",gap:10,marginBottom:12}}>
                   <div style={{flex:1,background:"#EFF6FF",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid #BFDBFE"}}>
                     <div style={{fontSize:18,fontWeight:800,color:"#2563EB"}}>{solicitudes.length}</div>
                     <div style={{fontSize:10,color:"#2563EB",fontWeight:600}}>Total solicitudes</div>
                   </div>
-                  <div style={{flex:1,background:solicPendientes.length>0?"#FEF3C7":"#F0FDF4",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid "+(solicPendientes.length>0?"#FDE68A":"#BBF7D0")}}>
+                  <div style={{flex:1,background:solicPendientes.length>0?"#FEF3C7":"var(--qb-cobro-bg)",borderRadius:10,padding:"10px 12px",textAlign:"center",border:"1px solid "+(solicPendientes.length>0?"#FDE68A":"var(--qb-cobro-border)")}}>
                     <div style={{fontSize:18,fontWeight:800,color:solicPendientes.length>0?"#D97706":"#16A34A"}}>{solicPendientes.length}</div>
                     <div style={{fontSize:10,color:solicPendientes.length>0?"#D97706":"#16A34A",fontWeight:600}}>Pendientes</div>
                   </div>
                 </div>
                 {Object.entries(solicPorServicio).sort((a,b)=>b[1]-a[1]).map(([srv,cnt]) => (
-                  <div key={srv} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #EDE0D0"}}>
-                    <span style={{fontSize:13,color:"#1C1C1E"}}>{srv}</span>
-                    <span style={{fontWeight:700,color:"#C4602B",fontSize:14}}>{cnt}x</span>
+                  <div key={srv} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid var(--qb-border)"}}>
+                    <span style={{fontSize:13,color:"var(--qb-text)"}}>{srv}</span>
+                    <span style={{fontWeight:700,color:"var(--qb-accent)",fontSize:14}}>{cnt}x</span>
                   </div>
                 ))}
               </div>

@@ -113,10 +113,10 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
       )}
 
       {/* Mensaje editable */}
-      <div style={{background:"#FFF",border:"0.5px solid #EDE0D0",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+      <div style={{background:"var(--qb-bg-card)",border:"0.5px solid #EDE0D0",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <div style={{fontSize:12,fontWeight:700,color:"#8B7355"}}>💬 MENSAJES DE SEGUIMIENTO</div>
-          <button onClick={()=>setEditandoMsg(p=>!p)} style={{fontSize:11,fontWeight:600,color:"#C4602B",background:"none",border:"none",cursor:"pointer",padding:0}}>
+          <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text2)"}}>💬 MENSAJES DE SEGUIMIENTO</div>
+          <button onClick={()=>setEditandoMsg(p=>!p)} style={{fontSize:11,fontWeight:600,color:"var(--qb-accent)",background:"none",border:"none",cursor:"pointer",padding:0}}>
             {editandoMsg ? "Listo ✓" : "Editar"}
           </button>
         </div>
@@ -124,19 +124,19 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
           <>
             <div style={{fontSize:11,fontWeight:600,color:"#16A34A",marginBottom:4}}>Si la fecha sigue libre:</div>
             <textarea value={msgLibre} onChange={e=>setMsgLibre(e.target.value)} rows={4}
-              style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"10px 12px",fontSize:13,fontFamily:"inherit",color:"#1C1C1E",resize:"vertical",outline:"none",marginBottom:10}} />
+              style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"10px 12px",fontSize:13,fontFamily:"inherit",color:"var(--qb-text)",resize:"vertical",outline:"none",marginBottom:10}} />
             <div style={{fontSize:11,fontWeight:600,color:"#C2410C",marginBottom:4}}>Si la fecha ya está ocupada:</div>
             <textarea value={msgOcupada} onChange={e=>setMsgOcupada(e.target.value)} rows={4}
-              style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"10px 12px",fontSize:13,fontFamily:"inherit",color:"#1C1C1E",resize:"vertical",outline:"none"}} />
+              style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"10px 12px",fontSize:13,fontFamily:"inherit",color:"var(--qb-text)",resize:"vertical",outline:"none"}} />
             <div style={{fontSize:11,color:"#9CA3AF",marginTop:4}}>
               Usá <strong>{"{nombre}"}</strong> y <strong>{"{fecha}"}</strong> — se reemplazan solos.
             </div>
-            <button onClick={()=>{setMsgLibre(MSG_SEGUIMIENTO_LIBRE);setMsgOcupada(MSG_SEGUIMIENTO_OCUPADA);}} style={{fontSize:11,color:"#8B7355",background:"none",border:"none",cursor:"pointer",padding:"4px 0 0",textDecoration:"underline"}}>
+            <button onClick={()=>{setMsgLibre(MSG_SEGUIMIENTO_LIBRE);setMsgOcupada(MSG_SEGUIMIENTO_OCUPADA);}} style={{fontSize:11,color:"var(--qb-text2)",background:"none",border:"none",cursor:"pointer",padding:"4px 0 0",textDecoration:"underline"}}>
               Restaurar mensajes originales
             </button>
           </>
         ) : (
-          <div style={{fontSize:12,color:"#8B7355"}}>
+          <div style={{fontSize:12,color:"var(--qb-text2)"}}>
             Se envía un mensaje distinto según la fecha siga libre u ocupada.
           </div>
         )}
@@ -144,14 +144,14 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
 
       {/* Resultados */}
       {potenciales.length === 0 ? (
-        <div style={{textAlign:"center",padding:"40px 0",color:"#8B7355"}}>
+        <div style={{textAlign:"center",padding:"40px 0",color:"var(--qb-text2)"}}>
           <div style={{fontSize:36,marginBottom:8}}>🟡</div>
           <div style={{fontWeight:600}}>No hay potenciales para seguimiento</div>
           <div style={{fontSize:13,marginTop:6}}>Los potenciales que no concreten aparecerán acá después de 7 días.</div>
         </div>
       ) : (
         <>
-          <div style={{fontSize:12,color:"#8B7355",marginBottom:10}}>
+          <div style={{fontSize:12,color:"var(--qb-text2)",marginBottom:10}}>
             {potenciales.length} potencial{potenciales.length!==1?"es":""} para seguimiento
           </div>
           {potenciales.map(({ reserva, cliente, recurso, fechaLibre, diasDesdeVisita }) => {
@@ -159,20 +159,20 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
             const yaContactado = contactados.has(cliente.id);
             return (
               <div key={cliente.id} style={{
-                background: yaContactado ? "#F9FFF9" : "#FFF",
-                border:`0.5px solid ${yaContactado?"#BBF7D0":"#EDE0D0"}`,
+                background: yaContactado ? "#F9FFF9" : "var(--qb-bg-card)",
+                border:`0.5px solid ${yaContactado?"#BBF7D0":"var(--qb-border)"}`,
                 borderRadius:12, marginBottom:8, padding:"13px 14px",
                 opacity: yaContactado ? 0.7 : 1,
               }}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>
+                      <span style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>
                         {yaContactado && <span style={{marginRight:4}}>✅</span>}{clientName(cliente)}
                       </span>
                       <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:99,background:"#FEF9C3",color:"#A16207",border:"1px solid #FDE68A"}}>Potencial</span>
                     </div>
-                    <div style={{fontSize:12,color:"#8B7355",marginTop:3}}>
+                    <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:3}}>
                       {recurso?.nombre||"—"} · Le interesaba {fmtDate(reserva.fecha)}
                     </div>
                     <div style={{display:"flex",gap:8,marginTop:4,flexWrap:"wrap"}}>
@@ -188,7 +188,7 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
                     {waUrl ? (
                       <a href={waUrl} target="_blank" rel="noreferrer"
                         onClick={()=>setContactados(p=>new Set([...p,cliente.id]))}
-                        style={{padding:"5px 12px",borderRadius:7,background:"#25D366",color:"#FFF",fontSize:12,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
+                        style={{padding:"5px 12px",borderRadius:7,background:"#25D366",color:"var(--qb-bg-card)",fontSize:12,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
                         💬 WA
                       </a>
                     ) : (
@@ -196,7 +196,7 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
                     )}
                     {yaContactado && (
                       <button onClick={()=>setContactados(p=>{const n=new Set(p);n.delete(cliente.id);return n;})}
-                        style={{fontSize:10,color:"#8B7355",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                        style={{fontSize:10,color:"var(--qb-text2)",background:"none",border:"none",cursor:"pointer",padding:0}}>
                         deshacer
                       </button>
                     )}
@@ -292,7 +292,7 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio,
   return (
     <div>
       {/* Sub-tabs */}
-      <div style={{display:"flex",gap:0,borderBottom:"1px solid #EDE0D0",background:"#FDF8F3"}}>
+      <div style={{display:"flex",gap:0,borderBottom:"1px solid #EDE0D0",background:"var(--qb-bg-card-alt)"}}>
         {[
           {v:"recontactos",l:"📣 Clientes anteriores"},
           {v:"seguimiento",l:`🟡 Seguimiento${countSeguimiento?` (${countSeguimiento})`:""}`},
@@ -300,8 +300,8 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio,
           <button key={o.v} onClick={()=>setSubtab(o.v)} style={{
             flex:1,padding:"10px 0",fontWeight:600,fontSize:12,border:"none",cursor:"pointer",fontFamily:"inherit",
             background:"transparent",
-            color:subtab===o.v?"#C4602B":"#8B7355",
-            borderBottom:`2px solid ${subtab===o.v?"#C4602B":"transparent"}`,
+            color:subtab===o.v?"var(--qb-accent)":"var(--qb-text2)",
+            borderBottom:`2px solid ${subtab===o.v?"var(--qb-accent)":"transparent"}`,
             transition:"all 0.15s",
           }}>{o.l}</button>
         ))}
@@ -314,36 +314,36 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio,
       {subtab === "recontactos" && (
         <div style={{padding:"16px 16px 100px"}}>
           {/* Filtros */}
-          <div style={{background:"#FDF8F3",border:"0.5px solid #EDE0D0",borderRadius:12,padding:"14px 16px",marginBottom:14}}>
-            <div style={{fontSize:12,fontWeight:700,color:"#8B7355",marginBottom:10}}>MESES QUE QUERÉS LLENAR</div>
+          <div style={{background:"var(--qb-bg-card-alt)",border:"0.5px solid #EDE0D0",borderRadius:12,padding:"14px 16px",marginBottom:14}}>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text2)",marginBottom:10}}>MESES QUE QUERÉS LLENAR</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
               {MESES.map((l,i) => (
                 <button key={i} onClick={()=>toggleMes(i)} style={{
                   padding:"5px 10px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",
-                  border:`1px solid ${mesesSel.includes(i)?"#C4602B":"#EDE0D0"}`,
-                  background:mesesSel.includes(i)?"#C4602B":"#FFF",
-                  color:mesesSel.includes(i)?"#FFF":"#8B7355",
+                  border:`1px solid ${mesesSel.includes(i)?"var(--qb-accent)":"var(--qb-border)"}`,
+                  background:mesesSel.includes(i)?"var(--qb-accent)":"var(--qb-bg-card)",
+                  color:mesesSel.includes(i)?"var(--qb-bg-card)":"var(--qb-text2)",
                 }}>{l}</button>
               ))}
             </div>
-            <div style={{fontSize:12,fontWeight:700,color:"#8B7355",marginBottom:8}}>CALIFICACIÓN MÍNIMA</div>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text2)",marginBottom:8}}>CALIFICACIÓN MÍNIMA</div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {[{v:0,l:"Todas"},{v:3,l:"⭐⭐⭐+"},{v:4,l:"⭐⭐⭐⭐+"},{v:5,l:"⭐⭐⭐⭐⭐"}].map(o=>(
                 <button key={o.v} onClick={()=>setCalMinima(o.v)} style={{
                   padding:"5px 10px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",
-                  border:`1px solid ${calMinima===o.v?"#C4602B":"#EDE0D0"}`,
-                  background:calMinima===o.v?"#C4602B":"#FFF",
-                  color:calMinima===o.v?"#FFF":"#8B7355",
+                  border:`1px solid ${calMinima===o.v?"var(--qb-accent)":"var(--qb-border)"}`,
+                  background:calMinima===o.v?"var(--qb-accent)":"var(--qb-bg-card)",
+                  color:calMinima===o.v?"var(--qb-bg-card)":"var(--qb-text2)",
                 }}>{o.l}</button>
               ))}
             </div>
           </div>
 
           {/* Mensaje editable */}
-          <div style={{background:"#FFF",border:"0.5px solid #EDE0D0",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+          <div style={{background:"var(--qb-bg-card)",border:"0.5px solid #EDE0D0",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#8B7355"}}>💬 MENSAJE A ENVIAR</div>
-              <button onClick={()=>setEditandoMsg(p=>!p)} style={{fontSize:11,fontWeight:600,color:"#C4602B",background:"none",border:"none",cursor:"pointer",padding:0}}>
+              <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text2)"}}>💬 MENSAJE A ENVIAR</div>
+              <button onClick={()=>setEditandoMsg(p=>!p)} style={{fontSize:11,fontWeight:600,color:"var(--qb-accent)",background:"none",border:"none",cursor:"pointer",padding:0}}>
                 {editandoMsg ? "Listo ✓" : "Editar"}
               </button>
             </div>
@@ -353,17 +353,17 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio,
                   value={mensaje}
                   onChange={e=>setMensaje(e.target.value)}
                   rows={5}
-                  style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"10px 12px",fontSize:13,fontFamily:"inherit",color:"#1C1C1E",resize:"vertical",outline:"none"}}
+                  style={{width:"100%",boxSizing:"border-box",border:"1px solid #EDE0D0",borderRadius:8,padding:"10px 12px",fontSize:13,fontFamily:"inherit",color:"var(--qb-text)",resize:"vertical",outline:"none"}}
                 />
                 <div style={{fontSize:11,color:"#9CA3AF",marginTop:4}}>
                   Usá <strong>{"{nombre}"}</strong> y <strong>{"{mes}"}</strong> — se reemplazan solos por cada cliente.
                 </div>
-                <button onClick={()=>setMensaje(MSG_DEFAULT)} style={{fontSize:11,color:"#8B7355",background:"none",border:"none",cursor:"pointer",padding:"4px 0 0",textDecoration:"underline"}}>
+                <button onClick={()=>setMensaje(MSG_DEFAULT)} style={{fontSize:11,color:"var(--qb-text2)",background:"none",border:"none",cursor:"pointer",padding:"4px 0 0",textDecoration:"underline"}}>
                   Restaurar mensaje original
                 </button>
               </>
             ) : (
-              <div style={{fontSize:13,color:"#3D2B1F",whiteSpace:"pre-line",lineHeight:1.6,background:"#FDF8F3",borderRadius:8,padding:"10px 12px"}}>
+              <div style={{fontSize:13,color:"var(--qb-text3)",whiteSpace:"pre-line",lineHeight:1.6,background:"var(--qb-bg-card-alt)",borderRadius:8,padding:"10px 12px"}}>
                 {mensaje}
               </div>
             )}
@@ -371,19 +371,19 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio,
 
           {/* Resultados */}
           {mesesSel.length === 0 ? (
-            <div style={{textAlign:"center",padding:"40px 0",color:"#8B7355"}}>
+            <div style={{textAlign:"center",padding:"40px 0",color:"var(--qb-text2)"}}>
               <div style={{fontSize:36,marginBottom:8}}>📅</div>
               <div style={{fontWeight:600}}>Seleccioná al menos un mes</div>
             </div>
           ) : resultados.length === 0 ? (
-            <div style={{textAlign:"center",padding:"40px 0",color:"#8B7355"}}>
+            <div style={{textAlign:"center",padding:"40px 0",color:"var(--qb-text2)"}}>
               <div style={{fontSize:36,marginBottom:8}}>✅</div>
               <div style={{fontWeight:600}}>No hay clientes para recontactar</div>
               <div style={{fontSize:13,marginTop:6}}>Puede que ya tengan reserva este año o no haya eventos en esos meses.</div>
             </div>
           ) : (
             <>
-              <div style={{fontSize:12,color:"#8B7355",marginBottom:10}}>
+              <div style={{fontSize:12,color:"var(--qb-text2)",marginBottom:10}}>
                 {resultados.length} cliente{resultados.length!==1?"s":""} para recontactar · eventos de {new Date().getFullYear()-1}
               </div>
               {resultados.map(({ reserva, cliente, recurso }) => {
@@ -391,17 +391,17 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio,
                 const yaContactado = contactados.has(cliente.id);
                 return (
                   <div key={cliente.id} style={{
-                    background: yaContactado ? "#F9FFF9" : "#FFF",
-                    border:`0.5px solid ${yaContactado?"#BBF7D0":"#EDE0D0"}`,
+                    background: yaContactado ? "#F9FFF9" : "var(--qb-bg-card)",
+                    border:`0.5px solid ${yaContactado?"#BBF7D0":"var(--qb-border)"}`,
                     borderRadius:12, marginBottom:8, padding:"13px 14px",
                     opacity: yaContactado ? 0.7 : 1,
                   }}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E"}}>
+                        <div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>
                           {yaContactado && <span style={{marginRight:4}}>✅</span>}{clientName(cliente)}
                         </div>
-                        <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
+                        <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>
                           {recurso?.nombre||"—"} · {fmtDate(reserva.fecha)}{reserva.tipoEvento ? ` · ${reserva.tipoEvento}` : ""}
                         </div>
                         <div style={{marginTop:4}}><Estrellas n={reserva.calificacion} /></div>
@@ -410,7 +410,7 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio,
                         {waUrl ? (
                           <a href={waUrl} target="_blank" rel="noreferrer"
                             onClick={()=>setContactados(p=>new Set([...p,cliente.id]))}
-                            style={{padding:"5px 12px",borderRadius:7,background:"#25D366",color:"#FFF",fontSize:12,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
+                            style={{padding:"5px 12px",borderRadius:7,background:"#25D366",color:"var(--qb-bg-card)",fontSize:12,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>
                             💬 WA
                           </a>
                         ) : (
@@ -418,7 +418,7 @@ export default function RecontactosView({ reservas, clientes, recursos, negocio,
                         )}
                         {yaContactado && (
                           <button onClick={()=>setContactados(p=>{const n=new Set(p);n.delete(cliente.id);return n;})}
-                            style={{fontSize:10,color:"#8B7355",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                            style={{fontSize:10,color:"var(--qb-text2)",background:"none",border:"none",cursor:"pointer",padding:0}}>
                             deshacer
                           </button>
                         )}

@@ -20,7 +20,7 @@ export function Input({ label, value, onChange, type="text", placeholder, min, r
     <Field label={label}>
       <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
         min={min} required={required} readOnly={readOnly}
-        style={{...inputStyle, background: readOnly?"#F9F6F2":"#FFF"}} />
+        style={{...inputStyle, background: readOnly?"var(--qb-input-readonly)":"var(--qb-input-bg)"}} />
     </Field>
   );
 }
@@ -59,22 +59,22 @@ export function SearchSelect({ label, value, onChange, options, placeholder="Bus
     <Field label={label}>
       <div ref={ref} style={{position:"relative"}}>
         <div onClick={() => { setOpen(!open); setQ(""); }} style={{...inputStyle, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", minHeight:40}}>
-          <span style={{color: selected ? "#1C1C1E" : "#8B7355", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1}}>{selected ? selected.label : (placeholder || "— Seleccionar —")}</span>
-          <span style={{fontSize:10, color:"#8B7355", marginLeft:8}}>{open ? "▲" : "▼"}</span>
+          <span style={{color: selected ? "var(--qb-text)" : "var(--qb-text2)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1}}>{selected ? selected.label : (placeholder || "— Seleccionar —")}</span>
+          <span style={{fontSize:10, color:"var(--qb-text2)", marginLeft:8}}>{open ? "▲" : "▼"}</span>
         </div>
         {open && (
-          <div style={{position:"absolute", top:"100%", left:0, right:0, zIndex:100, background:"#FFF", border:"1.5px solid #EDE0D0", borderRadius:10, boxShadow:"0 6px 24px rgba(0,0,0,0.12)", maxHeight:260, display:"flex", flexDirection:"column"}}>
-            <div style={{padding:"8px 10px", borderBottom:"1px solid #F0E8DE"}}>
+          <div style={{position:"absolute", top:"100%", left:0, right:0, zIndex:100, background:"var(--qb-dropdown-bg)", border:"1.5px solid var(--qb-border)", borderRadius:10, boxShadow:"var(--qb-dropdown-shadow)", maxHeight:260, display:"flex", flexDirection:"column"}}>
+            <div style={{padding:"8px 10px", borderBottom:"1px solid var(--qb-border)"}}>
               <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="🔍 Buscar cliente..."
                 style={{...inputStyle, marginBottom:0, fontSize:13}} onClick={e => e.stopPropagation()} />
             </div>
             <div style={{overflowY:"auto", flex:1}}>
               {filtered.length === 0 ? (
-                <div style={{padding:"14px 12px", textAlign:"center", color:"#8B7355", fontSize:13}}>Sin resultados</div>
+                <div style={{padding:"14px 12px", textAlign:"center", color:"var(--qb-text2)", fontSize:13}}>Sin resultados</div>
               ) : filtered.map(o => (
                 <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); setQ(""); }}
-                  style={{padding:"10px 14px", cursor:"pointer", fontSize:13, color:"#1C1C1E", background: o.value === value ? "#FDF5EE" : "transparent", borderBottom:"1px solid #F8F2EC"}}
-                  onMouseEnter={e => e.currentTarget.style.background="#FDF5EE"}
+                  style={{padding:"10px 14px", cursor:"pointer", fontSize:13, color:"var(--qb-text)", background: o.value === value ? "var(--qb-bg-hover)" : "transparent", borderBottom:"1px solid var(--qb-border-light)"}}
+                  onMouseEnter={e => e.currentTarget.style.background="var(--qb-bg-hover)"}
                   onMouseLeave={e => { if (o.value !== value) e.currentTarget.style.background="transparent"; }}>
                   {o.label}
                 </div>
@@ -88,11 +88,11 @@ export function SearchSelect({ label, value, onChange, options, placeholder="Bus
 }
 export function Btn({ onClick, children, variant="primary", small, fullWidth, disabled }) {
   const vs = {
-    primary:   { background:"#C4602B", color:"#FFF", border:"none" },
-    secondary: { background:"#FDF8F3", color:"#C4602B", border:"1.5px solid #C4602B" },
-    ghost:     { background:"transparent", color:"#8B7355", border:"1.5px solid #EDE0D0" },
-    danger:    { background:"#FEF2F2", color:"#DC2626", border:"1.5px solid #FECACA" },
-    green:     { background:"#F0FDF4", color:"#16A34A", border:"1.5px solid #86EFAC" },
+    primary:   { background:"var(--qb-accent)", color:"#FFF", border:"none" },
+    secondary: { background:"var(--qb-bg)", color:"var(--qb-accent)", border:"1.5px solid var(--qb-accent)" },
+    ghost:     { background:"transparent", color:"var(--qb-text2)", border:"1.5px solid var(--qb-border)" },
+    danger:    { background:"var(--qb-gasto-bg)", color:"#DC2626", border:"1.5px solid var(--qb-gasto-border)" },
+    green:     { background:"var(--qb-cobro-bg)", color:"#16A34A", border:"1.5px solid var(--qb-cobro-border)" },
   };
   return (
     <button onClick={onClick} disabled={disabled} style={{
@@ -107,13 +107,13 @@ export function BottomModal({ title, onClose, children }) {
   const desk = useIsDesktopModal();
   useEffect(() => { document.body.style.overflow="hidden"; return ()=>{ document.body.style.overflow=""; }; }, []);
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.55)",display:"flex",alignItems:desk?"flex-start":"flex-end",justifyContent:"center",zIndex:2000,paddingTop:desk?"5vh":0}} onClick={onClose}>
-      <div style={{background:"#FFF",borderRadius:desk?20:"20px 20px 0 0",width:"100%",maxWidth:desk?560:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 40px rgba(0,0,0,0.2)"}} onClick={e=>e.stopPropagation()}>
-        <div style={{position:"sticky",top:0,background:"#FFF",zIndex:1,padding:"10px 20px 14px",borderBottom:"1px solid #EDE0D0"}}>
-          <div style={{width:36,height:4,background:"#D4C5B5",borderRadius:2,margin:"0 auto 14px"}} />
+    <div style={{position:"fixed",inset:0,background:"var(--qb-modal-overlay)",display:"flex",alignItems:desk?"flex-start":"flex-end",justifyContent:"center",zIndex:2000,paddingTop:desk?"5vh":0}} onClick={onClose}>
+      <div style={{background:"var(--qb-modal-bg)",borderRadius:desk?20:"20px 20px 0 0",width:"100%",maxWidth:desk?560:480,maxHeight:"90vh",overflowY:"auto",boxShadow:"var(--qb-shadow-lg)"}} onClick={e=>e.stopPropagation()}>
+        <div style={{position:"sticky",top:0,background:"var(--qb-modal-bg)",zIndex:1,padding:"10px 20px 14px",borderBottom:"1px solid var(--qb-border)"}}>
+          <div style={{width:36,height:4,background:"var(--qb-grab-bar)",borderRadius:2,margin:"0 auto 14px"}} />
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <h2 style={{margin:0,fontSize:18,fontWeight:800,color:"#1C1C1E",fontFamily:"'Playfair Display', serif"}}>{title}</h2>
-            <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#8B7355",lineHeight:1}}>✕</button>
+            <h2 style={{margin:0,fontSize:18,fontWeight:800,color:"var(--qb-text)",fontFamily:"'Playfair Display', serif"}}>{title}</h2>
+            <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"var(--qb-text2)",lineHeight:1}}>✕</button>
           </div>
         </div>
         <div style={{padding:"20px 20px 40px"}}>{children}</div>

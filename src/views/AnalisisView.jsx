@@ -30,10 +30,10 @@ function getSeasonRange(baseYear) {
 function Bar({ value, max, color, height = 28 }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   return (
-    <div style={{ width: "100%", background: "#F3F0EB", borderRadius: 6, height, overflow: "hidden", position: "relative" }}>
+    <div style={{ width: "100%", background: "var(--qb-border)", borderRadius: 6, height, overflow: "hidden", position: "relative" }}>
       <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 6, transition: "width 0.6s ease" }} />
       {value > 0 && (
-        <span style={{ position: "absolute", top: "50%", left: pct > 15 ? `${pct / 2}%` : `${pct + 2}%`, transform: "translate(-50%,-50%)", fontSize: 11, fontWeight: 800, color: pct > 15 ? "#FFF" : "#5C4033" }}>
+        <span style={{ position: "absolute", top: "50%", left: pct > 15 ? `${pct / 2}%` : `${pct + 2}%`, transform: "translate(-50%,-50%)", fontSize: 11, fontWeight: 800, color: pct > 15 ? "#FFF" : "var(--qb-text3)" }}>
           {value}
         </span>
       )}
@@ -45,22 +45,22 @@ function MiniBar({ val, max, color, label }) {
   const pct = max > 0 ? Math.min((val / max) * 100, 100) : 0;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
-      <div style={{ width: 32, fontSize: 11, fontWeight: 700, color: "#5C4033", textAlign: "right", flexShrink: 0 }}>{label}</div>
-      <div style={{ flex: 1, height: 18, background: "#F3F0EB", borderRadius: 4, overflow: "hidden", position: "relative" }}>
+      <div style={{ width: 32, fontSize: 11, fontWeight: 700, color: "var(--qb-text3)", textAlign: "right", flexShrink: 0 }}>{label}</div>
+      <div style={{ flex: 1, height: 18, background: "var(--qb-border)", borderRadius: 4, overflow: "hidden", position: "relative" }}>
         <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 4, transition: "width 0.5s ease" }} />
       </div>
-      <div style={{ width: 28, fontSize: 11, fontWeight: 700, color: "#5C4033", flexShrink: 0 }}>{val}</div>
+      <div style={{ width: 28, fontSize: 11, fontWeight: 700, color: "var(--qb-text3)", flexShrink: 0 }}>{val}</div>
     </div>
   );
 }
 
 function StatCard({ icon, label, value, sub, accent }) {
   return (
-    <div style={{ background: "#FFF", border: "1px solid #EDE0D0", borderRadius: 14, padding: "16px 18px", flex: 1, minWidth: 140 }}>
+    <div style={{ background: "var(--qb-bg-card)", border: "1px solid var(--qb-border)", borderRadius: 14, padding: "16px 18px", flex: 1, minWidth: 140 }}>
       <div style={{ fontSize: 22, marginBottom: 6 }}>{icon}</div>
-      <div style={{ fontSize: 11, color: "#8B7355", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 900, color: accent || "#1C1C1E", marginTop: 4, lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: "#8B7355", marginTop: 6 }}>{sub}</div>}
+      <div style={{ fontSize: 11, color: "var(--qb-text2)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 900, color: accent || "var(--qb-text)", marginTop: 4, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: "var(--qb-text2)", marginTop: 6 }}>{sub}</div>}
     </div>
   );
 }
@@ -72,7 +72,7 @@ function ProgressRing({ pct, size = 110, stroke = 10, color, children }) {
   return (
     <div style={{ position: "relative", width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F3F0EB" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--qb-border)" strokeWidth={stroke} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
           style={{ transition: "stroke-dashoffset 0.8s ease" }} />
@@ -192,23 +192,23 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
     return list;
   }, [totalEventos, prevAtThisPoint, ticketProm, currentData, seasonMonths, eventosRestantes, necesitasPorMes, mesesRestantes, metaEventos, projection, projectionFac]);
 
-  const card = { background: "#FFF", borderRadius: 16, border: "1px solid #EDE0D0", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" };
+  const card = { background: "var(--qb-bg-card)", borderRadius: 16, border: "1px solid var(--qb-border)", boxShadow: "var(--qb-shadow)" };
   const monthNames = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
   return (
     <div style={{ padding: "16px 16px 120px", maxWidth: 600, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: "#1C1C1E", fontFamily: "'Playfair Display',serif" }}>Análisis</div>
-        <div style={{ fontSize: 12, color: "#8B7355", marginTop: 2 }}>Temporada {currentSeasonStart}/{currentSeasonStart + 1}</div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: "var(--qb-text)", fontFamily: "'Playfair Display',serif" }}>Análisis</div>
+        <div style={{ fontSize: 12, color: "var(--qb-text2)", marginTop: 2 }}>Temporada {currentSeasonStart}/{currentSeasonStart + 1}</div>
       </div>
 
       {/* ── BLOQUE 1: OBJETIVOS ── */}
       <div style={{ ...card, padding: 20, marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: "#1C1C1E" }}>🎯 Objetivos de temporada</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--qb-text)" }}>🎯 Objetivos de temporada</div>
           <button onClick={() => { setMetaForm({ eventos: String(meta?.eventos || 100), facturacion: String(meta?.facturacion || 50000000) }); setEditMeta(true); }}
-            style={{ background: "none", border: "1px solid #EDE0D0", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "#C4602B", cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ background: "none", border: "1px solid var(--qb-border)", borderRadius: 8, padding: "4px 10px", fontSize: 11, fontWeight: 700, color: "var(--qb-accent)", cursor: "pointer", fontFamily: "inherit" }}>
             ✏️ Editar
           </button>
         </div>
@@ -216,17 +216,17 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
         {editMeta ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#5C4033", display: "block", marginBottom: 4 }}>Meta de reservas</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--qb-text3)", display: "block", marginBottom: 4 }}>Meta de reservas</label>
               <input type="number" value={metaForm.eventos} onChange={e => setMetaForm(p => ({ ...p, eventos: e.target.value }))}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1.5px solid #EDE0D0", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1.5px solid var(--qb-border)", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "var(--qb-input-bg)", color: "var(--qb-text)" }} />
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#5C4033", display: "block", marginBottom: 4 }}>Meta de facturación ($)</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--qb-text3)", display: "block", marginBottom: 4 }}>Meta de facturación ($)</label>
               <input type="number" value={metaForm.facturacion} onChange={e => setMetaForm(p => ({ ...p, facturacion: e.target.value }))}
-                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1.5px solid #EDE0D0", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }} />
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1.5px solid var(--qb-border)", fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box", background: "var(--qb-input-bg)", color: "var(--qb-text)" }} />
             </div>
             <button onClick={saveMeta}
-              style={{ padding: "10px", background: "#C4602B", color: "#FFF", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ padding: "10px", background: "var(--qb-accent)", color: "#FFF", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
               Guardar metas
             </button>
           </div>
@@ -235,25 +235,25 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
             {/* Doble ring */}
             <div style={{ display: "flex", justifyContent: "center", gap: 28, marginBottom: 20 }}>
               <div style={{ textAlign: "center" }}>
-                <ProgressRing pct={pctEventos} color="#C4602B">
-                  <div style={{ fontSize: 22, fontWeight: 900, color: "#C4602B" }}>{totalEventos}</div>
-                  <div style={{ fontSize: 9, color: "#8B7355", fontWeight: 700 }}>/{metaEventos}</div>
+                <ProgressRing pct={pctEventos} color="var(--qb-accent)">
+                  <div style={{ fontSize: 22, fontWeight: 900, color: "var(--qb-accent)" }}>{totalEventos}</div>
+                  <div style={{ fontSize: 9, color: "var(--qb-text2)", fontWeight: 700 }}>/{metaEventos}</div>
                 </ProgressRing>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#5C4033", marginTop: 6 }}>Reservas</div>
-                <div style={{ fontSize: 10, color: "#8B7355" }}>{pctEventos}% completado</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Reservas</div>
+                <div style={{ fontSize: 10, color: "var(--qb-text2)" }}>{pctEventos}% completado</div>
               </div>
               <div style={{ textAlign: "center" }}>
                 <ProgressRing pct={pctFac} color="#16A34A">
                   <div style={{ fontSize: 16, fontWeight: 900, color: "#16A34A" }}>{(totalFac / 1000000).toFixed(1)}M</div>
-                  <div style={{ fontSize: 9, color: "#8B7355", fontWeight: 700 }}>/{(metaFac / 1000000).toFixed(0)}M</div>
+                  <div style={{ fontSize: 9, color: "var(--qb-text2)", fontWeight: 700 }}>/{(metaFac / 1000000).toFixed(0)}M</div>
                 </ProgressRing>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#5C4033", marginTop: 6 }}>Facturación</div>
-                <div style={{ fontSize: 10, color: "#8B7355" }}>{pctFac}% completado</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Facturación</div>
+                <div style={{ fontSize: 10, color: "var(--qb-text2)" }}>{pctFac}% completado</div>
               </div>
             </div>
 
             {/* Context line */}
-            <div style={{ textAlign: "center", padding: "10px 14px", background: "#FDF8F3", borderRadius: 10, fontSize: 12, color: "#5C4033" }}>
+            <div style={{ textAlign: "center", padding: "10px 14px", background: "var(--qb-bg-card-alt)", borderRadius: 10, fontSize: 12, color: "var(--qb-text3)" }}>
               <span style={{ fontWeight: 800 }}>{totalEventos}</span> reservas esta temporada — el año pasado a esta altura ibas <span style={{ fontWeight: 800 }}>{prevAtThisPoint}</span>
               {totalEventos > prevAtThisPoint && <span style={{ color: "#16A34A", fontWeight: 700 }}> (+{totalEventos - prevAtThisPoint})</span>}
               {totalEventos < prevAtThisPoint && <span style={{ color: "#DC2626", fontWeight: 700 }}> ({totalEventos - prevAtThisPoint})</span>}
@@ -264,13 +264,13 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
       {/* ── BLOQUE 2: COMPARATIVA MES A MES ── */}
       <div style={{ ...card, padding: 20, marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: "#1C1C1E", marginBottom: 4 }}>📊 Comparativa mes a mes</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "var(--qb-text)", marginBottom: 4 }}>📊 Comparativa mes a mes</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#8B7355" }}>
-            <div style={{ width: 10, height: 10, borderRadius: 3, background: "#D4A574" }} /> {currentSeasonStart - 1}/{currentSeasonStart}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--qb-text2)" }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: "var(--qb-accent-light)" }} /> {currentSeasonStart - 1}/{currentSeasonStart}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#8B7355" }}>
-            <div style={{ width: 10, height: 10, borderRadius: 3, background: "#C4602B" }} /> {currentSeasonStart}/{currentSeasonStart + 1}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "var(--qb-text2)" }}>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: "var(--qb-accent)" }} /> {currentSeasonStart}/{currentSeasonStart + 1}
           </div>
         </div>
 
@@ -285,7 +285,7 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
             return (
               <div key={m.key} style={{ opacity: (!isPast && !isCurrent && curr === 0) ? 0.5 : 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                  <div style={{ fontSize: 12, fontWeight: isCurrent ? 800 : 600, color: isCurrent ? "#C4602B" : "#5C4033" }}>
+                  <div style={{ fontSize: 12, fontWeight: isCurrent ? 800 : 600, color: isCurrent ? "var(--qb-accent)" : "var(--qb-text3)" }}>
                     {monthNames[m.month]} {isCurrent && "← ahora"}
                   </div>
                   {(isPast || isCurrent) && diff !== 0 && (
@@ -296,10 +296,10 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
                 </div>
                 <div style={{ display: "flex", gap: 3 }}>
                   <div style={{ flex: 1 }}>
-                    <MiniBar val={prev} max={maxMonthly} color="#D4A574" label="" />
+                    <MiniBar val={prev} max={maxMonthly} color="var(--qb-accent-light)" label="" />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <MiniBar val={curr} max={maxMonthly} color="#C4602B" label="" />
+                    <MiniBar val={curr} max={maxMonthly} color="var(--qb-accent)" label="" />
                   </div>
                 </div>
               </div>
@@ -308,15 +308,15 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
         </div>
 
         {/* Totales */}
-        <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid #EDE0D0", display: "flex", justifyContent: "space-between" }}>
-          <div style={{ fontSize: 12, color: "#8B7355" }}>Total temporada anterior: <span style={{ fontWeight: 800, color: "#5C4033" }}>{HIST_TOTAL_EV}</span></div>
-          <div style={{ fontSize: 12, color: "#8B7355" }}>Esta temporada: <span style={{ fontWeight: 800, color: "#C4602B" }}>{totalEventos}</span></div>
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--qb-border)", display: "flex", justifyContent: "space-between" }}>
+          <div style={{ fontSize: 12, color: "var(--qb-text2)" }}>Total temporada anterior: <span style={{ fontWeight: 800, color: "var(--qb-text3)" }}>{HIST_TOTAL_EV}</span></div>
+          <div style={{ fontSize: 12, color: "var(--qb-text2)" }}>Esta temporada: <span style={{ fontWeight: 800, color: "var(--qb-accent)" }}>{totalEventos}</span></div>
         </div>
       </div>
 
       {/* ── BLOQUE 2B: ACUMULADO ── */}
       <div style={{ ...card, padding: 20, marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: "#1C1C1E", marginBottom: 14 }}>📈 Reservas acumuladas</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "var(--qb-text)", marginBottom: 14 }}>📈 Reservas acumuladas</div>
         {(() => {
           let accPrev = 0, accCurr = 0;
           const rows = seasonMonths.map((m, i) => {
@@ -332,17 +332,17 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {rows.filter(r => r.show).map((r, i) => (
                 <div key={i}>
-                  <div style={{ fontSize: 11, fontWeight: r.isCurrent ? 800 : 600, color: r.isCurrent ? "#C4602B" : "#5C4033", marginBottom: 2 }}>
+                  <div style={{ fontSize: 11, fontWeight: r.isCurrent ? 800 : 600, color: r.isCurrent ? "var(--qb-accent)" : "var(--qb-text3)", marginBottom: 2 }}>
                     {r.month} {r.isCurrent && "←"}
                   </div>
                   <div style={{ display: "flex", gap: 3 }}>
-                    <div style={{ flex: 1 }}><MiniBar val={r.accPrev} max={maxAcc} color="#D4A574" label="" /></div>
-                    <div style={{ flex: 1 }}><MiniBar val={r.accCurr} max={maxAcc} color="#C4602B" label="" /></div>
+                    <div style={{ flex: 1 }}><MiniBar val={r.accPrev} max={maxAcc} color="var(--qb-accent-light)" label="" /></div>
+                    <div style={{ flex: 1 }}><MiniBar val={r.accCurr} max={maxAcc} color="var(--qb-accent)" label="" /></div>
                   </div>
                 </div>
               ))}
               {meta && (
-                <div style={{ marginTop: 6, paddingTop: 8, borderTop: "1px dashed #EDE0D0", fontSize: 11, color: "#8B7355", textAlign: "center" }}>
+                <div style={{ marginTop: 6, paddingTop: 8, borderTop: "1px dashed var(--qb-border)", fontSize: 11, color: "var(--qb-text2)", textAlign: "center" }}>
                   Meta: {metaEventos} reservas · Proyección: <span style={{ fontWeight: 800, color: projection >= metaEventos ? "#16A34A" : "#DC2626" }}>{projection}</span>
                 </div>
               )}
@@ -371,23 +371,23 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
       {/* ── BLOQUE 4: INSIGHTS ── */}
       <div style={{ ...card, padding: 20, marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: "#1C1C1E", marginBottom: 12 }}>💡 Panorama</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "var(--qb-text)", marginBottom: 12 }}>💡 Panorama</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {insights.map((ins, i) => (
             <div key={i} style={{
               display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 10,
-              background: ins.type === "good" ? "#F0FDF4" : ins.type === "warn" ? "#FEF0E8" : "#F9F6F2",
-              border: `1px solid ${ins.type === "good" ? "#BBF7D0" : ins.type === "warn" ? "#FED7AA" : "#EDE0D0"}`
+              background: ins.type === "good" ? "var(--qb-cobro-bg)" : ins.type === "warn" ? "var(--qb-accent-bg)" : "var(--qb-bg-card-alt)",
+              border: `1px solid ${ins.type === "good" ? "var(--qb-cobro-border)" : ins.type === "warn" ? "var(--qb-accent-light)" : "var(--qb-border)"}`
             }}>
               <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>{ins.icon}</span>
-              <span style={{ fontSize: 13, color: "#3D2B1F", lineHeight: 1.4 }}>{ins.text}</span>
+              <span style={{ fontSize: 13, color: "var(--qb-text3)", lineHeight: 1.4 }}>{ins.text}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Footer note */}
-      <div style={{ textAlign: "center", fontSize: 10, color: "#A8A29E", padding: "8px 0" }}>
+      <div style={{ textAlign: "center", fontSize: 10, color: "var(--qb-text2)", padding: "8px 0" }}>
         Datos 2025 cargados manualmente · Datos {currentSeasonStart}/{currentSeasonStart + 1} calculados en tiempo real
       </div>
     </div>

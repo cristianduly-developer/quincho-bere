@@ -4,7 +4,7 @@ import { STATUS, TURNOS } from "../lib/constants.js";
 import { Btn, StatusBadge } from "../components/ui.jsx";
 
 const DIAS_SEMANA = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-const ESTADO_COLOR = { visita:"#7C3AED", pendiente:"#F59E0B", senada:"#3B82F6", confirmada:"#16A34A", finalizada:"#8B7355", cancelada:"#DC2626" };
+const ESTADO_COLOR = { visita:"#7C3AED", pendiente:"#F59E0B", senada:"#3B82F6", confirmada:"#16A34A", finalizada:"var(--qb-text2)", cancelada:"#DC2626" };
 
 function getWeekDays() {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -45,9 +45,9 @@ function WeeklyGrid({ reservas, clientes, recursos, turnosRecurso, onReservaClic
           <div />
           {turnos.map(t => (
             <div key={t.id} style={{
-              textAlign:"center", fontSize:11, fontWeight:700, color:"#8B7355",
-              background:"#FDF8F3", borderRadius:8, padding:"6px 4px",
-              border:"0.5px solid #EDE0D0",
+              textAlign:"center", fontSize:11, fontWeight:700, color:"var(--qb-text2)",
+              background:"var(--qb-bg-card-alt)", borderRadius:8, padding:"6px 4px",
+              border:"0.5px solid var(--qb-border)",
             }}>{t.label}</div>
           ))}
         </div>
@@ -64,11 +64,11 @@ function WeeklyGrid({ reservas, clientes, recursos, turnosRecurso, onReservaClic
               {/* Etiqueta día */}
               <div style={{
                 display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center",
-                background: esHoy ? "#C4602B" : pasado ? "#F5F0EB" : "#FDF8F3",
-                borderRadius:8, padding:"6px 4px", border:`0.5px solid ${esHoy?"#C4602B":"#EDE0D0"}`,
+                background: esHoy ? "var(--qb-accent)" : pasado ? "var(--qb-bg-card-alt)" : "var(--qb-bg-card-alt)",
+                borderRadius:8, padding:"6px 4px", border:`0.5px solid ${esHoy?"var(--qb-accent)":"var(--qb-border)"}`,
               }}>
-                <div style={{fontSize:10, fontWeight:700, color: esHoy?"#FFF":"#8B7355", textTransform:"uppercase"}}>{DIAS_SEMANA[di]}</div>
-                <div style={{fontSize:15, fontWeight:800, color: esHoy?"#FFF": pasado?"#C4B49A":"#1C1C1E"}}>{d.getDate()}</div>
+                <div style={{fontSize:10, fontWeight:700, color: esHoy?"var(--qb-bg-card)":"var(--qb-text2)", textTransform:"uppercase"}}>{DIAS_SEMANA[di]}</div>
+                <div style={{fontSize:15, fontWeight:800, color: esHoy?"var(--qb-bg-card)": pasado?"#C4B49A":"var(--qb-text)"}}>{d.getDate()}</div>
               </div>
 
               {/* Celdas por turno */}
@@ -79,17 +79,17 @@ function WeeklyGrid({ reservas, clientes, recursos, turnosRecurso, onReservaClic
                 if (r) {
                   return (
                     <div key={t.id} onClick={()=>onReservaClick(r)} style={{
-                      background:"#FFF", borderRadius:8, padding:"7px 8px", cursor:"pointer",
-                      border:`1.5px solid ${ESTADO_COLOR[r.estado]||"#EDE0D0"}`,
-                      borderLeft:`4px solid ${ESTADO_COLOR[r.estado]||"#EDE0D0"}`,
+                      background:"var(--qb-bg-card)", borderRadius:8, padding:"7px 8px", cursor:"pointer",
+                      border:`1.5px solid ${ESTADO_COLOR[r.estado]||"var(--qb-border)"}`,
+                      borderLeft:`4px solid ${ESTADO_COLOR[r.estado]||"var(--qb-border)"}`,
                       minHeight:54, display:"flex", flexDirection:"column", justifyContent:"center",
                     }}
-                    onMouseEnter={e=>e.currentTarget.style.background="#FDF5EE"}
-                    onMouseLeave={e=>e.currentTarget.style.background="#FFF"}>
-                      <div style={{fontSize:11,fontWeight:700,color:"#1C1C1E",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{clientName(c)}</div>
-                      {rec && <div style={{fontSize:10,color:"#8B7355",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🏠 {rec.nombre}</div>}
+                    onMouseEnter={e=>e.currentTarget.style.background="var(--qb-bg-hover)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="var(--qb-bg-card)"}>
+                      <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{clientName(c)}</div>
+                      {rec && <div style={{fontSize:10,color:"var(--qb-text2)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🏠 {rec.nombre}</div>}
                       <div style={{marginTop:3}}>
-                        <span style={{fontSize:9,fontWeight:700,color:"#FFF",background:ESTADO_COLOR[r.estado]||"#8B7355",borderRadius:4,padding:"1px 5px"}}>
+                        <span style={{fontSize:9,fontWeight:700,color:"var(--qb-bg-card)",background:ESTADO_COLOR[r.estado]||"var(--qb-text2)",borderRadius:4,padding:"1px 5px"}}>
                           {r.estado}
                         </span>
                       </div>
@@ -98,8 +98,8 @@ function WeeklyGrid({ reservas, clientes, recursos, turnosRecurso, onReservaClic
                 }
                 return (
                   <div key={t.id} style={{
-                    background: pasado ? "#F9F6F2" : "#FFF",
-                    borderRadius:8, padding:"7px 8px", border:"0.5px solid #EDE0D0",
+                    background: pasado ? "var(--qb-bg-card-alt)" : "var(--qb-bg-card)",
+                    borderRadius:8, padding:"7px 8px", border:"0.5px solid var(--qb-border)",
                     minHeight:54, display:"flex", alignItems:"center", justifyContent:"center",
                   }}>
                     <span style={{fontSize:10,color: pasado?"#D1C4B5":"#C4D9C0",fontWeight:600}}>
@@ -130,17 +130,17 @@ function groupLabel(dateStr) {
 
 function StatCard({ val, label, color }) {
   return (
-    <div style={{flex:1,minWidth:80,background:"var(--surface-1,#FDF8F3)",border:"0.5px solid #EDE0D0",borderRadius:10,padding:"10px 14px"}}>
-      <div style={{fontSize:18,fontWeight:700,color:color||"#1C1C1E"}}>{val}</div>
-      <div style={{fontSize:11,color:"#8B7355",marginTop:2}}>{label}</div>
+    <div style={{flex:1,minWidth:80,background:"var(--qb-bg-card-alt)",border:"0.5px solid var(--qb-border)",borderRadius:10,padding:"10px 14px"}}>
+      <div style={{fontSize:18,fontWeight:700,color:color||"var(--qb-text)"}}>{val}</div>
+      <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>{label}</div>
     </div>
   );
 }
 
 function ProgressBar({ pct }) {
-  const color = pct>=100 ? "#16A34A" : pct>=50 ? "#C4602B" : "#DC2626";
+  const color = pct>=100 ? "#16A34A" : pct>=50 ? "var(--qb-accent)" : "#DC2626";
   return (
-    <div style={{background:"#EDE0D0",borderRadius:4,height:4,margin:"8px 0 6px",overflow:"hidden"}}>
+    <div style={{background:"var(--qb-border)",borderRadius:4,height:4,margin:"8px 0 6px",overflow:"hidden"}}>
       <div style={{height:4,borderRadius:4,background:color,width:`${Math.min(100,Math.max(0,pct))}%`,transition:"width .3s"}} />
     </div>
   );
@@ -180,20 +180,20 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
   const urgente = activa && diff >= 0 && diff <= 3;
 
   const st = STATUS[r.estado];
-  const cardBg = st?.bg || "#FFF";
-  const cardBorder = st?.border || "#EDE0D0";
+  const cardBg = st?.bg || "var(--qb-bg-card)";
+  const cardBorder = st?.border || "var(--qb-border)";
 
   return (
     <div onClick={()=>onReservaClick(r)} style={{
       background:cardBg, borderRadius:12, border:`1px solid ${cardBorder}`,
-      borderLeft:`3px solid ${st?.color || "#EDE0D0"}`,
+      borderLeft:`3px solid ${st?.color || "var(--qb-border)"}`,
       marginBottom:8, padding:"13px 14px", cursor:"pointer",
     }}
     onMouseEnter={e=>e.currentTarget.style.background=cardBg}
     onMouseLeave={e=>e.currentTarget.style.background=cardBg}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:700,fontSize:14,color:"#1C1C1E",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+          <div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
             {urgente && <span style={{marginRight:4}}>🔔</span>}{clientName(c)}
           </div>
           {esVisita ? (
@@ -201,15 +201,15 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
               <div style={{fontSize:12,color:"#7C3AED",marginTop:2,fontWeight:600}}>
                 👁️ Visita {fmtDate(r.fechaVisita||r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{r.horaVisita?` · ${r.horaVisita} hs`:""}
               </div>
-              <div style={{fontSize:11,color:"#8B7355",marginTop:1}}>
+              <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:1}}>
                 📅 Fecha de interés: {fmtDate(r.fecha)}{r.tipoEvento?` · 🎉 ${r.tipoEvento}`:""} · 🏠 {rec?.nombre||"Sin espacio"}
               </div>
             </>
           ) : (
             <>
-              <div style={{fontSize:12,color:"#8B7355",marginTop:2}}>
+              <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>
                 {fmtDate(r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{` · ${turnoIcon} ${turnoLabel}`}{horarioStr?` (${horarioStr})`:""}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div>
-              <div style={{fontSize:11,color:"#8B7355"}}>🏠 {rec?.nombre||"Sin espacio"}{r.tipoEvento ? ` · 🎉 ${r.tipoEvento}` : ""}</div>
+              <div style={{fontSize:11,color:"var(--qb-text2)"}}>🏠 {rec?.nombre||"Sin espacio"}{r.tipoEvento ? ` · 🎉 ${r.tipoEvento}` : ""}</div>
             </>
           )}
         </div>
@@ -221,7 +221,7 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:activa&&!esVisita?0:8}}>
         {!esVisita && (
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-            <span style={{fontSize:12,fontWeight:700,color:deuda?"#C4602B":saldo===0?"#16A34A":"#8B7355"}}>
+            <span style={{fontSize:12,fontWeight:700,color:deuda?"var(--qb-accent)":saldo===0?"#16A34A":"var(--qb-text2)"}}>
               {deuda ? `⚠️ Saldo ${fmtCurrency(saldo)}` : `✅ ${fmtCurrency(total)}`}
             </span>
             {r.proximoPagoMonto && activa && (() => {
@@ -238,12 +238,12 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
         {activa && (
           <div style={{display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>
             {c?.whatsapp && (
-              <button onClick={waMsg} style={{padding:"4px 10px",borderRadius:6,border:"0.5px solid #EDE0D0",background:"#FFF8F3",color:"#3D2B1F",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+              <button onClick={waMsg} style={{padding:"4px 10px",borderRadius:6,border:"0.5px solid var(--qb-border)",background:"var(--qb-bg-card-alt)",color:"var(--qb-text3)",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                 💬 WA
               </button>
             )}
             {deuda && !esVisita && (
-              <button onClick={()=>onCobrar(r)} style={{padding:"4px 10px",borderRadius:6,border:"0.5px solid #C4602B",background:"#C4602B",color:"#FFF",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+              <button onClick={()=>onCobrar(r)} style={{padding:"4px 10px",borderRadius:6,border:"0.5px solid #C4602B",background:"var(--qb-accent)",color:"var(--qb-bg-card)",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
                 💰 Cobrar
               </button>
             )}
@@ -307,17 +307,17 @@ function SemanaView({ reservas, clientes, recursos, turnosRecurso, onReservaClic
   return (
     <div>
       {/* Navegación semana */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,background:"#FDF8F3",borderRadius:10,padding:"8px 12px",border:"0.5px solid #EDE0D0"}}>
-        <button onClick={()=>setWeekOffset(p=>p-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#C4602B",padding:"0 6px",fontFamily:"inherit"}}>‹</button>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12,background:"var(--qb-bg-card-alt)",borderRadius:10,padding:"8px 12px",border:"0.5px solid var(--qb-border)"}}>
+        <button onClick={()=>setWeekOffset(p=>p-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"var(--qb-accent)",padding:"0 6px",fontFamily:"inherit"}}>‹</button>
         <div style={{textAlign:"center"}}>
-          <div style={{fontSize:13,fontWeight:700,color:"#1C1C1E"}}>{weekLabel}</div>
-          <div style={{fontSize:11,color:"#8B7355",marginTop:1}}>{totalSemana} evento{totalSemana!==1?"s":""} esta semana</div>
+          <div style={{fontSize:13,fontWeight:700,color:"var(--qb-text)"}}>{weekLabel}</div>
+          <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:1}}>{totalSemana} evento{totalSemana!==1?"s":""} esta semana</div>
         </div>
-        <button onClick={()=>setWeekOffset(p=>p+1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#C4602B",padding:"0 6px",fontFamily:"inherit"}}>›</button>
+        <button onClick={()=>setWeekOffset(p=>p+1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"var(--qb-accent)",padding:"0 6px",fontFamily:"inherit"}}>›</button>
       </div>
 
       {weekOffset !== 0 && (
-        <button onClick={()=>setWeekOffset(0)} style={{display:"block",margin:"0 auto 12px",fontSize:11,fontWeight:600,color:"#C4602B",background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline"}}>
+        <button onClick={()=>setWeekOffset(0)} style={{display:"block",margin:"0 auto 12px",fontSize:11,fontWeight:600,color:"var(--qb-accent)",background:"none",border:"none",cursor:"pointer",padding:0,textDecoration:"underline"}}>
           Volver a hoy
         </button>
       )}
@@ -333,28 +333,28 @@ function SemanaView({ reservas, clientes, recursos, turnosRecurso, onReservaClic
         return (
           <div key={dayStr} style={{
             marginBottom:8, borderRadius:12, overflow:"hidden",
-            border:`1px solid ${esHoy?"#C4602B":items.length>1?"#FCD34D":items.length===1?"#EDE0D0":"#F0EBE4"}`,
+            border:`1px solid ${esHoy?"var(--qb-accent)":items.length>1?"#FCD34D":items.length===1?"var(--qb-border)":"var(--qb-border-light)"}`,
             opacity: pasado && items.length===0 ? 0.45 : 1,
           }}>
             {/* Cabecera del día */}
             <div style={{
               display:"flex", alignItems:"center", gap:10, padding:"8px 12px",
-              background: esHoy?"#C4602B": items.length>1?"#FFFBEB": esFinde&&items.length?"#F0FFF4":"#FDF8F3",
+              background: esHoy?"var(--qb-accent)": items.length>1?"#FFFBEB": esFinde&&items.length?"#F0FFF4":"var(--qb-bg-card-alt)",
             }}>
               <div style={{
                 width:36, height:36, borderRadius:8, display:"flex", flexDirection:"column",
                 alignItems:"center", justifyContent:"center", flexShrink:0,
-                background: esHoy?"rgba(255,255,255,0.2)": pasado?"#EDE0D0":"#FFF",
-                border: esHoy?"none":"0.5px solid #EDE0D0",
+                background: esHoy?"rgba(255,255,255,0.2)": pasado?"var(--qb-border)":"var(--qb-bg-card)",
+                border: esHoy?"none":"0.5px solid var(--qb-border)",
               }}>
-                <div style={{fontSize:9,fontWeight:700,color:esHoy?"#FFF":"#8B7355",textTransform:"uppercase",lineHeight:1}}>{DIAS_SEMANA[d.getDay()===0?6:d.getDay()-1]}</div>
-                <div style={{fontSize:16,fontWeight:800,color:esHoy?"#FFF":pasado?"#B0A090":"#1C1C1E",lineHeight:1.1}}>{d.getDate()}</div>
+                <div style={{fontSize:9,fontWeight:700,color:esHoy?"var(--qb-bg-card)":"var(--qb-text2)",textTransform:"uppercase",lineHeight:1}}>{DIAS_SEMANA[d.getDay()===0?6:d.getDay()-1]}</div>
+                <div style={{fontSize:16,fontWeight:800,color:esHoy?"var(--qb-bg-card)":pasado?"#B0A090":"var(--qb-text)",lineHeight:1.1}}>{d.getDate()}</div>
               </div>
               <div style={{flex:1}}>
                 {items.length === 0 ? (
                   <span style={{fontSize:12,color:esHoy?"rgba(255,255,255,0.7)":"#C4B49A"}}>Sin eventos</span>
                 ) : (
-                  <span style={{fontSize:12,fontWeight:700,color:esHoy?"#FFF":items.length>1?"#92400E":"#8B7355"}}>
+                  <span style={{fontSize:12,fontWeight:700,color:esHoy?"var(--qb-bg-card)":items.length>1?"#92400E":"var(--qb-text2)"}}>
                     {items.length > 1 ? `⚠️ ${items.length} eventos — revisar operativo` : "1 evento"}
                   </span>
                 )}
@@ -373,22 +373,22 @@ function SemanaView({ reservas, clientes, recursos, turnosRecurso, onReservaClic
               return (
                 <div key={r.id} onClick={()=>onReservaClick(r)} style={{
                   display:"flex", alignItems:"center", gap:10, padding:"10px 12px",
-                  borderTop:"0.5px solid #F0EBE4", background:"#FFF", cursor:"pointer",
+                  borderTop:"0.5px solid #F0EBE4", background:"var(--qb-bg-card)", cursor:"pointer",
                 }}
-                onMouseEnter={e=>e.currentTarget.style.background="#FDF5EE"}
-                onMouseLeave={e=>e.currentTarget.style.background="#FFF"}>
-                  <div style={{width:4,alignSelf:"stretch",borderRadius:2,background:ESTADO_COLOR[r.estado]||"#EDE0D0",flexShrink:0}} />
+                onMouseEnter={e=>e.currentTarget.style.background="var(--qb-bg-hover)"}
+                onMouseLeave={e=>e.currentTarget.style.background="var(--qb-bg-card)"}>
+                  <div style={{width:4,alignSelf:"stretch",borderRadius:2,background:ESTADO_COLOR[r.estado]||"var(--qb-border)",flexShrink:0}} />
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:13,color:"#1C1C1E",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{clientName(c)}</div>
-                    <div style={{fontSize:11,color:"#8B7355",marginTop:1,display:"flex",gap:6,flexWrap:"wrap"}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"var(--qb-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{clientName(c)}</div>
+                    <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:1,display:"flex",gap:6,flexWrap:"wrap"}}>
                       {turnoLbl && <span>🕐 {turnoLbl}</span>}
                       {rec && <span>🏠 {rec.nombre}</span>}
                       {r.cantInvitados>0 && <span>👥 {r.cantInvitados}</span>}
                     </div>
                   </div>
                   <div style={{textAlign:"right",flexShrink:0}}>
-                    <span style={{fontSize:10,fontWeight:700,color:"#FFF",background:ESTADO_COLOR[r.estado]||"#8B7355",borderRadius:4,padding:"2px 6px"}}>{r.estado}</span>
-                    {saldo>0 && <div style={{fontSize:10,color:"#C4602B",fontWeight:600,marginTop:2}}>⚠️ Saldo</div>}
+                    <span style={{fontSize:10,fontWeight:700,color:"var(--qb-bg-card)",background:ESTADO_COLOR[r.estado]||"var(--qb-text2)",borderRadius:4,padding:"2px 6px"}}>{r.estado}</span>
+                    {saldo>0 && <div style={{fontSize:10,color:"var(--qb-accent)",fontWeight:600,marginTop:2}}>⚠️ Saldo</div>}
                   </div>
                 </div>
               );
@@ -486,12 +486,12 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
   return (
     <div>
       {/* Navegación mes */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,background:"#FDF8F3",borderRadius:10,padding:"8px 16px",border:"0.5px solid #EDE0D0"}}>
-        <button onClick={()=>navMes(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"#C4602B",padding:"0 4px"}}>‹</button>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14,background:"var(--qb-bg-card-alt)",borderRadius:10,padding:"8px 16px",border:"0.5px solid var(--qb-border)"}}>
+        <button onClick={()=>navMes(-1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"var(--qb-accent)",padding:"0 4px"}}>‹</button>
         <div style={{textAlign:"center"}}>
-          <div style={{fontSize:15,fontWeight:800,color:"#1C1C1E"}}>{MESES_FULL2[mes]} {anio}</div>
+          <div style={{fontSize:15,fontWeight:800,color:"var(--qb-text)"}}>{MESES_FULL2[mes]} {anio}</div>
         </div>
-        <button onClick={()=>navMes(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"#C4602B",padding:"0 4px"}}>›</button>
+        <button onClick={()=>navMes(1)} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,color:"var(--qb-accent)",padding:"0 4px"}}>›</button>
       </div>
 
       {/* Leyenda */}
@@ -499,7 +499,7 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
         {[["#D1FAE5","#065F46","Libre"],["#FECACA","#991B1B","Ocupado"],["#E5E7EB","#6B7280","Bloqueado"]].map(([bg,c,l])=>(
           <div key={l} style={{display:"flex",alignItems:"center",gap:4}}>
             <div style={{width:12,height:12,borderRadius:3,background:bg,border:`1px solid ${c}22`}} />
-            <span style={{fontSize:11,color:"#8B7355"}}>{l}</span>
+            <span style={{fontSize:11,color:"var(--qb-text2)"}}>{l}</span>
           </div>
         ))}
       </div>
@@ -507,7 +507,7 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
       {/* Cabecera días */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,marginBottom:2}}>
         {DIAS_SEMANA.map(d=>(
-          <div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#8B7355",padding:"4px 0"}}>{d}</div>
+          <div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"var(--qb-text2)",padding:"4px 0"}}>{d}</div>
         ))}
       </div>
 
@@ -526,7 +526,7 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
 
           return (
             <div key={dayStr} onClick={()=>setDiaModal({dayStr,dia})} style={{
-              borderRadius:8, overflow:"hidden", border:`1px solid ${esHoy?"#C4602B":"#EDE0D0"}`,
+              borderRadius:8, overflow:"hidden", border:`1px solid ${esHoy?"var(--qb-accent)":"var(--qb-border)"}`,
               opacity: pasado ? 0.5 : 1,
               outline: esHoy ? "2px solid #C4602B" : "none",
               outlineOffset: esHoy ? "1px" : "0",
@@ -535,9 +535,9 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
               {/* Número del día */}
               <div style={{
                 textAlign:"center", fontSize:11, fontWeight: esHoy?800:600,
-                color: esHoy?"#C4602B":"#1C1C1E",
-                padding:"3px 2px 2px", background:"#FAFAFA",
-                borderBottom: turnos.length > 1 ? "0.5px solid #EDE0D0" : "none",
+                color: esHoy?"var(--qb-accent)":"var(--qb-text)",
+                padding:"3px 2px 2px", background:"var(--qb-bg-card)",
+                borderBottom: turnos.length > 1 ? "0.5px solid var(--qb-border)" : "none",
               }}>{dia}</div>
 
               {/* Franjas por turno */}
@@ -601,9 +601,9 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
         })();
         return (
           <div style={{position:"fixed",inset:0,background:"rgba(28,14,8,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:3000}} onClick={()=>setDiaModal(null)}>
-            <div onClick={e=>e.stopPropagation()} style={{background:"#FFF",borderRadius:"16px 16px 0 0",width:"100%",maxWidth:480,padding:"20px 20px 32px",boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
-              <div style={{width:36,height:4,borderRadius:2,background:"#EDE0D0",margin:"0 auto 16px"}} />
-              <div style={{fontSize:15,fontWeight:800,color:"#1C1C1E",marginBottom:12}}>📅 {label}</div>
+            <div onClick={e=>e.stopPropagation()} style={{background:"var(--qb-bg-card)",borderRadius:"16px 16px 0 0",width:"100%",maxWidth:480,padding:"20px 20px 32px",boxShadow:"0 -8px 32px rgba(0,0,0,0.15)"}}>
+              <div style={{width:36,height:4,borderRadius:2,background:"var(--qb-border)",margin:"0 auto 16px"}} />
+              <div style={{fontSize:15,fontWeight:800,color:"var(--qb-text)",marginBottom:12}}>📅 {label}</div>
 
               {bloqDelDia.length > 0 && bloqDelDia.map(b => {
                 const tn = todosLosTurnos.find(t=>t.id===b.turno);
@@ -645,12 +645,12 @@ function DisponibilidadView({ reservas, bloqueos, turnosRecurso, clientes, onRes
 
               {!pasado && resDelDia.length < turnos.length && bloqDelDia.length === 0 && (
                 <button onClick={()=>{onNewReserva&&onNewReserva(dayStr);setDiaModal(null);}} style={{
-                  width:"100%",marginTop:8,padding:"12px",background:"#C4602B",color:"#FFF",
+                  width:"100%",marginTop:8,padding:"12px",background:"var(--qb-accent)",color:"var(--qb-bg-card)",
                   border:"none",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit",
                 }}>+ Crear reserva</button>
               )}
 
-              <button onClick={()=>setDiaModal(null)} style={{width:"100%",marginTop:8,padding:"10px",background:"#F3F0EB",border:"none",borderRadius:10,fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:"#8B7355"}}>Cerrar</button>
+              <button onClick={()=>setDiaModal(null)} style={{width:"100%",marginTop:8,padding:"10px",background:"var(--qb-bg-card-alt)",border:"none",borderRadius:10,fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit",color:"var(--qb-text2)"}}>Cerrar</button>
             </div>
           </div>
         );
@@ -727,14 +727,14 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
       {/* Header */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         {/* Toggle vista */}
-        <div style={{display:"flex",gap:0,borderRadius:8,overflow:"hidden",border:"1px solid #EDE0D0"}}>
-          <button onClick={()=>setVista("lista")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="lista"?"#C4602B":"#FDF8F3",color:vista==="lista"?"#FFF":"#8B7355",transition:"all 0.15s"}}>☰ Lista</button>
-          <button onClick={()=>setVista("semanas")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="semanas"?"#C4602B":"#FDF8F3",color:vista==="semanas"?"#FFF":"#8B7355",transition:"all 0.15s"}}>📅 Semanas</button>
-          <button onClick={()=>setVista("disponibilidad")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="disponibilidad"?"#C4602B":"#FDF8F3",color:vista==="disponibilidad"?"#FFF":"#8B7355",transition:"all 0.15s"}}>🟢 Dispo</button>
+        <div style={{display:"flex",gap:0,borderRadius:8,overflow:"hidden",border:"1px solid var(--qb-border)"}}>
+          <button onClick={()=>setVista("lista")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="lista"?"var(--qb-accent)":"var(--qb-bg-card-alt)",color:vista==="lista"?"var(--qb-bg-card)":"var(--qb-text2)",transition:"all 0.15s"}}>☰ Lista</button>
+          <button onClick={()=>setVista("semanas")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="semanas"?"var(--qb-accent)":"var(--qb-bg-card-alt)",color:vista==="semanas"?"var(--qb-bg-card)":"var(--qb-text2)",transition:"all 0.15s"}}>📅 Semanas</button>
+          <button onClick={()=>setVista("disponibilidad")} style={{padding:"7px 10px",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:700,background:vista==="disponibilidad"?"var(--qb-accent)":"var(--qb-bg-card-alt)",color:vista==="disponibilidad"?"var(--qb-bg-card)":"var(--qb-text2)",transition:"all 0.15s"}}>🟢 Dispo</button>
         </div>
         <div style={{display:"flex",gap:6}}>
           <button onClick={onNewPresupuesto} style={{background:"#F5F3FF",color:"#7C3AED",border:"1.5px solid #DDD6FE",borderRadius:10,padding:"9px 12px",fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>💰</button>
-          <button onClick={onNewReserva} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva</button>
+          <button onClick={onNewReserva} style={{background:"var(--qb-accent)",color:"var(--qb-bg-card)",border:"none",borderRadius:10,padding:"9px 16px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva</button>
         </div>
       </div>
 
@@ -755,28 +755,28 @@ export default function ReservasView({ reservas, clientes, pagos, recursos, turn
         {FILTERS.map(f=>(
           <button key={f.v} onClick={()=>setFilter(f.v)} style={{
             padding:"6px 13px",borderRadius:20,fontSize:12,fontWeight:600,flexShrink:0,whiteSpace:"nowrap",fontFamily:"inherit",cursor:"pointer",
-            background:filter===f.v?"#C4602B":"#FDF8F3",color:filter===f.v?"#FFF":"#8B7355",
-            border:`1px solid ${filter===f.v?"#C4602B":"#EDE0D0"}`,
+            background:filter===f.v?"var(--qb-accent)":"var(--qb-bg-card-alt)",color:filter===f.v?"var(--qb-bg-card)":"var(--qb-text2)",
+            border:`1px solid ${filter===f.v?"var(--qb-accent)":"var(--qb-border)"}`,
           }}>{f.l}</button>
         ))}
       </div>
 
       {/* Búsqueda */}
       <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍  Buscar por cliente, fecha o espacio..."
-        style={{width:"100%",padding:"9px 12px",border:"0.5px solid #EDE0D0",borderRadius:8,fontSize:13,background:"#FFF",color:"#1C1C1E",fontFamily:"inherit",marginBottom:14,boxSizing:"border-box"}} />
+        style={{width:"100%",padding:"9px 12px",border:"0.5px solid var(--qb-border)",borderRadius:8,fontSize:13,background:"var(--qb-bg-card)",color:"var(--qb-text)",fontFamily:"inherit",marginBottom:14,boxSizing:"border-box"}} />
 
       {/* Lista agrupada */}
       {filtered.length===0 ? (
-        <div style={{textAlign:"center",padding:"48px 0",color:"#8B7355"}}>
+        <div style={{textAlign:"center",padding:"48px 0",color:"var(--qb-text2)"}}>
           <div style={{fontSize:44,marginBottom:10}}>📋</div>
           <div style={{fontWeight:600}}>No hay reservas{search?" con ese criterio":""}</div>
           <div style={{marginTop:14}}>
-            <button onClick={onNewReserva} style={{background:"#C4602B",color:"#FFF",border:"none",borderRadius:10,padding:"10px 20px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva reserva</button>
+            <button onClick={onNewReserva} style={{background:"var(--qb-accent)",color:"var(--qb-bg-card)",border:"none",borderRadius:10,padding:"10px 20px",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>+ Nueva reserva</button>
           </div>
         </div>
       ) : groups.map(g=>(
         <div key={g.label}>
-          <div style={{fontSize:11,fontWeight:700,color:"#8B7355",textTransform:"uppercase",letterSpacing:".7px",margin:"16px 0 8px"}}>{g.label}</div>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",letterSpacing:".7px",margin:"16px 0 8px"}}>{g.label}</div>
           {g.items.map(r=>(
             <ReservaCard key={r.id} r={r} clientes={clientes} recursos={recursos} extrasReserva={extrasReserva} pagos={pagos}
               onReservaClick={onReservaClick} onCobrar={onCobrar} negocio={negocio} turnosRecurso={turnosRecurso} />
