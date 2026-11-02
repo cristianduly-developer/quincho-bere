@@ -153,19 +153,14 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
   }).length;
 
   const prevAtThisPoint = (() => {
-    let sum = 0;
-    for (let i = 0; i < monthsPassed && i < prevSeasonMonths.length; i++) {
-      sum += HIST_2025[prevSeasonMonths[i].key]?.eventos || 0;
+    const todayLastYear = new Date(today);
+    todayLastYear.setFullYear(todayLastYear.getFullYear() - 1);
+    const tls = todayLastYear.toISOString().slice(0, 10);
+    let best = 0;
+    for (const h of HIST_QUINCENAL) {
+      if (h.date <= tls) best = h.cum;
     }
-    return sum;
-  })();
-
-  const currentAtThisPoint = (() => {
-    let sum = 0;
-    for (let i = 0; i < monthsPassed && i < seasonMonths.length; i++) {
-      sum += currentData[seasonMonths[i].key]?.eventos || 0;
-    }
-    return sum;
+    return best;
   })();
 
   const projection = monthsPassed > 0 ? Math.round((totalEventos / monthsPassed) * 8) : 0;
@@ -232,13 +227,10 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
   const insights = useMemo(() => {
     const list = [];
-    const diff = currentAtThisPoint - prevAtThisPoint;
-    if (diff > 0) list.push({ icon: "📈", text: `En Sep–${monthNames[seasonMonths[monthsPassed - 1]?.month]} ocurrieron ${currentAtThisPoint} eventos — ${diff} más que los ${prevAtThisPoint} del mismo período el año pasado`, type: "good" });
-    else if (diff < 0) list.push({ icon: "⚠️", text: `En Sep–${monthNames[seasonMonths[monthsPassed - 1]?.month]} ocurrieron ${currentAtThisPoint} eventos — ${Math.abs(diff)} menos que los ${prevAtThisPoint} del mismo período el año pasado`, type: "warn" });
-    else list.push({ icon: "🔄", text: `${currentAtThisPoint} eventos en los mismos meses — mismo ritmo que el año pasado`, type: "neutral" });
-    if (totalEventos > currentAtThisPoint) {
-      list.push({ icon: "📅", text: `Tenés ${totalEventos - currentAtThisPoint} reservas más agendadas para los próximos meses (${totalEventos} en total esta temporada)`, type: "good" });
-    }
+    const diff = totalEventos - prevAtThisPoint;
+    if (diff > 0) list.push({ icon: "📈", text: `Tenés ${totalEventos} reservas — ${diff} más que las ${prevAtThisPoint} que tenías a esta fecha el año pasado`, type: "good" });
+    else if (diff < 0) list.push({ icon: "⚠️", text: `Tenés ${totalEventos} reservas — ${Math.abs(diff)} menos que las ${prevAtThisPoint} que tenías a esta fecha el año pasado`, type: "warn" });
+    else list.push({ icon: "🔄", text: `Tenés ${totalEventos} reservas — mismo número que a esta fecha el año pasado`, type: "neutral" });
 
     if (ticketProm > HIST_PROM) {
       const mejora = Math.round(((ticketProm - HIST_PROM) / HIST_PROM) * 100);
@@ -263,7 +255,7 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
     }
 
     return list;
-  }, [totalEventos, currentAtThisPoint, prevAtThisPoint, ticketProm, currentData, seasonMonths, monthsPassed, monthNames, eventosRestantes, necesitasPorMes, mesesRestantes, metaEventos, projection, projectionFac]);
+  }, [totalEventos, prevAtThisPoint, ticketProm, currentData, seasonMonths, eventosRestantes, necesitasPorMes, mesesRestantes, metaEventos, projection, projectionFac]);
 
   const card = { background: "var(--qb-bg-card)", borderRadius: 16, border: "1px solid var(--qb-border)", boxShadow: "var(--qb-shadow)" };
 
@@ -326,9 +318,9 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
             {/* Context line */}
             <div style={{ textAlign: "center", padding: "10px 14px", background: "var(--qb-bg-card-alt)", borderRadius: 10, fontSize: 12, color: "var(--qb-text3)" }}>
-              <span style={{ fontWeight: 800 }}>{totalEventos}</span> reservas en total (<span style={{ fontWeight: 800 }}>{currentAtThisPoint}</span> en meses transcurridos) — el año pasado en Sep–{monthNames[seasonMonths[monthsPassed - 1]?.month]} tenías <span style={{ fontWeight: 800 }}>{prevAtThisPoint}</span>
-              {currentAtThisPoint > prevAtThisPoint && <span style={{ color: "#16A34A", fontWeight: 700 }}> (+{currentAtThisPoint - prevAtThisPoint})</span>}
-              {currentAtThisPoint < prevAtThisPoint && <span style={{ color: "#DC2626", fontWeight: 700 }}> ({currentAtThisPoint - prevAtThisPoint})</span>}
+              <span style={{ fontWeight: 800 }}>{totalEventos}</span> reservas — el año pasado a esta fecha tenías <span style={{ fontWeight: 800 }}>{prevAtThisPoint}</span>
+              {totalEventos > prevAtThisPoint && <span style={{ color: "#16A34A", fontWeight: 700 }}> (+{totalEventos - prevAtThisPoint})</span>}
+              {totalEventos < prevAtThisPoint && <span style={{ color: "#DC2626", fontWeight: 700 }}> ({totalEventos - prevAtThisPoint})</span>}
             </div>
           </>
         )}
