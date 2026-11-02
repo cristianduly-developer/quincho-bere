@@ -11,6 +11,8 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", dark ? "#0F0D0B" : "#FDF8F3");
     try { localStorage.setItem(STORAGE_KEY, dark); } catch {}
   }, [dark]);
 

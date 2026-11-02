@@ -4,8 +4,8 @@
   "description": "Gestión de reservas y eventos para espacios",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#C4602B",
-  "theme_color": "#C4602B",
+  "background_color": "#0F0D0B",
+  "theme_color": "#0F0D0B",
   "orientation": "portrait",
   "icons": [
     {
