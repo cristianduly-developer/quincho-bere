@@ -155,12 +155,17 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
   const prevAtThisPoint = (() => {
     const todayLastYear = new Date(today);
     todayLastYear.setFullYear(todayLastYear.getFullYear() - 1);
-    const tls = todayLastYear.toISOString().slice(0, 10);
-    let best = 0;
-    for (const h of HIST_QUINCENAL) {
-      if (h.date <= tls) best = h.cum;
+    const tlsMs = todayLastYear.getTime();
+    let before = null, after = null;
+    for (let i = 0; i < HIST_QUINCENAL.length; i++) {
+      const hMs = new Date(HIST_QUINCENAL[i].date + "T12:00:00").getTime();
+      if (hMs <= tlsMs) before = { ms: hMs, cum: HIST_QUINCENAL[i].cum };
+      if (hMs > tlsMs && !after) after = { ms: hMs, cum: HIST_QUINCENAL[i].cum };
     }
-    return best;
+    if (!before) return 0;
+    if (!after) return before.cum;
+    const pct = (tlsMs - before.ms) / (after.ms - before.ms);
+    return Math.round(before.cum + pct * (after.cum - before.cum));
   })();
 
   const projection = monthsPassed > 0 ? Math.round((totalEventos / monthsPassed) * 8) : 0;
