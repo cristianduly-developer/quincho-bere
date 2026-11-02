@@ -1622,7 +1622,7 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
   return (
     <BottomModal title="Ficha de Cliente" onClose={onClose}>
       <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16}}>
-        <div style={{width:56,height:56,borderRadius:28,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:24,fontFamily:"'Playfair Display', serif"}}>
+        <div style={{width:56,height:56,borderRadius:28,background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:24,fontFamily:"'Playfair Display', serif"}}>
           {cliente.nombre?.[0]?.toUpperCase()||"?"}
         </div>
         <div>
@@ -2228,7 +2228,7 @@ function LoginScreen({ usuarios, onLogin }) {
             <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text3)",textAlign:"center",marginBottom:14,textTransform:"uppercase",letterSpacing:0.5}}>¿Quién está ingresando?</div>
             {active.map(u=>(
               <button key={u.id} onClick={()=>{setSelectedUser(u);setPin("");setErr("");}} style={{display:"flex",alignItems:"center",gap:14,width:"100%",padding:"14px 18px",background:"var(--qb-bg-card)",border:"1.5px solid var(--qb-border)",borderRadius:12,cursor:"pointer",marginBottom:10,fontFamily:"inherit",boxShadow:"0 2px 8px rgba(196,96,43,0.08)"}}>
-                <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:18,flexShrink:0,fontFamily:"'Playfair Display',serif"}}>{(u.nombre?.charAt(0)||"?").toUpperCase()}</div>
+                <div style={{width:44,height:44,borderRadius:22,background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:18,flexShrink:0,fontFamily:"'Playfair Display',serif"}}>{(u.nombre?.charAt(0)||"?").toUpperCase()}</div>
                 <div style={{textAlign:"left"}}><div style={{fontWeight:700,fontSize:15,color:"var(--qb-text)"}}>{u.nombre} {u.apellido||""}</div><div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>{u.puesto||u.rol}</div></div>
                 <div style={{marginLeft:"auto",fontSize:18,color:"var(--qb-accent)"}}>→</div>
               </button>
@@ -2237,7 +2237,7 @@ function LoginScreen({ usuarios, onLogin }) {
         ) : (
           <>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,padding:"12px 16px",background:"var(--qb-bg-card)",borderRadius:12,border:"1.5px solid var(--qb-border)"}}>
-              <div style={{width:40,height:40,borderRadius:20,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:16,fontFamily:"'Playfair Display',serif"}}>{(selectedUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
+              <div style={{width:40,height:40,borderRadius:20,background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:16,fontFamily:"'Playfair Display',serif"}}>{(selectedUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
               <div style={{fontWeight:700,fontSize:15,color:"var(--qb-text)"}}>{selectedUser.nombre} {selectedUser.apellido||""}</div>
             </div>
             <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text3)",textAlign:"center",marginBottom:12,textTransform:"uppercase",letterSpacing:0.5}}>Ingresá tu PIN</div>
@@ -2245,7 +2245,7 @@ function LoginScreen({ usuarios, onLogin }) {
               placeholder="••••" type="password" maxLength={4}
               style={{width:"100%",padding:"14px 16px",borderRadius:10,border:"1.5px solid var(--qb-border)",fontSize:24,marginBottom:10,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center",letterSpacing:8}} />
             {err&&<div style={{color:"#DC2626",fontSize:12,marginBottom:10,textAlign:"center",fontWeight:600}}>{err}</div>}
-            <button onClick={handlePinLogin} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#C4602B,#9E4A1E)",color:"#FFF",border:"none",borderRadius:10,fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>
+            <button onClick={handlePinLogin} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",color:"#FFF",border:"none",borderRadius:10,fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>
               Ingresar
             </button>
             <button onClick={()=>{setSelectedUser(null);setErr("");setPin("");}} style={{width:"100%",padding:"10px",background:"transparent",border:"1.5px solid var(--qb-border)",borderRadius:10,color:"var(--qb-text2)",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
@@ -2278,7 +2278,7 @@ function UsuariosView({ usuarios, setUsuarios, currentUser }) {
       </div>
       {usuarios.map(u=>(
         <div key={u.id} style={{...card,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:42,height:42,borderRadius:21,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:17,flexShrink:0,fontFamily:"'Playfair Display',serif"}}>{(u.nombre?.charAt(0)||"?").toUpperCase()}</div>
+          <div style={{width:42,height:42,borderRadius:21,background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:17,flexShrink:0,fontFamily:"'Playfair Display',serif"}}>{(u.nombre?.charAt(0)||"?").toUpperCase()}</div>
           <div style={{flex:1}}>
             <div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>{u.nombre}</div>
             <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>{u.email} · {u.rol}</div>
@@ -2460,7 +2460,7 @@ function RatingModal({ reserva, clientes, onSave, onSnooze, initialRating }) {
         <button onClick={()=>{
           if(!estrellas) return showToast("Por favor seleccioná una calificación de 1 a 5 estrellas.","warn");
           onSave({estrellas, nota, fecha:toDateStr(new Date())});
-        }} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#C4602B,#9E4A1E)",color:"#FFF",border:"none",borderRadius:10,fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>
+        }} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",color:"#FFF",border:"none",borderRadius:10,fontWeight:800,fontSize:15,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>
           Guardar calificación
         </button>
         <button onClick={onSnooze} style={{width:"100%",padding:"10px",background:"transparent",color:"var(--qb-text2)",border:"1.5px solid var(--qb-border)",borderRadius:10,fontWeight:600,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
@@ -2587,7 +2587,7 @@ const CalendarWidget = memo(function CalendarWidget({ reservas, clientes, bloque
 
   return (
     <div style={{...card,overflow:"hidden"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:"linear-gradient(135deg,#C4602B,#9E4A1E)",borderRadius:"12px 12px 0 0"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 16px",background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",borderRadius:"12px 12px 0 0"}}>
         <button onClick={()=>setCalDate(d=>({year:d.month===0?d.year-1:d.year, month:d.month===0?11:d.month-1}))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>‹</button>
         <span style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif",color:"#FFF"}}>{MONTHS[month]} {year}</span>
         <button onClick={()=>setCalDate(d=>({year:d.month===11?d.year+1:d.year, month:d.month===11?0:d.month+1}))} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20}}>›</button>
@@ -2713,9 +2713,9 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
   const enCurso = nextEvento.fecha===today2 && curMin>=startMin && curMin<=endMin;
   return (
     <div onClick={()=>onReservaClick(nextEvento)} style={{
-      background:enCurso?"linear-gradient(135deg,#16A34A,#15803D)":"linear-gradient(135deg,#C4602B,#9E4A1E)",
+      background:enCurso?"linear-gradient(135deg,#16A34A,#15803D)":"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",
       borderRadius:14,padding:"16px 18px",marginBottom:14,cursor:"pointer",
-      boxShadow:enCurso?"0 4px 16px rgba(22,163,74,0.35)":"0 4px 16px rgba(196,96,43,0.35)",
+      boxShadow:enCurso?"0 4px 16px rgba(22,163,74,0.35)":"0 4px 16px var(--qb-gradient-shadow)",
     }}>
       {enCurso && <div style={{fontSize:11,fontWeight:800,color:"#FFF",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>🟢 EVENTO EN CURSO</div>}
       {enCurso&&(nextEvento.estado==="pendiente"||nextEvento.estado==="senada")&&saldo>0&&(
@@ -2792,7 +2792,7 @@ const AgendaDiaView = memo(function AgendaDiaView({ diaVista, setDiaVista, reser
   const fmtDiaVista=()=>{const d=new Date(diaVista+"T12:00:00");const dias=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];const meses=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];return `${dias[d.getDay()]} ${d.getDate()} ${meses[d.getMonth()]}`;};
   return (
     <div style={{...card,overflow:"hidden",marginBottom:16}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",background:"linear-gradient(135deg,#C4602B,#9E4A1E)",borderRadius:"12px 12px 0 0"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 16px",background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",borderRadius:"12px 12px 0 0"}}>
         <button onClick={()=>irDia(-1)} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#FFF",cursor:"pointer",padding:"4px 12px",borderRadius:8,fontSize:20,fontFamily:"inherit"}}>‹</button>
         <div style={{textAlign:"center"}}>
           <div style={{fontWeight:800,fontSize:16,fontFamily:"'Playfair Display', serif",color:"#FFF"}}>{fmtDiaVista()}</div>
@@ -4000,7 +4000,7 @@ function MiPlanView({ currentUser, onBack }) {
         {!vistaUpgrade && (
           <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
             <button onClick={()=>setVistaUpgrade(true)}
-              style={{width:'100%',padding:'14px',background:'linear-gradient(135deg,#C4602B,#9E4A1E)',border:'none',borderRadius:12,color:'#FFF',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>
+              style={{width:'100%',padding:'14px',background:'linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))',border:'none',borderRadius:12,color:'#FFF',fontWeight:700,fontSize:14,cursor:'pointer',fontFamily:'inherit'}}>
               ⬆️ Cambiar plan
             </button>
             {mpPreapproval && (
@@ -4040,7 +4040,7 @@ function MiPlanView({ currentUser, onBack }) {
             </div>
             {error && <div style={{color:'#DC2626',fontSize:12,background:'var(--qb-st-cancelada-bg)',border:'1px solid var(--qb-st-cancelada-border)',borderRadius:10,padding:'10px 14px',marginBottom:12}}>{error}</div>}
             <button onClick={iniciarUpgrade} disabled={cargando}
-              style={{width:'100%',padding:'14px',background:cargando?'#EDE0D0':'linear-gradient(135deg,#C4602B,#9E4A1E)',border:'none',borderRadius:12,color:'#FFF',fontWeight:700,fontSize:14,cursor:cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:cargando?0.7:1}}>
+              style={{width:'100%',padding:'14px',background:cargando?'#EDE0D0':'linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))',border:'none',borderRadius:12,color:'#FFF',fontWeight:700,fontSize:14,cursor:cargando?'not-allowed':'pointer',fontFamily:'inherit',opacity:cargando?0.7:1}}>
               {cargando ? 'Redirigiendo...' : `Suscribirme — Plan ${planesDB.find(p=>p.id===planSel)?.label??planSel}`}
             </button>
           </div>
@@ -4684,9 +4684,9 @@ function FAB({ onNewPago, onNewGasto, onNewConsulta }) {
       )}
       <button onClick={()=>setOpen(o=>!o)} style={{
         width:58,height:58,borderRadius:29,
-        background: open?"#1E0E08":"linear-gradient(135deg,#C4602B,#9E4A1E)",
+        background: open?"#1E0E08":"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",
         border:"none",cursor:"pointer",color:"#FFF",fontSize:26,
-        boxShadow:"0 4px 18px rgba(196,96,43,0.45)",
+        boxShadow:"0 4px 18px var(--qb-gradient-shadow)",
         display:"flex",alignItems:"center",justifyContent:"center",
         transform:open?"rotate(45deg)":"none",transition:"all 0.22s",
       }}>+</button>
@@ -4812,7 +4812,7 @@ function IAModal({ onClose, reservas, clientes, pagos, bloqueos, serviciosExtras
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1000,display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div style={{background:"var(--qb-bg-card)",borderRadius:"20px 20px 0 0",height:"80vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <div style={{padding:"16px 20px",borderBottom:"1px solid var(--qb-border)",display:"flex",justifyContent:"space-between",alignItems:"center",background:"linear-gradient(135deg,#C4602B,#9E4A1E)"}}>
+        <div style={{padding:"16px 20px",borderBottom:"1px solid var(--qb-border)",display:"flex",justifyContent:"space-between",alignItems:"center",background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))"}}>
           <div>
             <div style={{fontWeight:800,fontSize:17,color:"#FFF",fontFamily:"'Playfair Display',serif"}}>🤖 Asistente IA</div>
             <div style={{fontSize:11,color:"rgba(255,255,255,0.8)"}}>Preguntame sobre el quincho</div>
@@ -4974,7 +4974,7 @@ function SelectorPlanesMP({ orgId, titulo, subtitulo, onSignOut }) {
         {error && <div style={{color:'#DC2626',fontSize:12,background:'var(--qb-st-cancelada-bg)',border:'1px solid var(--qb-st-cancelada-border)',borderRadius:10,padding:'10px 14px',marginBottom:12}}>{error}</div>}
 
         <button onClick={pagar} disabled={cargando || !planInfo}
-          style={{width:'100%',padding:'14px 20px',background:cargando?'#EDE0D0':'linear-gradient(135deg,#C4602B,#9E4A1E)',border:'none',borderRadius:12,cursor:cargando?'not-allowed':'pointer',fontSize:15,fontWeight:700,color:'#FFF',fontFamily:'inherit',marginBottom:12,opacity:cargando?0.7:1}}>
+          style={{width:'100%',padding:'14px 20px',background:cargando?'#EDE0D0':'linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))',border:'none',borderRadius:12,cursor:cargando?'not-allowed':'pointer',fontSize:15,fontWeight:700,color:'#FFF',fontFamily:'inherit',marginBottom:12,opacity:cargando?0.7:1}}>
           {cargando ? 'Redirigiendo...' : `Suscribirme — Plan ${planInfo?.label ?? planSel}`}
         </button>
 
@@ -5151,7 +5151,7 @@ function GoogleLoginScreen({ onLogin, onBlocked }) {
           </div>
         ))}
         <button onClick={empezarDemo} disabled={loading}
-          style={{marginTop:24,width:"100%",padding:"14px 20px",background:loading?"var(--qb-border)":"linear-gradient(135deg,#C4602B,#9E4A1E)",border:"none",borderRadius:12,cursor:loading?"not-allowed":"pointer",fontSize:15,fontWeight:700,color:"#FFF",fontFamily:"inherit",boxShadow:"0 4px 20px rgba(196,96,43,0.3)",opacity:loading?0.7:1}}>
+          style={{marginTop:24,width:"100%",padding:"14px 20px",background:loading?"var(--qb-border)":"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",border:"none",borderRadius:12,cursor:loading?"not-allowed":"pointer",fontSize:15,fontWeight:700,color:"#FFF",fontFamily:"inherit",boxShadow:"0 4px 20px rgba(196,96,43,0.3)",opacity:loading?0.7:1}}>
           {loading ? "Activando prueba..." : "Empezar prueba gratis"}
         </button>
         {error && <div style={{marginTop:10,color:"#DC2626",fontSize:12}}>{error}</div>}
@@ -5265,7 +5265,7 @@ function OnboardingWizard({ onFinish, userName }) {
       <div style={{width:"100%",maxWidth:440,margin:"0 auto",padding:20,paddingBottom:40}}>
 
         {/* Banner de bienvenida */}
-        <div style={{background:"linear-gradient(135deg,#C4602B,#E8855A)",borderRadius:14,padding:"20px 24px",marginBottom:20,textAlign:"center",boxShadow:"0 4px 16px rgba(196,96,43,0.25)"}}>
+        <div style={{background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",borderRadius:14,padding:"20px 24px",marginBottom:20,textAlign:"center",boxShadow:"0 4px 16px rgba(196,96,43,0.25)"}}>
           <div style={{fontSize:32,marginBottom:6}}>🎉</div>
           <div style={{fontSize:19,fontWeight:800,color:"#FFF",marginBottom:4}}>
             {userName ? `¡Bienvenido/a, ${userName.split(' ')[0]}!` : '¡Bienvenido/a!'}
@@ -6298,7 +6298,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
             <button onClick={()=>setShowRootMenu(m=>!m)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",cursor:"pointer",padding:4,fontFamily:"inherit"}}>
               {currentUser.avatarUrl
                 ? <img src={currentUser.avatarUrl} alt="" style={{width:30,height:30,borderRadius:15,objectFit:"cover"}} />
-                : <div style={{width:30,height:30,borderRadius:15,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:13}}>{(currentUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
+                : <div style={{width:30,height:30,borderRadius:15,background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:13}}>{(currentUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
               }
               <span style={{fontSize:11,color:"var(--qb-text3)",fontWeight:700,maxWidth:70,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{currentUser.nombre?.split(" ")[0]}</span>
               <span style={{fontSize:10,color:"var(--qb-text2)"}}>▾</span>
@@ -6309,7 +6309,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
                 <div style={{padding:"14px 16px",background:"var(--qb-bg-card-alt)",borderBottom:"1px solid var(--qb-border)",display:"flex",alignItems:"center",gap:10}}>
                   {currentUser.avatarUrl
                     ? <img src={currentUser.avatarUrl} alt="" style={{width:36,height:36,borderRadius:18,objectFit:"cover",flexShrink:0}} />
-                    : <div style={{width:36,height:36,borderRadius:18,background:"linear-gradient(135deg,#C4602B,#9E4A1E)",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:15,flexShrink:0}}>{(currentUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
+                    : <div style={{width:36,height:36,borderRadius:18,background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",display:"flex",alignItems:"center",justifyContent:"center",color:"#FFF",fontWeight:800,fontSize:15,flexShrink:0}}>{(currentUser.nombre?.charAt(0)||"?").toUpperCase()}</div>
                   }
                   <div style={{overflow:"hidden"}}>
                     <div style={{fontWeight:700,fontSize:13,color:"var(--qb-text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{currentUser.nombre}</div>

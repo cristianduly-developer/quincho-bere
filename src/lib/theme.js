@@ -54,6 +54,9 @@ export const THEME_CSS = `
   --qb-dropdown-shadow: 0 4px 20px rgba(0,0,0,0.14);
   --qb-grab-bar: #D4C5B5;
   --qb-focus-ring: rgba(196,96,43,0.12);
+  --qb-gradient-start: #C4602B;
+  --qb-gradient-end: #9E4A1E;
+  --qb-gradient-shadow: rgba(196,96,43,0.35);
   --qb-muted: #F3F4F6;
   --qb-muted-text: #6B7280;
   --qb-warning-bg: #FFFBEB;
@@ -103,6 +106,9 @@ export const THEME_CSS = `
   --qb-dropdown-shadow: 0 4px 20px rgba(0,0,0,0.4);
   --qb-grab-bar: #3D3530;
   --qb-focus-ring: rgba(212,165,116,0.2);
+  --qb-gradient-start: #8B6914;
+  --qb-gradient-end: #6B4F0E;
+  --qb-gradient-shadow: rgba(139,105,20,0.35);
   --qb-muted: rgba(107,114,128,0.12);
   --qb-muted-text: #9CA3AF;
   --qb-warning-bg: rgba(245,158,11,0.1);
