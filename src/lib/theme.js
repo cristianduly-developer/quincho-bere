@@ -81,9 +81,9 @@ export const THEME_CSS = `
   --qb-text: #F0E8E0;
   --qb-text2: #A89880;
   --qb-text3: #C8B8A0;
-  --qb-accent: #E8844A;
-  --qb-accent-light: #F0A882;
-  --qb-accent-bg: rgba(232,132,74,0.12);
+  --qb-accent: #D4A574;
+  --qb-accent-light: #BF9060;
+  --qb-accent-bg: rgba(212,165,116,0.12);
   --qb-input-bg: #1A1714;
   --qb-input-readonly: #141210;
   --qb-modal-bg: #1A1714;
@@ -102,7 +102,7 @@ export const THEME_CSS = `
   --qb-dropdown-bg: #1E1B17;
   --qb-dropdown-shadow: 0 4px 20px rgba(0,0,0,0.4);
   --qb-grab-bar: #3D3530;
-  --qb-focus-ring: rgba(232,132,74,0.2);
+  --qb-focus-ring: rgba(212,165,116,0.2);
   --qb-muted: rgba(107,114,128,0.12);
   --qb-muted-text: #9CA3AF;
   --qb-warning-bg: rgba(245,158,11,0.1);
