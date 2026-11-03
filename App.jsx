@@ -2703,6 +2703,8 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
   const c = clientes.find(x=>x.id===nextEvento.clienteId);
   const extrasForNext = extrasReserva.filter(e=>e.reservaId===nextEvento.id);
   const saldo = getSaldo(nextEvento, extrasReserva, pagos);
+  const total = nextEvento.montoPactado + getTotalExtras(nextEvento.id, extrasReserva);
+  const pct = total > 0 ? Math.round(((total - saldo) / total) * 100) : 100;
   const t = TURNOS[nextEvento.turno];
   const s = STATUS[nextEvento.estado] || STATUS.pendiente;
   const now2 = new Date();
@@ -2711,61 +2713,115 @@ function NextEventoCard({ nextEvento, clientes, extrasReserva, pagos, onReservaC
   const startMin = nextEvento.horario ? parseInt(nextEvento.horario)*60+parseInt((nextEvento.horario.split(':')[1])||0) : 660;
   const endMin = nextEvento.horarioFin ? parseInt(nextEvento.horarioFin)*60+parseInt((nextEvento.horarioFin.split(':')[1])||0) : 1439;
   const enCurso = nextEvento.fecha===today2 && curMin>=startMin && curMin<=endMin;
+  const [fy,fm,fd] = nextEvento.fecha.split("-");
+  const dayNum = parseInt(fd);
+  const mesChip = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][parseInt(fm)-1];
+  const hoyMs = new Date(); hoyMs.setHours(0,0,0,0);
+  const fMs = new Date(parseInt(fy),parseInt(fm)-1,dayNum); fMs.setHours(0,0,0,0);
+  const diff = Math.round((fMs-hoyMs)/86400000);
+  const countdown = diff===0?"Hoy":diff===1?"Mañana":diff>=2&&diff<=7?`En ${diff} días`:diff>7?`En ${diff}d`:null;
+  const barColor = pct>=100 ? "#16A34A" : pct>=50 ? "var(--qb-accent)" : "#DC2626";
+
   return (
     <div onClick={()=>onReservaClick(nextEvento)} style={{
-      background:enCurso?"linear-gradient(135deg,#16A34A,#15803D)":"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",
-      borderRadius:14,padding:"16px 18px",marginBottom:14,cursor:"pointer",
-      boxShadow:enCurso?"0 4px 16px rgba(22,163,74,0.35)":"0 4px 16px var(--qb-gradient-shadow)",
+      background:"var(--qb-bg-card)",borderRadius:16,
+      border:"1px solid var(--qb-border)",
+      marginBottom:14,cursor:"pointer",overflow:"hidden",
+      boxShadow:"0 2px 8px rgba(0,0,0,0.06)",
     }}>
-      {enCurso && <div style={{fontSize:11,fontWeight:800,color:"#FFF",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>🟢 EVENTO EN CURSO</div>}
+      {enCurso && (
+        <div style={{background:"linear-gradient(135deg,#16A34A,#15803D)",padding:"6px 16px",display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:8,color:"#4ADE80"}}>●</span>
+          <span style={{fontSize:11,fontWeight:800,color:"#FFF",letterSpacing:1.5,textTransform:"uppercase"}}>Evento en curso</span>
+        </div>
+      )}
+      {!enCurso && (
+        <div style={{background:"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",padding:"6px 16px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.9)",textTransform:"uppercase",letterSpacing:1}}>Próximo evento</span>
+          {countdown && <span style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.75)"}}>{countdown}</span>}
+        </div>
+      )}
+
       {enCurso&&(nextEvento.estado==="pendiente"||nextEvento.estado==="senada")&&saldo>0&&(
-        <div style={{background:"#DC2626",borderRadius:8,padding:"8px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:16}}>🚨</span>
+        <div style={{background:"rgba(220,38,38,0.08)",borderBottom:"1px solid rgba(220,38,38,0.15)",padding:"8px 16px",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:14}}>🚨</span>
           <div>
-            <div style={{fontSize:12,fontWeight:800,color:"#FFF"}}>SALDO PENDIENTE: {fmtCurrency(saldo)}</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.85)"}}>El cliente aún no abonó el total del evento</div>
+            <div style={{fontSize:12,fontWeight:800,color:"#DC2626"}}>Saldo pendiente: {fmtCurrency(saldo)}</div>
+            <div style={{fontSize:10,color:"var(--qb-text2)"}}>El cliente aún no abonó el total</div>
           </div>
         </div>
       )}
-      {!enCurso && <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>🗓 Próximo evento</div>}
-      <div style={{fontWeight:800,fontSize:20,color:"#FFF",fontFamily:"'Playfair Display',serif",marginBottom:4}}>{clientName(c)}</div>
-      <div style={{fontSize:13,color:"rgba(255,255,255,0.85)",marginBottom:8}}>
-        {fmtDate(nextEvento.fecha)}
-        {nextEvento.horario ? " · " + nextEvento.horario + (nextEvento.horarioFin ? " → " + nextEvento.horarioFin : "") + "hs" : ""}
-        {nextEvento.cantInvitados > 0 ? " · 👥 " + nextEvento.cantInvitados + " pers." : ""}
-      </div>
-      {extrasForNext&&extrasForNext.length>0&&(
-        <div style={{background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 10px",marginBottom:8}}>
-          <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,0.7)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>✨ Extras</div>
-          {extrasForNext.map((e,i)=><div key={i} style={{fontSize:12,color:"rgba(255,255,255,0.9)"}}>· {e.descripcion} x{e.cantidad}</div>)}
-        </div>
-      )}
-      {mercadoProductos && mercadoProductos.filter(p=>p.activo).length > 0 && (
-        <div style={{marginBottom:8}}>
-          <button onClick={(e)=>{e.stopPropagation();toggleMercadoReserva(nextEvento.id,!nextEvento.mercadoActivo);}} style={{
-            background:nextEvento.mercadoActivo?"rgba(255,255,255,0.25)":"rgba(255,255,255,0.1)",
-            border:nextEvento.mercadoActivo?"2px solid rgba(255,255,255,0.6)":"2px solid rgba(255,255,255,0.2)",
-            color:"#FFF",borderRadius:10,padding:"8px 14px",cursor:"pointer",
-            display:"flex",alignItems:"center",gap:8,width:"100%",fontFamily:"inherit",
-            transition:"all 0.2s ease",
-          }}>
-            <span style={{fontSize:18}}>{nextEvento.mercadoActivo?"🟢":"🛒"}</span>
-            <div style={{textAlign:"left",flex:1}}>
-              <div style={{fontSize:13,fontWeight:800}}>{nextEvento.mercadoActivo?"Mercado ACTIVO":"Activar Mercado"}</div>
-              <div style={{fontSize:10,opacity:0.8}}>{nextEvento.mercadoActivo?"Los organizadores pueden pedir productos":"Toca para habilitar pedidos en el portal"}</div>
+
+      <div style={{padding:"14px 16px"}}>
+        <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+          <div style={{width:60,minWidth:60,display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
+            <div style={{
+              width:56,height:56,borderRadius:14,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+              background:enCurso?"rgba(22,163,74,0.1)":`${s.color}14`,
+              border:`2px solid ${enCurso?"#16A34A":s.color}`,
+            }}>
+              <div style={{fontSize:24,fontWeight:800,lineHeight:1,color:enCurso?"#16A34A":s.color}}>{dayNum}</div>
+              <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,color:enCurso?"#16A34A":s.color,lineHeight:1}}>{mesChip}</div>
             </div>
-            <span style={{fontSize:14,opacity:0.7}}>{nextEvento.mercadoActivo?"✓":"›"}</span>
+          </div>
+
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:4}}>
+              <div style={{fontWeight:800,fontSize:18,color:"var(--qb-text)",fontFamily:"'Playfair Display',serif",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
+                {clientName(c)}
+              </div>
+              <span style={{background:s.bg,color:s.color,borderRadius:20,padding:"3px 10px",fontSize:10,fontWeight:700,border:`1px solid ${s.border}`,flexShrink:0}}>{s.label}</span>
+            </div>
+
+            <div style={{fontSize:12,color:"var(--qb-text2)",marginBottom:2}}>
+              {nextEvento.horario ? nextEvento.horario + (nextEvento.horarioFin ? " → " + nextEvento.horarioFin : "") + " hs" : (t ? t.icon + " " + t.label : "")}
+              {nextEvento.cantInvitados > 0 ? " · " + nextEvento.cantInvitados + " personas" : ""}
+            </div>
+            {nextEvento.tipoEvento && <div style={{fontSize:11,color:"var(--qb-text2)"}}>🎉 {nextEvento.tipoEvento}</div>}
+
+            {total > 0 && (
+              <div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
+                <div style={{flex:1,background:"var(--qb-border)",borderRadius:3,height:3,overflow:"hidden"}}>
+                  <div style={{height:3,borderRadius:3,background:barColor,width:`${Math.min(100,Math.max(0,pct))}%`,transition:"width .3s"}} />
+                </div>
+                <span style={{fontSize:10,fontWeight:700,color:barColor,flexShrink:0}}>{pct}%</span>
+              </div>
+            )}
+
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+              <span style={{fontSize:12,fontWeight:700,color:saldo>0?"var(--qb-accent)":"#16A34A"}}>
+                {saldo > 0 ? `Saldo ${fmtCurrency(saldo)}` : total>0?`${fmtCurrency(total)}`:""}
+              </span>
+              {t && <span style={{fontSize:11,color:"var(--qb-text2)",fontWeight:600}}>{t.icon} {t.label}</span>}
+            </div>
+          </div>
+        </div>
+
+        {extrasForNext&&extrasForNext.length>0&&(
+          <div style={{background:"var(--qb-bg-card-alt)",borderRadius:10,padding:"8px 12px",marginTop:10,border:"1px solid var(--qb-border)"}}>
+            <div style={{fontSize:9,fontWeight:700,color:"var(--qb-text2)",marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>Extras contratados</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {extrasForNext.map((e,i)=><span key={i} style={{fontSize:11,color:"var(--qb-text)",background:"var(--qb-muted)",padding:"2px 8px",borderRadius:6}}>{e.descripcion} x{e.cantidad}</span>)}
+            </div>
+          </div>
+        )}
+
+        {mercadoProductos && mercadoProductos.filter(p=>p.activo).length > 0 && (
+          <button onClick={(e)=>{e.stopPropagation();toggleMercadoReserva(nextEvento.id,!nextEvento.mercadoActivo);}} style={{
+            background:nextEvento.mercadoActivo?"var(--qb-st-confirmada-bg)":"var(--qb-bg-card-alt)",
+            border:`1.5px solid ${nextEvento.mercadoActivo?"var(--qb-st-confirmada-border)":"var(--qb-border)"}`,
+            color:"var(--qb-text)",borderRadius:10,padding:"8px 14px",cursor:"pointer",
+            display:"flex",alignItems:"center",gap:8,width:"100%",fontFamily:"inherit",
+            transition:"all 0.2s ease",marginTop:10,
+          }}>
+            <span style={{fontSize:16}}>{nextEvento.mercadoActivo?"🟢":"🛒"}</span>
+            <div style={{textAlign:"left",flex:1}}>
+              <div style={{fontSize:12,fontWeight:700}}>{nextEvento.mercadoActivo?"Mercado ACTIVO":"Activar Mercado"}</div>
+              <div style={{fontSize:10,color:"var(--qb-text2)"}}>{nextEvento.mercadoActivo?"Los organizadores pueden pedir productos":"Toca para habilitar pedidos en el portal"}</div>
+            </div>
+            <span style={{fontSize:14,color:"var(--qb-text2)"}}>›</span>
           </button>
-        </div>
-      )}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{background:"rgba(255,255,255,0.2)",color:"#FFF",borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700}}>
-          {t ? t.icon + " " + t.label : ""}
-        </span>
-        <div style={{textAlign:"right"}}>
-          <span style={{background:s.bg,color:s.color,borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,border:"1px solid "+s.border}}>{s.label}</span>
-          {saldo > 0 && <div style={{fontSize:11,color:"#FFD97D",fontWeight:700,marginTop:3}}>⚠️ {fmtCurrency(saldo)}</div>}
-        </div>
+        )}
       </div>
     </div>
   );
