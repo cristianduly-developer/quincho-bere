@@ -5857,8 +5857,8 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
   // Interval: re-check every 60 seconds
   useEffect(()=>{
     if(!loaded) return;
-    const INACTIVITY_MS = 30*60*1000;
-    const WARNING_MS = 28*60*1000;
+    const INACTIVITY_MS = 8*60*60*1000;
+    const WARNING_MS = 8*60*60*1000 - 5*60*1000;
     const updateActivity = () => { lastActivityRef.current = Date.now(); setInactivityWarning(false); };
     window.addEventListener('click', updateActivity);
     window.addEventListener('touchstart', updateActivity);
