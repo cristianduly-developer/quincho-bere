@@ -5868,7 +5868,12 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       if(document.visibilityState === 'visible') {
         if(Date.now() - lastActivityRef.current > INACTIVITY_MS) {
           handleLogout();
+          return;
         }
+        if(currentUser?.orgId && Date.now() - _lastFetchRef.current > 60*1000) {
+          cargarDatos(currentUser.orgId);
+        }
+        updateActivity();
       }
     };
     document.addEventListener('visibilitychange', onVisible);
