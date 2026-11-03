@@ -137,11 +137,29 @@ function StatCard({ val, label, color }) {
   );
 }
 
-function ProgressBar({ pct }) {
-  const color = pct>=100 ? "#16A34A" : pct>=50 ? "var(--qb-accent)" : "#DC2626";
+const MESES_CHIP = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+function DateChip({ dateStr, estado, diff }) {
+  const [y,m,d] = dateStr.split("-");
+  const dayNum = parseInt(d);
+  const mes = MESES_CHIP[parseInt(m)-1];
+  const st = STATUS[estado];
+  const accentColor = st?.color || "var(--qb-accent)";
+  const isPast = diff < 0;
+  const countdownLabel = diff===0?"Hoy":diff===1?"Mañana":diff>=2&&diff<=7?`En ${diff}d`:null;
   return (
-    <div style={{background:"var(--qb-border)",borderRadius:4,height:4,margin:"8px 0 6px",overflow:"hidden"}}>
-      <div style={{height:4,borderRadius:4,background:color,width:`${Math.min(100,Math.max(0,pct))}%`,transition:"width .3s"}} />
+    <div style={{width:52,minWidth:52,display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
+      <div style={{
+        width:48,height:48,borderRadius:12,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+        background:isPast?"var(--qb-muted)":`${accentColor}14`,
+        border:`1.5px solid ${isPast?"var(--qb-border)":accentColor}`,
+      }}>
+        <div style={{fontSize:20,fontWeight:800,lineHeight:1,color:isPast?"var(--qb-text2)":accentColor}}>{dayNum}</div>
+        <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5,color:isPast?"var(--qb-text2)":accentColor,lineHeight:1}}>{mes}</div>
+      </div>
+      {countdownLabel && (
+        <div style={{fontSize:8,fontWeight:700,color:diff===0?accentColor:diff===1?"var(--qb-accent)":"var(--qb-text2)",letterSpacing:0.3,whiteSpace:"nowrap"}}>{countdownLabel}</div>
+      )}
     </div>
   );
 }
@@ -178,77 +196,86 @@ function ReservaCard({ r, clientes, recursos, extrasReserva, pagos, onReservaCli
   const fechaPrincipal = esVisita ? (r.fechaVisita || r.fecha) : r.fecha;
   const diff = diffDays(fechaPrincipal);
   const urgente = activa && diff >= 0 && diff <= 3;
-
   const st = STATUS[r.estado];
-  const cardBg = st?.bg || "var(--qb-bg-card)";
-  const cardBorder = st?.border || "var(--qb-border)";
+  const barColor = pct>=100 ? "#16A34A" : pct>=50 ? "var(--qb-accent)" : "#DC2626";
 
   return (
     <div onClick={()=>onReservaClick(r)} style={{
-      background:cardBg, borderRadius:12, border:`1px solid ${cardBorder}`,
-      borderLeft:`3px solid ${st?.color || "var(--qb-border)"}`,
-      marginBottom:8, padding:"13px 14px", cursor:"pointer",
+      background:"var(--qb-bg-card)", borderRadius:14, border:`1px solid var(--qb-border)`,
+      marginBottom:10, padding:"14px 14px", cursor:"pointer",
+      boxShadow:"0 1px 3px rgba(0,0,0,0.04)",
+      transition:"box-shadow 0.2s, transform 0.2s",
     }}
-    onMouseEnter={e=>e.currentTarget.style.background=cardBg}
-    onMouseLeave={e=>e.currentTarget.style.background=cardBg}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+    onMouseEnter={e=>{e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.08)";e.currentTarget.style.transform="translateY(-1px)";}}
+    onMouseLeave={e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,0.04)";e.currentTarget.style.transform="none";}}>
+      <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+        <DateChip dateStr={fechaPrincipal} estado={r.estado} diff={diff} />
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-            {urgente && <span style={{marginRight:4}}>🔔</span>}{clientName(c)}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:6,marginBottom:4}}>
+            <div style={{fontWeight:700,fontSize:15,color:"var(--qb-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1}}>
+              {urgente && <span style={{marginRight:3}}>🔔</span>}{clientName(c)}
+            </div>
+            <StatusBadge estado={r.estado} />
           </div>
+
           {esVisita ? (
             <>
-              <div style={{fontSize:12,color:"#7C3AED",marginTop:2,fontWeight:600}}>
-                👁️ Visita {fmtDate(r.fechaVisita||r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{r.horaVisita?` · ${r.horaVisita} hs`:""}
+              <div style={{fontSize:12,color:"#7C3AED",fontWeight:600}}>
+                Visita{r.horaVisita?` · ${r.horaVisita} hs`:""}
               </div>
-              <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:1}}>
-                📅 Fecha de interés: {fmtDate(r.fecha)}{r.tipoEvento?` · 🎉 ${r.tipoEvento}`:""} · 🏠 {rec?.nombre||"Sin espacio"}
+              <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:2}}>
+                Interés: {fmtDate(r.fecha)}{r.tipoEvento?` · ${r.tipoEvento}`:""} · {rec?.nombre||"Sin espacio"}
               </div>
             </>
           ) : (
-            <>
-              <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>
-                {fmtDate(r.fecha)}{diff===0?" · Hoy":diff===1?" · Mañana":""}{` · ${turnoIcon} ${turnoLabel}`}{horarioStr?` (${horarioStr})`:""}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div>
-              <div style={{fontSize:11,color:"var(--qb-text2)"}}>🏠 {rec?.nombre||"Sin espacio"}{r.tipoEvento ? ` · 🎉 ${r.tipoEvento}` : ""}</div>
-            </>
+            <div style={{fontSize:12,color:"var(--qb-text2)"}}>
+              {`${turnoIcon} ${turnoLabel}`}{horarioStr?` (${horarioStr})`:""}{r.cantInvitados>0?` · ${r.cantInvitados} pers.`:""}{r.tipoEvento?` · ${r.tipoEvento}`:""} · {rec?.nombre||""}
+            </div>
           )}
-        </div>
-        <StatusBadge estado={r.estado} />
-      </div>
 
-      {activa && !esVisita && <ProgressBar pct={pct} />}
+          {activa && !esVisita && (
+            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
+              <div style={{flex:1,background:"var(--qb-border)",borderRadius:3,height:3,overflow:"hidden"}}>
+                <div style={{height:3,borderRadius:3,background:barColor,width:`${Math.min(100,Math.max(0,pct))}%`,transition:"width .3s"}} />
+              </div>
+              <span style={{fontSize:10,fontWeight:700,color:barColor,flexShrink:0}}>{pct}%</span>
+            </div>
+          )}
 
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:activa&&!esVisita?0:8}}>
-        {!esVisita && (
-          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-            <span style={{fontSize:12,fontWeight:700,color:deuda?"var(--qb-accent)":saldo===0?"#16A34A":"var(--qb-text2)"}}>
-              {deuda ? `⚠️ Saldo ${fmtCurrency(saldo)}` : `✅ ${fmtCurrency(total)}`}
-            </span>
-            {r.proximoPagoMonto && activa && (() => {
-              const vencido = r.proximoPagoFecha && diffDays(r.proximoPagoFecha) < 0;
-              return (
-                <span style={{fontSize:10,fontWeight:600,color:"#fff",background:vencido?"#DC2626":"#16A34A",borderRadius:4,padding:"2px 6px",whiteSpace:"nowrap"}}>
-                  ⏳ {fmtCurrency(r.proximoPagoMonto)}{r.proximoPagoFecha ? ` · ${fmtDate(r.proximoPagoFecha)}` : ""}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8}}>
+            {!esVisita ? (
+              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                <span style={{fontSize:12,fontWeight:700,color:deuda?"var(--qb-accent)":"#16A34A"}}>
+                  {deuda ? `Saldo ${fmtCurrency(saldo)}` : `${fmtCurrency(total)}`}
                 </span>
-              );
-            })()}
-          </div>
-        )}
-        {esVisita && <div style={{fontSize:12,color:"#7C3AED",fontWeight:600}}>👁️ Viene a conocer el espacio</div>}
-        {activa && (
-          <div style={{display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>
-            {c?.whatsapp && (
-              <button onClick={waMsg} style={{padding:"4px 10px",borderRadius:6,border:"0.5px solid var(--qb-border)",background:"var(--qb-bg-card-alt)",color:"var(--qb-text3)",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                💬 WA
-              </button>
+                {r.proximoPagoMonto && activa && (() => {
+                  const vencido = r.proximoPagoFecha && diffDays(r.proximoPagoFecha) < 0;
+                  return (
+                    <span style={{fontSize:9,fontWeight:700,color:"#fff",background:vencido?"#DC2626":"#16A34A",borderRadius:4,padding:"2px 6px",whiteSpace:"nowrap"}}>
+                      {fmtCurrency(r.proximoPagoMonto)}{r.proximoPagoFecha ? ` · ${fmtDate(r.proximoPagoFecha)}` : ""}
+                    </span>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div style={{fontSize:11,color:"#7C3AED",fontWeight:600}}>Viene a conocer el espacio</div>
             )}
-            {deuda && !esVisita && (
-              <button onClick={()=>onCobrar(r)} style={{padding:"4px 10px",borderRadius:6,border:"0.5px solid #C4602B",background:"var(--qb-accent)",color:"var(--qb-bg-card)",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                💰 Cobrar
-              </button>
+            {activa && (
+              <div style={{display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>
+                {c?.whatsapp && (
+                  <button onClick={waMsg} style={{padding:"5px 10px",borderRadius:8,border:"1px solid var(--qb-border)",background:"var(--qb-bg-card-alt)",color:"var(--qb-text3)",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
+                    💬
+                  </button>
+                )}
+                {deuda && !esVisita && (
+                  <button onClick={()=>onCobrar(r)} style={{padding:"5px 10px",borderRadius:8,border:"none",background:"var(--qb-accent)",color:"#FFF",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                    Cobrar
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -3147,16 +3147,42 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
       )}
       {upcoming.slice(1,5).length>0 && (
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text3)",marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Próximas reservas</div>
+          <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text3)",marginBottom:10,textTransform:"uppercase",letterSpacing:0.5}}>Próximas reservas</div>
           {upcoming.slice(1,5).map(r=>{
             const c=clientes.find(x=>x.id===r.clienteId);
             const saldo=getSaldo(r,extrasReserva,pagos);
             const st=STATUS[r.estado];
+            const [fy,fm,fd]=r.fecha.split("-");
+            const dayNum=parseInt(fd);
+            const mesChip=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"][parseInt(fm)-1];
+            const hoyMs=new Date();hoyMs.setHours(0,0,0,0);
+            const fMs=new Date(parseInt(fy),parseInt(fm)-1,dayNum);fMs.setHours(0,0,0,0);
+            const diff=Math.round((fMs-hoyMs)/86400000);
+            const countdown=diff===0?"Hoy":diff===1?"Mañana":diff>=2&&diff<=7?`${diff}d`:null;
+            const accent=st?.color||"var(--qb-accent)";
+            const customT=r.turnoId&&turnosRecurso?.find(t=>t.id===r.turnoId);
+            const tLabel=customT?customT.nombre:(TURNOS[r.turno]?.label||r.turno);
+            const tIcon=customT?"🕐":(TURNOS[r.turno]?.icon||"📌");
             return (
-              <div key={r.id} onClick={()=>onReservaClick(r)} style={{...card,padding:"12px 14px",marginBottom:8,cursor:"pointer",background:st?.bg||"var(--qb-bg-card)",border:`1px solid ${st?.border||"var(--qb-border)"}`,borderLeft:`3px solid ${st?.color||"var(--qb-accent)"}`,borderRadius:"0 12px 12px 0"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div><div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>{clientName(c)}</div><div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>{fmtDate(r.fecha)} · {TURNOS[r.turno]?.icon||"📌"} {(r.turnoId&&turnosRecurso?.find(t=>t.id===r.turnoId)?.nombre)||TURNOS[r.turno]?.label||r.turno}{r.cantInvitados>0?` · 👥 ${r.cantInvitados}`:""}</div></div>
-                  <div style={{textAlign:"right"}}><StatusBadge estado={r.estado} />{saldo>0&&<div style={{fontSize:11,color:"#DC2626",fontWeight:700,marginTop:4}}>⚠️ {fmtCurrency(saldo)}</div>}</div>
+              <div key={r.id} onClick={()=>onReservaClick(r)} style={{
+                background:"var(--qb-bg-card)",borderRadius:14,border:"1px solid var(--qb-border)",
+                marginBottom:8,padding:"12px 12px",cursor:"pointer",
+                boxShadow:"0 1px 3px rgba(0,0,0,0.04)",display:"flex",gap:10,alignItems:"center",
+              }}>
+                <div style={{width:44,minWidth:44,display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+                  <div style={{width:42,height:42,borderRadius:10,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:`${accent}14`,border:`1.5px solid ${accent}`}}>
+                    <div style={{fontSize:17,fontWeight:800,lineHeight:1,color:accent}}>{dayNum}</div>
+                    <div style={{fontSize:8,fontWeight:700,textTransform:"uppercase",letterSpacing:0.4,color:accent,lineHeight:1}}>{mesChip}</div>
+                  </div>
+                  {countdown&&<div style={{fontSize:7,fontWeight:700,color:diff<=1?accent:"var(--qb-text2)",letterSpacing:0.2}}>{countdown}</div>}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{clientName(c)}</div>
+                  <div style={{fontSize:11,color:"var(--qb-text2)",marginTop:1}}>{tIcon} {tLabel}{r.cantInvitados>0?` · ${r.cantInvitados} pers.`:""}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <StatusBadge estado={r.estado} />
+                  {saldo>0&&<div style={{fontSize:10,color:"var(--qb-accent)",fontWeight:700,marginTop:3}}>{fmtCurrency(saldo)}</div>}
                 </div>
               </div>
             );
