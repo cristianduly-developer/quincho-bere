@@ -129,6 +129,8 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   const [desgloseOpen, setDesgloseOpen] = useState(false);
   const [portalData, setPortalData] = useState(null);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [captDesde, setCaptDesde] = useState("");
+  const [captHasta, setCaptHasta] = useState("");
 
   useEffect(() => {
     if (subtab !== "portal" || portalData) return;
@@ -783,7 +785,16 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
       {subtab==="captacion" && (()=>{
         const DIAS_SEMANA = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
-        const conFecha = reservas.filter(r => (r.creadoEn || r.fechaCreacion) && r.estado !== "cancelada" && r.estado !== "visita");
+        const allConFecha = reservas.filter(r => (r.creadoEn || r.fechaCreacion) && r.estado !== "cancelada" && r.estado !== "visita");
+        const conFecha = allConFecha.filter(r => {
+          if (!captDesde && !captHasta) return true;
+          const creado = (r.creadoEn || r.fechaCreacion || "").slice(0, 10);
+          if (!creado) return true;
+          if (captDesde && creado < captDesde) return false;
+          if (captHasta && creado > captHasta) return false;
+          return true;
+        });
+        const hayFiltro = !!(captDesde || captHasta);
 
         const porDia = Array(7).fill(0);
         conFecha.forEach(r => {
@@ -830,7 +841,24 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
         return <>
           <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
-            <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 12}}>📊 Resumen de captación</div>
+            <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 10}}>🔍 Filtrar por fecha de creación</div>
+            <div style={{display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap"}}>
+              <input type="date" value={captDesde} onChange={e => setCaptDesde(e.target.value)}
+                style={{flex: 1, minWidth: 120, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--qb-border)", fontSize: 13, fontFamily: "inherit", background: "var(--qb-input-bg)", color: "var(--qb-text)"}} />
+              <span style={{fontSize: 12, color: "var(--qb-text2)"}}>→</span>
+              <input type="date" value={captHasta} onChange={e => setCaptHasta(e.target.value)}
+                style={{flex: 1, minWidth: 120, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--qb-border)", fontSize: 13, fontFamily: "inherit", background: "var(--qb-input-bg)", color: "var(--qb-text)"}} />
+            </div>
+            {hayFiltro && (
+              <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8}}>
+                <span style={{fontSize: 11, color: "var(--qb-accent)", fontWeight: 600}}>{conFecha.length} reserva{conFecha.length !== 1 ? "s" : ""} creada{conFecha.length !== 1 ? "s" : ""} en este período</span>
+                <button onClick={() => { setCaptDesde(""); setCaptHasta(""); }} style={{fontSize: 11, color: "var(--qb-text2)", background: "var(--qb-muted)", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600}}>Limpiar</button>
+              </div>
+            )}
+          </div>
+
+          <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
+            <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 12}}>📊 Resumen de captación{hayFiltro ? " (filtrado)" : ""}</div>
             <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12}}>
               <div style={{background: "#EFF6FF", borderRadius: 10, padding: "12px", textAlign: "center", border: "1px solid #BFDBFE"}}>
                 <div style={{fontSize: 22, fontWeight: 800, color: "#2563EB"}}>{conFecha.length}</div>
