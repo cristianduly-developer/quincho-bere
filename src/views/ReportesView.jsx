@@ -1067,30 +1067,26 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
           {/* ── Análisis de rendimiento publicitario ── */}
           {(() => {
-            const gastoMeta = gastos.filter(g => g.categoria === "Publicidad Meta" && conFecha.length > 0 && (() => {
+            const enRangoGasto = (f) => {
+              if (!f) return false;
               if (!hayFiltro) return true;
-              const f = g.fecha || "";
               return (!captDesde || f >= captDesde) && (!captHasta || f <= captHasta);
-            })()).reduce((s, g) => s + (g.monto || 0), 0);
-            const gastoMkt = gastos.filter(g => g.categoria === "Publicidad Marketplace" && (() => {
-              if (!hayFiltro) return true;
-              const f = g.fecha || "";
-              return (!captDesde || f >= captDesde) && (!captHasta || f <= captHasta);
-            })()).reduce((s, g) => s + (g.monto || 0), 0);
+            };
+            const gastoMeta = gastos.filter(g => g.categoria === "Publicidad Meta" && enRangoGasto(g.fecha)).reduce((s, g) => s + (g.monto || 0), 0);
+            const gastoMkt = gastos.filter(g => g.categoria === "Publicidad Marketplace" && enRangoGasto(g.fecha)).reduce((s, g) => s + (g.monto || 0), 0);
             const gastoTotal = gastoMeta + gastoMkt;
 
-            const pubMesActual = pubData.find(p => {
-              if (hayFiltro) {
-                const mesDesde = captDesde ? captDesde.slice(0,7) : null;
-                const mesHasta = captHasta ? captHasta.slice(0,7) : null;
-                if (mesDesde && mesHasta && mesDesde === mesHasta) return p.mes === mesDesde;
-                return false;
-              }
-              return false;
-            });
-            const pubMostrar = pubMesActual || (pubData.length > 0 && !hayFiltro ? pubData[0] : null);
-            const convMeta = pubMostrar ? (pubMostrar.conv_meta_insta || 0) + (pubMostrar.conv_meta_face || 0) : 0;
-            const convMkt = pubMostrar ? (pubMostrar.conv_marketplace || 0) : 0;
+            const mesesEnRango = new Set();
+            if (hayFiltro) {
+              const desde = captDesde ? captDesde.slice(0,7) : "0000-00";
+              const hasta = captHasta ? captHasta.slice(0,7) : "9999-99";
+              pubData.forEach(p => { if (p.mes >= desde && p.mes <= hasta) mesesEnRango.add(p.mes); });
+            } else {
+              pubData.forEach(p => mesesEnRango.add(p.mes));
+            }
+            const pubEnRango = pubData.filter(p => mesesEnRango.has(p.mes));
+            const convMeta = pubEnRango.reduce((s, p) => s + (p.conv_meta_insta || 0) + (p.conv_meta_face || 0), 0);
+            const convMkt = pubEnRango.reduce((s, p) => s + (p.conv_marketplace || 0), 0);
             const convTotal = convMeta + convMkt;
 
             if (gastoTotal === 0 && convTotal === 0) return null;
@@ -1109,7 +1105,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             }, 0);
 
             const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
-            const mesLabel = (() => { const [y,m] = pubMostrar.mes.split("-"); return MONTHS[parseInt(m)-1] + " " + y; })();
+            const rangoLabel = hayFiltro ? (captDesde && captHasta ? `${captDesde} al ${captHasta}` : "Filtrado") : "Total acumulado";
 
             const canales = [
               {nombre: "Meta", gasto: gastoMeta, conv: convMeta, reservas: resMeta.length, color: "#1877F2"},
@@ -1119,7 +1115,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             return (
               <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
                 <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 4}}>📈 Rendimiento publicitario</div>
-                <div style={{fontSize: 12, color: "var(--qb-text2)", marginBottom: 12}}>{mesLabel}{hayFiltro ? " (filtrado)" : !pubMesActual ? " (último mes cargado)" : ""}</div>
+                <div style={{fontSize: 12, color: "var(--qb-text2)", marginBottom: 12}}>{rangoLabel}</div>
 
                 {/* Funnel */}
                 <div style={{display: "flex", gap: 6, marginBottom: 14}}>
