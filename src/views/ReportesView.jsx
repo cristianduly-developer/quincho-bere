@@ -660,62 +660,6 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
         );
       })()}
 
-      {/* Funnel de conversión de visitas */}
-      {(()=>{
-        const allPeriod=reservas.filter(r=>r.fecha&&enRango(r.fecha));
-        if(allPeriod.length===0) return null;
-        const visitasAll=allPeriod.filter(r=>r.estado==="visita"||r.fechaVisita);
-        const totalVisitas=visitasAll.length;
-        if(totalVisitas===0) return null;
-        const concretaron=visitasAll.filter(r=>["pendiente","senada","confirmada","finalizada"].includes(r.estado)).length;
-        const senaron=visitasAll.filter(r=>["senada","confirmada","finalizada"].includes(r.estado)).length;
-        const confirmaron=visitasAll.filter(r=>["confirmada","finalizada"].includes(r.estado)).length;
-        const pendientes=visitasAll.filter(r=>r.estado==="visita").length;
-        const canceladas=visitasAll.filter(r=>r.estado==="cancelada").length;
-        const steps=[
-          {label:"Visitas",count:totalVisitas,color:"#EC4899"},
-          {label:"Reservaron",count:concretaron,color:"#3B82F6"},
-          {label:"Señaron",count:senaron,color:"#D97706"},
-          {label:"Confirmadas",count:confirmaron,color:"#16A34A"},
-        ];
-        return (
-          <div style={{...card,padding:"14px 16px",marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:"var(--qb-text2)",textTransform:"uppercase",marginBottom:12}}>📊 Conversión de visitas</div>
-            <div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:12}}>Solo reservas que arrancaron como visita</div>
-            {steps.map((step,i)=>{
-              const pct=totalVisitas>0?Math.round((step.count/totalVisitas)*100):0;
-              const prevCount=i>0?steps[i-1].count:null;
-              const convRate=prevCount&&prevCount>0?Math.round((step.count/prevCount)*100):null;
-              return (
-                <div key={step.label} style={{marginBottom:i<steps.length-1?8:0}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                    <span style={{fontSize:12,fontWeight:600,color:"var(--qb-text)"}}>{step.label}</span>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      {convRate!==null&&<span style={{fontSize:10,color:convRate>=50?"#16A34A":"#DC2626",fontWeight:600}}>{convRate}%</span>}
-                      <span style={{fontWeight:800,fontSize:14,color:step.color}}>{step.count}</span>
-                    </div>
-                  </div>
-                  <div style={{height:8,background:"var(--qb-border)",borderRadius:4,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:pct+"%",background:step.color,borderRadius:4,transition:"width .3s",minWidth:step.count>0?4:0}}/>
-                  </div>
-                </div>
-              );
-            })}
-            {(pendientes>0||canceladas>0)&&(
-              <div style={{marginTop:10,paddingTop:8,borderTop:"1px solid var(--qb-border)",display:"flex",gap:16}}>
-                {pendientes>0&&<div style={{fontSize:12}}>
-                  <span style={{color:"var(--qb-text2)",fontWeight:600}}>Pendientes: </span>
-                  <span style={{fontWeight:800,color:"#EC4899"}}>{pendientes}</span>
-                </div>}
-                {canceladas>0&&<div style={{fontSize:12}}>
-                  <span style={{color:"#DC2626",fontWeight:600}}>Canceladas: </span>
-                  <span style={{fontWeight:800,color:"#DC2626"}}>{canceladas}</span>
-                </div>}
-              </div>
-            )}
-          </div>
-        );
-      })()}
 
       {/* Top clientes del mes */}
       {topClientes.length>0&&(
@@ -1064,6 +1008,55 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               </div>
             )}
           </div>
+
+          {/* ── Conversión de visitas (todas las fuentes) ── */}
+          {(() => {
+            const allVisitas = reservas.filter(r => {
+              if (!(r.creadoEn || r.fechaCreacion)) return false;
+              if (!(r.estado === "visita" || r.fechaVisita)) return false;
+              if (!hayFiltro) return true;
+              const creado = (r.creadoEn || r.fechaCreacion || "").slice(0, 10);
+              if (captDesde && creado < captDesde) return false;
+              if (captHasta && creado > captHasta) return false;
+              return true;
+            });
+            if (allVisitas.length === 0) return null;
+            const concretaron = allVisitas.filter(r => ["pendiente","senada","confirmada","finalizada"].includes(r.estado)).length;
+            const noConcretaron = allVisitas.filter(r => r.estado === "cancelada").length;
+            const enCurso = allVisitas.filter(r => r.estado === "visita").length;
+            const total = allVisitas.length;
+            const pctSi = total > 0 ? Math.round((concretaron / total) * 100) : 0;
+            const pctNo = total > 0 ? Math.round((noConcretaron / total) * 100) : 0;
+            return (
+              <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
+                <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 4}}>👁️ Conversión de visitas</div>
+                <div style={{fontSize: 11, color: "var(--qb-text2)", marginBottom: 12}}>Todas las fuentes · por fecha de creación</div>
+                <div style={{display: "flex", gap: 8, marginBottom: 12}}>
+                  <div style={{flex: 1, background: "var(--qb-bg)", borderRadius: 10, padding: "10px 12px", textAlign: "center"}}>
+                    <div style={{fontSize: 22, fontWeight: 800, color: "#7C3AED"}}>{total}</div>
+                    <div style={{fontSize: 10, color: "var(--qb-text2)", fontWeight: 600}}>Visitas</div>
+                  </div>
+                  <div style={{flex: 1, background: "#F0FDF4", borderRadius: 10, padding: "10px 12px", textAlign: "center"}}>
+                    <div style={{fontSize: 22, fontWeight: 800, color: "#16A34A"}}>{concretaron}</div>
+                    <div style={{fontSize: 10, color: "#16A34A", fontWeight: 600}}>Concretaron</div>
+                  </div>
+                  <div style={{flex: 1, background: "#FEF2F2", borderRadius: 10, padding: "10px 12px", textAlign: "center"}}>
+                    <div style={{fontSize: 22, fontWeight: 800, color: "#DC2626"}}>{noConcretaron}</div>
+                    <div style={{fontSize: 10, color: "#DC2626", fontWeight: 600}}>No concretaron</div>
+                  </div>
+                </div>
+                <div style={{height: 12, background: "var(--qb-border)", borderRadius: 6, overflow: "hidden", display: "flex"}}>
+                  {concretaron > 0 && <div style={{height: "100%", width: pctSi + "%", background: "#16A34A", transition: "width .3s"}} />}
+                  {noConcretaron > 0 && <div style={{height: "100%", width: pctNo + "%", background: "#DC2626", transition: "width .3s"}} />}
+                </div>
+                <div style={{display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11}}>
+                  <span style={{color: "#16A34A", fontWeight: 700}}>{pctSi}% concretaron</span>
+                  {enCurso > 0 && <span style={{color: "#7C3AED", fontWeight: 600}}>{enCurso} en curso</span>}
+                  <span style={{color: "#DC2626", fontWeight: 700}}>{pctNo}% no avanzaron</span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Análisis de rendimiento publicitario ── */}
           {(() => {
