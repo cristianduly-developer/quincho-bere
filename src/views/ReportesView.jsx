@@ -134,7 +134,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   const [captListaOpen, setCaptListaOpen] = useState(false);
   const [pubData, setPubData] = useState([]);
   const [pubMes, setPubMes] = useState(() => { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}`; });
-  const [pubForm, setPubForm] = useState({ gasto_meta:0, gasto_marketplace:0, conv_meta_insta:0, conv_meta_face:0, conv_marketplace:0 });
+  const [pubForm, setPubForm] = useState({ gasto_meta:0, gasto_marketplace:0, conv_meta:0, conv_marketplace:0 });
   const [pubSaving, setPubSaving] = useState(false);
   const [pubFormOpen, setPubFormOpen] = useState(false);
 
@@ -148,15 +148,16 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
   useEffect(() => {
     const existing = pubData.find(p => p.mes === pubMes);
-    if (existing) setPubForm({ gasto_meta: existing.gasto_meta||0, gasto_marketplace: existing.gasto_marketplace||0, conv_meta_insta: existing.conv_meta_insta||0, conv_meta_face: existing.conv_meta_face||0, conv_marketplace: existing.conv_marketplace||0 });
-    else setPubForm({ gasto_meta:0, gasto_marketplace:0, conv_meta_insta:0, conv_meta_face:0, conv_marketplace:0 });
+    if (existing) setPubForm({ gasto_meta: existing.gasto_meta||0, gasto_marketplace: existing.gasto_marketplace||0, conv_meta: (existing.conv_meta_insta||0) + (existing.conv_meta_face||0), conv_marketplace: existing.conv_marketplace||0 });
+    else setPubForm({ gasto_meta:0, gasto_marketplace:0, conv_meta:0, conv_marketplace:0 });
   }, [pubMes, pubData]);
 
   const guardarPub = async () => {
     const orgId = getCurrentOrgId();
     if (!orgId) return;
     setPubSaving(true);
-    const row = { org_id: orgId, mes: pubMes, ...pubForm };
+    const halfMeta = Math.round((pubForm.conv_meta || 0) / 2);
+    const row = { org_id: orgId, mes: pubMes, gasto_meta: pubForm.gasto_meta, gasto_marketplace: pubForm.gasto_marketplace, conv_meta_insta: halfMeta, conv_meta_face: (pubForm.conv_meta || 0) - halfMeta, conv_marketplace: pubForm.conv_marketplace };
     const existing = pubData.find(p => p.mes === pubMes);
     if (existing) row.id = existing.id;
     const { data, error } = await supabase.from("publicidad_mensual").upsert(row, { onConflict: "org_id,mes" }).select();
@@ -1047,8 +1048,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                   {[
                     {key: "gasto_meta", label: "Gasto Meta (Insta+Face)", prefix: "$"},
                     {key: "gasto_marketplace", label: "Gasto Marketplace", prefix: "$"},
-                    {key: "conv_meta_insta", label: "Conv. Meta Insta", prefix: ""},
-                    {key: "conv_meta_face", label: "Conv. Meta Face", prefix: ""},
+                    {key: "conv_meta", label: "Conv. Meta", prefix: ""},
                     {key: "conv_marketplace", label: "Conv. Marketplace", prefix: ""},
                   ].map(f => (
                     <div key={f.key}>
@@ -1084,19 +1084,16 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             const gastoMeta = (pubMostrar.gasto_meta || 0);
             const gastoMkt = (pubMostrar.gasto_marketplace || 0);
             const gastoTotal = gastoMeta + gastoMkt;
-            const convMetaInsta = pubMostrar.conv_meta_insta || 0;
-            const convMetaFace = pubMostrar.conv_meta_face || 0;
+            const convMeta = (pubMostrar.conv_meta_insta || 0) + (pubMostrar.conv_meta_face || 0);
             const convMkt = pubMostrar.conv_marketplace || 0;
-            const convTotal = convMetaInsta + convMetaFace + convMkt;
+            const convTotal = convMeta + convMkt;
 
-            const mesPrefix = pubMostrar.mes;
             const resPub = conFecha.filter(r => {
               const cli = clientes.find(c => c.id === r.clienteId);
               const o = cli?.origen || "";
               return ["Publicidad Meta Insta","Publicidad Meta Face","Marketplace"].includes(o);
             });
-            const resMetaInsta = conFecha.filter(r => { const cli = clientes.find(c => c.id === r.clienteId); return cli?.origen === "Publicidad Meta Insta"; });
-            const resMetaFace = conFecha.filter(r => { const cli = clientes.find(c => c.id === r.clienteId); return cli?.origen === "Publicidad Meta Face"; });
+            const resMeta = conFecha.filter(r => { const cli = clientes.find(c => c.id === r.clienteId); return cli?.origen === "Publicidad Meta Insta" || cli?.origen === "Publicidad Meta Face"; });
             const resMkt = conFecha.filter(r => { const cli = clientes.find(c => c.id === r.clienteId); return cli?.origen === "Marketplace"; });
 
             const ingresosPub = resPub.reduce((s, r) => {
@@ -1105,11 +1102,10 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             }, 0);
 
             const fmt = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
-            const mesLabel = (() => { const [y,m] = mesPrefix.split("-"); return MONTHS[parseInt(m)-1] + " " + y; })();
+            const mesLabel = (() => { const [y,m] = pubMostrar.mes.split("-"); return MONTHS[parseInt(m)-1] + " " + y; })();
 
             const canales = [
-              {nombre: "Meta Insta", gasto: gastoMeta * (convMetaInsta / Math.max(convMetaInsta + convMetaFace, 1)), conv: convMetaInsta, reservas: resMetaInsta.length, color: "#E1306C"},
-              {nombre: "Meta Face", gasto: gastoMeta * (convMetaFace / Math.max(convMetaInsta + convMetaFace, 1)), conv: convMetaFace, reservas: resMetaFace.length, color: "#1877F2"},
+              {nombre: "Meta", gasto: gastoMeta, conv: convMeta, reservas: resMeta.length, color: "#1877F2"},
               {nombre: "Marketplace", gasto: gastoMkt, conv: convMkt, reservas: resMkt.length, color: "#00C853"},
             ];
 

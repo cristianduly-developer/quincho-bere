@@ -248,10 +248,9 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
     const gastoMeta = pubSeason.reduce((s, p) => s + (p.gasto_meta || 0), 0);
     const gastoMkt = pubSeason.reduce((s, p) => s + (p.gasto_marketplace || 0), 0);
     const gastoTotal = gastoMeta + gastoMkt;
-    const convMetaInsta = pubSeason.reduce((s, p) => s + (p.conv_meta_insta || 0), 0);
-    const convMetaFace = pubSeason.reduce((s, p) => s + (p.conv_meta_face || 0), 0);
+    const convMeta = pubSeason.reduce((s, p) => s + (p.conv_meta_insta || 0) + (p.conv_meta_face || 0), 0);
     const convMkt = pubSeason.reduce((s, p) => s + (p.conv_marketplace || 0), 0);
-    const convTotal = convMetaInsta + convMetaFace + convMkt;
+    const convTotal = convMeta + convMkt;
 
     const paidOrigins = ["Publicidad Meta Insta", "Publicidad Meta Face", "Marketplace"];
     const resPaid = reservas.filter(r => {
@@ -261,8 +260,7 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
       const cli = (clientes || []).find(c => c.id === r.clienteId);
       return paidOrigins.includes(cli?.origen);
     });
-    const resMI = resPaid.filter(r => { const c = (clientes||[]).find(c=>c.id===r.clienteId); return c?.origen === "Publicidad Meta Insta"; }).length;
-    const resMF = resPaid.filter(r => { const c = (clientes||[]).find(c=>c.id===r.clienteId); return c?.origen === "Publicidad Meta Face"; }).length;
+    const resMeta = resPaid.filter(r => { const c = (clientes||[]).find(c=>c.id===r.clienteId); return c?.origen === "Publicidad Meta Insta" || c?.origen === "Publicidad Meta Face"; }).length;
     const resMK = resPaid.filter(r => { const c = (clientes||[]).find(c=>c.id===r.clienteId); return c?.origen === "Marketplace"; }).length;
     const totalResPaid = resPaid.length;
 
@@ -273,7 +271,7 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
       return { mes: p.mes, gasto: (p.gasto_meta||0) + (p.gasto_marketplace||0), reservas: mesRes.length, conv: (p.conv_meta_insta||0) + (p.conv_meta_face||0) + (p.conv_marketplace||0) };
     }).sort((a, b) => a.mes.localeCompare(b.mes));
 
-    return { gastoTotal, gastoMeta, gastoMkt, convTotal, convMetaInsta, convMetaFace, convMkt, totalResPaid, resMI, resMF, resMK, ingresoPaid, porMes };
+    return { gastoTotal, gastoMeta, gastoMkt, convTotal, convMeta, convMkt, totalResPaid, resMeta, resMK, ingresoPaid, porMes };
   }, [pubData, seasonMonths, reservas, clientes, extrasReserva]);
 
   const insights = useMemo(() => {
@@ -670,8 +668,7 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
           {/* Por canal */}
           <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 6 }}>Por canal</div>
           {[
-            { nombre: "Meta Insta", conv: pubStats.convMetaInsta, res: pubStats.resMI, gasto: pubStats.gastoMeta * (pubStats.convMetaInsta / Math.max(pubStats.convMetaInsta + pubStats.convMetaFace, 1)), color: "#E1306C" },
-            { nombre: "Meta Face", conv: pubStats.convMetaFace, res: pubStats.resMF, gasto: pubStats.gastoMeta * (pubStats.convMetaFace / Math.max(pubStats.convMetaInsta + pubStats.convMetaFace, 1)), color: "#1877F2" },
+            { nombre: "Meta", conv: pubStats.convMeta, res: pubStats.resMeta, gasto: pubStats.gastoMeta, color: "#1877F2" },
             { nombre: "Marketplace", conv: pubStats.convMkt, res: pubStats.resMK, gasto: pubStats.gastoMkt, color: "#00C853" },
           ].map((ch, i) => (
             <div key={i} style={{ padding: "8px 0", borderTop: i > 0 ? "1px solid var(--qb-border)" : "none", display: "flex", alignItems: "center", gap: 8 }}>
