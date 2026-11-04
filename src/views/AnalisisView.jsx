@@ -279,8 +279,8 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
     const porMes = [...seasonKeys].map(mes => {
       const mesGasto = (gastos || []).filter(g => (g.categoria === "Publicidad Meta" || g.categoria === "Publicidad Marketplace") && g.fecha && g.fecha.startsWith(mes)).reduce((s, g) => s + (g.monto || 0), 0);
-      const mesRes = resPaid.filter(r => r.fecha.startsWith(mes));
-      const mesVis = visitasPub.filter(r => r.fecha.startsWith(mes));
+      const mesRes = resPaid.filter(r => (r.creadoEn || r.fechaCreacion || "").slice(0, 7) === mes);
+      const mesVis = visitasPub.filter(r => (r.creadoEn || r.fechaCreacion || "").slice(0, 7) === mes);
       const mesPub = pubSeason.find(p => p.mes === mes);
       const mesConv = mesPub ? (mesPub.conv_meta_insta||0) + (mesPub.conv_meta_face||0) + (mesPub.conv_marketplace||0) : 0;
       return { mes, gasto: mesGasto, reservas: mesRes.length, visitas: mesVis.length, conv: mesConv };
