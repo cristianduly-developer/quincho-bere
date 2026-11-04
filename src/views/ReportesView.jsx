@@ -131,6 +131,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   const [portalLoading, setPortalLoading] = useState(false);
   const [captDesde, setCaptDesde] = useState("");
   const [captHasta, setCaptHasta] = useState("");
+  const [captListaOpen, setCaptListaOpen] = useState(false);
 
   useEffect(() => {
     if (subtab !== "portal" || portalData) return;
@@ -988,6 +989,49 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {conFecha.length > 0 && (
+            <div style={{...card, overflow: "hidden", marginBottom: 10}}>
+              <button onClick={() => setCaptListaOpen(v => !v)} style={{
+                width: "100%", padding: "14px 16px", border: "none", cursor: "pointer", fontFamily: "inherit",
+                background: "var(--qb-bg-card)", color: "var(--qb-text)", display: "flex", alignItems: "center", justifyContent: "space-between",
+              }}>
+                <span style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase"}}>📋 Detalle de reservas{hayFiltro ? " (filtrado)" : ""}</span>
+                <span style={{fontSize: 12, color: "var(--qb-text2)", fontWeight: 600}}>{captListaOpen ? "▲ Ocultar" : `▼ Ver ${conFecha.length} reserva${conFecha.length !== 1 ? "s" : ""}`}</span>
+              </button>
+              {captListaOpen && (
+                <div style={{padding: "0 16px 14px"}}>
+                  {conFecha.sort((a, b) => (b.creadoEn || b.fechaCreacion || "").localeCompare(a.creadoEn || a.fechaCreacion || "")).map(r => {
+                    const cli = clientes.find(c => c.id === r.clienteId);
+                    const nombre = cli ? ((cli.nombre || "") + " " + (cli.apellido || "")).trim() || "Sin nombre" : "—";
+                    const creado = (r.creadoEn || r.fechaCreacion || "").slice(0, 10);
+                    const turnoLabel = r.turnoId ? ((turnosRecurso || []).find(t => t.id === r.turnoId)?.nombre || TURNOS[r.turno]?.label || "—") : (TURNOS[r.turno]?.label || "—");
+                    const recurso = (recursos || []).find(x => x.id === r.recursoId);
+                    return (
+                      <div key={r.id} style={{padding: "10px 0", borderTop: "1px solid var(--qb-border)", display: "flex", gap: 10, alignItems: "flex-start"}}>
+                        <div style={{minWidth: 54, textAlign: "center"}}>
+                          <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-accent)"}}>{fmtDate(creado)}</div>
+                          <div style={{fontSize: 9, color: "var(--qb-text2)", marginTop: 2}}>creada</div>
+                        </div>
+                        <div style={{flex: 1, minWidth: 0}}>
+                          <div style={{fontWeight: 700, fontSize: 13, color: "var(--qb-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{nombre}</div>
+                          <div style={{fontSize: 11, color: "var(--qb-text2)", marginTop: 2}}>
+                            📅 {fmtDate(r.fecha)} · {turnoLabel}
+                            {r.cantInvitados > 0 ? ` · ${r.cantInvitados} pers.` : ""}
+                          </div>
+                          {r.tipoEvento && <div style={{fontSize: 11, color: "var(--qb-text2)"}}>🎉 {r.tipoEvento}</div>}
+                          {recurso && <div style={{fontSize: 10, color: "var(--qb-text2)"}}>📍 {recurso.nombre}</div>}
+                        </div>
+                        <div style={{textAlign: "right", flexShrink: 0}}>
+                          {cli?.origen && <div style={{fontSize: 10, color: "#7C3AED", fontWeight: 600, background: "rgba(124,58,237,0.08)", padding: "2px 6px", borderRadius: 4}}>{cli.origen}</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
