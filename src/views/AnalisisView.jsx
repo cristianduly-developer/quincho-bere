@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { fmtCurrency, getTotalExtras } from "../lib/utils.js";
 import { MONTHS_SHORT } from "../lib/constants.js";
+import { supabase, getCurrentOrgId } from "../lib/supabase.js";
 
 const HIST_2025 = {
   "2025-09": { eventos: 0, facturacion: 0 },
@@ -102,13 +103,21 @@ function ProgressRing({ pct, size = 110, stroke = 10, color, children }) {
   );
 }
 
-export default function AnalisisView({ reservas, pagos, extrasReserva, serviciosExtras, gastos, negocio }) {
+export default function AnalisisView({ reservas, pagos, extrasReserva, serviciosExtras, gastos, negocio, clientes }) {
   const today = useMemo(() => new Date(), []);
   const currentSeasonStart = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1;
 
   const [meta, setMeta] = useState(() => {
     try { const s = localStorage.getItem("qb_metas"); return s ? JSON.parse(s) : null; } catch { return null; }
   });
+  const [pubData, setPubData] = useState([]);
+  useEffect(() => {
+    const orgId = getCurrentOrgId();
+    if (!orgId) return;
+    supabase.from("publicidad_mensual").select("*").eq("org_id", orgId).order("mes", { ascending: false }).limit(24)
+      .then(({ data }) => { if (data) setPubData(data); });
+  }, []);
+
   const [editMeta, setEditMeta] = useState(!meta);
   const [metaForm, setMetaForm] = useState({ eventos: meta?.eventos || "100", facturacion: meta?.facturacion || "50000000" });
 
@@ -230,6 +239,43 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
   const monthNames = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
+  const pubStats = useMemo(() => {
+    const validStates = ["pendiente", "senada", "confirmada", "finalizada"];
+    const seasonKeys = new Set(seasonMonths.map(m => m.key));
+    const pubSeason = pubData.filter(p => seasonKeys.has(p.mes));
+    if (pubSeason.length === 0) return null;
+
+    const gastoMeta = pubSeason.reduce((s, p) => s + (p.gasto_meta || 0), 0);
+    const gastoMkt = pubSeason.reduce((s, p) => s + (p.gasto_marketplace || 0), 0);
+    const gastoTotal = gastoMeta + gastoMkt;
+    const convMetaInsta = pubSeason.reduce((s, p) => s + (p.conv_meta_insta || 0), 0);
+    const convMetaFace = pubSeason.reduce((s, p) => s + (p.conv_meta_face || 0), 0);
+    const convMkt = pubSeason.reduce((s, p) => s + (p.conv_marketplace || 0), 0);
+    const convTotal = convMetaInsta + convMetaFace + convMkt;
+
+    const paidOrigins = ["Publicidad Meta Insta", "Publicidad Meta Face", "Marketplace"];
+    const resPaid = reservas.filter(r => {
+      if (!validStates.includes(r.estado) || !r.fecha) return false;
+      const mk = r.fecha.slice(0, 7);
+      if (!seasonKeys.has(mk)) return false;
+      const cli = (clientes || []).find(c => c.id === r.clienteId);
+      return paidOrigins.includes(cli?.origen);
+    });
+    const resMI = resPaid.filter(r => { const c = (clientes||[]).find(c=>c.id===r.clienteId); return c?.origen === "Publicidad Meta Insta"; }).length;
+    const resMF = resPaid.filter(r => { const c = (clientes||[]).find(c=>c.id===r.clienteId); return c?.origen === "Publicidad Meta Face"; }).length;
+    const resMK = resPaid.filter(r => { const c = (clientes||[]).find(c=>c.id===r.clienteId); return c?.origen === "Marketplace"; }).length;
+    const totalResPaid = resPaid.length;
+
+    const ingresoPaid = resPaid.reduce((s, r) => s + (r.montoPactado || 0) + getTotalExtras(r.id, extrasReserva), 0);
+
+    const porMes = pubSeason.map(p => {
+      const mesRes = resPaid.filter(r => r.fecha.startsWith(p.mes));
+      return { mes: p.mes, gasto: (p.gasto_meta||0) + (p.gasto_marketplace||0), reservas: mesRes.length, conv: (p.conv_meta_insta||0) + (p.conv_meta_face||0) + (p.conv_marketplace||0) };
+    }).sort((a, b) => a.mes.localeCompare(b.mes));
+
+    return { gastoTotal, gastoMeta, gastoMkt, convTotal, convMetaInsta, convMetaFace, convMkt, totalResPaid, resMI, resMF, resMK, ingresoPaid, porMes };
+  }, [pubData, seasonMonths, reservas, clientes, extrasReserva]);
+
   const insights = useMemo(() => {
     const list = [];
     const diff = totalEventos - prevAtThisPoint;
@@ -259,8 +305,16 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
       list.push({ icon: "🔮", text: `Al ritmo actual, proyectás ${projection} reservas y ${fmtCurrency(projectionFac)} esta temporada`, type: projection >= metaEventos ? "good" : "warn" });
     }
 
+    if (pubStats) {
+      const roi = pubStats.gastoTotal > 0 ? Math.round(((pubStats.ingresoPaid - pubStats.gastoTotal) / pubStats.gastoTotal) * 100) : 0;
+      const pctPaid = totalEventos > 0 ? Math.round((pubStats.totalResPaid / totalEventos) * 100) : 0;
+      if (pubStats.totalResPaid > 0 && pubStats.gastoTotal > 0) {
+        list.push({ icon: "📣", text: `La publicidad trajo ${pubStats.totalResPaid} reservas (${pctPaid}% del total) con un ROI del ${roi}% — invertiste ${fmtCurrency(pubStats.gastoTotal)} y facturaste ${fmtCurrency(pubStats.ingresoPaid)}`, type: roi > 0 ? "good" : "warn" });
+      }
+    }
+
     return list;
-  }, [totalEventos, prevAtThisPoint, ticketProm, currentData, seasonMonths, eventosRestantes, necesitasPorMes, mesesRestantes, metaEventos, projection, projectionFac]);
+  }, [totalEventos, prevAtThisPoint, ticketProm, currentData, seasonMonths, eventosRestantes, necesitasPorMes, mesesRestantes, metaEventos, projection, projectionFac, pubStats]);
 
   const card = { background: "var(--qb-bg-card)", borderRadius: 16, border: "1px solid var(--qb-border)", boxShadow: "var(--qb-shadow)" };
 
@@ -575,6 +629,116 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
           sub={`Meta: ${(metaFac / 1000000).toFixed(0)}M`}
           accent={projectionFac >= metaFac ? "#16A34A" : "#D97706"} />
       </div>
+
+      {/* ── BLOQUE 3B: PUBLICIDAD DE TEMPORADA ── */}
+      {pubStats && pubStats.gastoTotal > 0 && (
+        <div style={{ ...card, padding: 20, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--qb-text)", marginBottom: 4 }}>📣 Publicidad de temporada</div>
+          <div style={{ fontSize: 11, color: "var(--qb-text2)", marginBottom: 14 }}>Resumen acumulado — {pubStats.porMes.length} mes{pubStats.porMes.length !== 1 ? "es" : ""} cargado{pubStats.porMes.length !== 1 ? "s" : ""}</div>
+
+          {/* KPIs principales */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+            {[
+              { label: "Inversión total", value: fmtCurrency(pubStats.gastoTotal), color: "#EF4444" },
+              { label: "Reservas pagadas", value: String(pubStats.totalResPaid), color: "#10B981" },
+              { label: "Costo x reserva", value: pubStats.totalResPaid > 0 ? fmtCurrency(pubStats.gastoTotal / pubStats.totalResPaid) : "—", color: "#F59E0B" },
+              { label: "ROI", value: pubStats.gastoTotal > 0 ? Math.round(((pubStats.ingresoPaid - pubStats.gastoTotal) / pubStats.gastoTotal) * 100) + "%" : "—", color: "#7C3AED" },
+            ].map((kpi, i) => (
+              <div key={i} style={{ background: "var(--qb-bg)", borderRadius: 10, padding: "12px 14px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 900, color: kpi.color }}>{kpi.value}</div>
+                <div style={{ fontSize: 10, color: "var(--qb-text2)", fontWeight: 600, marginTop: 2 }}>{kpi.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Más métricas */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--qb-text)" }}>{pubStats.convTotal}</div>
+              <div style={{ fontSize: 9, color: "var(--qb-text2)", fontWeight: 600 }}>Conversaciones</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--qb-text)" }}>{pubStats.convTotal > 0 ? fmtCurrency(pubStats.gastoTotal / pubStats.convTotal) : "—"}</div>
+              <div style={{ fontSize: 9, color: "var(--qb-text2)", fontWeight: 600 }}>Costo x conv.</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "var(--qb-text)" }}>{pubStats.convTotal > 0 ? (pubStats.totalResPaid / pubStats.convTotal * 100).toFixed(1) + "%" : "—"}</div>
+              <div style={{ fontSize: 9, color: "var(--qb-text2)", fontWeight: 600 }}>Conv → Reserva</div>
+            </div>
+          </div>
+
+          {/* Por canal */}
+          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 6 }}>Por canal</div>
+          {[
+            { nombre: "Meta Insta", conv: pubStats.convMetaInsta, res: pubStats.resMI, gasto: pubStats.gastoMeta * (pubStats.convMetaInsta / Math.max(pubStats.convMetaInsta + pubStats.convMetaFace, 1)), color: "#E1306C" },
+            { nombre: "Meta Face", conv: pubStats.convMetaFace, res: pubStats.resMF, gasto: pubStats.gastoMeta * (pubStats.convMetaFace / Math.max(pubStats.convMetaInsta + pubStats.convMetaFace, 1)), color: "#1877F2" },
+            { nombre: "Marketplace", conv: pubStats.convMkt, res: pubStats.resMK, gasto: pubStats.gastoMkt, color: "#00C853" },
+          ].map((ch, i) => (
+            <div key={i} style={{ padding: "8px 0", borderTop: i > 0 ? "1px solid var(--qb-border)" : "none", display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: ch.color, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--qb-text)" }}>{ch.nombre}</div>
+                <div style={{ fontSize: 10, color: "var(--qb-text2)" }}>
+                  {ch.conv} conv · {ch.res} reservas{ch.conv > 0 && ch.res > 0 ? ` · ${(ch.res / ch.conv * 100).toFixed(0)}% conv.` : ""}
+                </div>
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: ch.color }}>{fmtCurrency(ch.gasto)}</div>
+                {ch.res > 0 && <div style={{ fontSize: 10, color: "var(--qb-text2)" }}>{fmtCurrency(ch.gasto / ch.res)}/res</div>}
+              </div>
+            </div>
+          ))}
+
+          {/* Tendencia mensual */}
+          {pubStats.porMes.length > 1 && (() => {
+            const maxG = Math.max(...pubStats.porMes.map(m => m.gasto), 1);
+            const maxR = Math.max(...pubStats.porMes.map(m => m.reservas), 1);
+            return (
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--qb-border)" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase", marginBottom: 8 }}>Tendencia mensual</div>
+                {pubStats.porMes.map((m, i) => {
+                  const [y, mo] = m.mes.split("-");
+                  const label = monthNames[parseInt(mo)];
+                  const pctG = (m.gasto / maxG) * 100;
+                  const pctR = (m.reservas / maxR) * 100;
+                  const cpr = m.reservas > 0 ? fmtCurrency(m.gasto / m.reservas) : "—";
+                  return (
+                    <div key={i} style={{ marginBottom: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--qb-text3)" }}>{label}</div>
+                        <div style={{ fontSize: 10, color: "var(--qb-text2)" }}>{fmtCurrency(m.gasto)} · {m.reservas} res · {cpr}/res</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 3 }}>
+                        <div style={{ flex: 1, height: 14, background: "var(--qb-border)", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: pctG + "%", background: "#EF4444", borderRadius: 3, opacity: 0.7 }} />
+                        </div>
+                        <div style={{ flex: 1, height: 14, background: "var(--qb-border)", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: pctR + "%", background: "#10B981", borderRadius: 3, opacity: 0.7 }} />
+                        </div>
+                      </div>
+                      {i === 0 && (
+                        <div style={{ display: "flex", gap: 10, marginTop: 2 }}>
+                          <div style={{ flex: 1, fontSize: 9, color: "#EF4444", fontWeight: 600 }}>Gasto</div>
+                          <div style={{ flex: 1, fontSize: 9, color: "#10B981", fontWeight: 600 }}>Reservas</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Facturado vs invertido */}
+          <div style={{ marginTop: 12, padding: "12px 14px", background: "var(--qb-bg)", borderRadius: 10, textAlign: "center" }}>
+            <div style={{ fontSize: 11, color: "var(--qb-text2)", marginBottom: 4 }}>Facturado por publicidad</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#16A34A" }}>{fmtCurrency(pubStats.ingresoPaid)}</div>
+            <div style={{ fontSize: 11, color: "var(--qb-text2)", marginTop: 4 }}>
+              sobre {fmtCurrency(pubStats.gastoTotal)} invertidos — retorno de {pubStats.gastoTotal > 0 ? (pubStats.ingresoPaid / pubStats.gastoTotal).toFixed(1) : "—"}x
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── BLOQUE 4: INSIGHTS ── */}
       <div style={{ ...card, padding: 20, marginBottom: 16 }}>
