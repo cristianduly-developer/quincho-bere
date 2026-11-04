@@ -286,7 +286,7 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
     }).filter(m => m.gasto > 0 || m.reservas > 0 || m.visitas > 0).sort((a, b) => a.mes.localeCompare(b.mes));
 
     return { gastoTotal, gastoMeta, gastoMkt, convTotal, convMeta, convMkt, totalVisitas, visitasMeta, visitasMkt, totalResPaid, resMeta, resMK, ingresoPaid, porMes };
-  }, [pubData, seasonMonths, reservas, clientes, extrasReserva]);
+  }, [pubData, seasonMonths, reservas, clientes, extrasReserva, gastos]);
 
   const insights = useMemo(() => {
     const list = [];

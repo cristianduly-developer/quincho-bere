@@ -6468,7 +6468,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
 }} onReservaClick={r=>setDetailReserva(r)} onNavigate={setTab} setModal={setModal} currentUser={currentUser} saveReservas={saveR} negocio={negocio} recursos={recursos} turnosRecurso={turnosRecurso} isDesktop={isDesktop} mercadoProductos={mercadoProductos} mercadoPedidos={mercadoPedidos} setMercadoPedidos={setMercadoPedidos} toggleMercadoReserva={toggleMercadoReserva} toggleMercadoProducto={toggleMercadoProducto}
         onConfirmVisita={(r)=>{
           const cli=clientes.find(c=>c.id===r.clienteId);
-          const updated={...r,estado:"pendiente",fechaVisita:null,horaVisita:null};
+          const updated={...r,estado:"pendiente",horaVisita:null};
           saveR(reservas.map(x=>x.id===r.id?updated:x));
           if(cli&&cli.estadoCrm==="Potencial") saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
           showToast("Visita confirmada — reserva activa","ok");
@@ -6626,7 +6626,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
         }}
         onConfirmVisita={()=>{
           const cli = clientes.find(c=>c.id===detailReserva.clienteId);
-          const updatedRes = {...detailReserva, estado:"pendiente", fechaVisita:null, horaVisita:null};
+          const updatedRes = {...detailReserva, estado:"pendiente", horaVisita:null};
           saveR(reservas.map(r=>r.id===detailReserva.id?updatedRes:r));
           if(cli && cli.estadoCrm === "Potencial"){
             saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
@@ -6678,7 +6678,7 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       {showBriefing && <DailyBriefing reservas={reservas} clientes={clientes} pagos={pagos} extrasReserva={extrasReserva} recursos={recursos} servicios={serviciosExtras} turnosRecurso={turnosRecurso} negocio={negocio} recordatorios={recordatorios} tareas={tareas} onClose={()=>{markBriefingShown();setShowBriefing(false);}}
         onConfirmVisita={(r)=>{
           const cli=clientes.find(c=>c.id===r.clienteId);
-          const updated={...r,estado:"pendiente",fechaVisita:null,horaVisita:null};
+          const updated={...r,estado:"pendiente",horaVisita:null};
           saveR(reservas.map(x=>x.id===r.id?updated:x));
           if(cli&&cli.estadoCrm==="Potencial") saveC(clientes.map(c=>c.id===cli.id?{...c,estadoCrm:"Cliente"}:c));
           showToast("Visita confirmada — reserva activa","ok");
