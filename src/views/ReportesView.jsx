@@ -134,7 +134,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
   const [captListaOpen, setCaptListaOpen] = useState(false);
   const [pubData, setPubData] = useState([]);
   const [pubMes, setPubMes] = useState(() => { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}`; });
-  const [pubForm, setPubForm] = useState({ gasto_meta:0, gasto_marketplace:0, conv_meta:0, conv_marketplace:0 });
+  const [pubForm, setPubForm] = useState({ conv_meta:0, conv_marketplace:0 });
   const [pubSaving, setPubSaving] = useState(false);
   const [pubFormOpen, setPubFormOpen] = useState(false);
 
@@ -148,8 +148,8 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
   useEffect(() => {
     const existing = pubData.find(p => p.mes === pubMes);
-    if (existing) setPubForm({ gasto_meta: existing.gasto_meta||0, gasto_marketplace: existing.gasto_marketplace||0, conv_meta: (existing.conv_meta_insta||0) + (existing.conv_meta_face||0), conv_marketplace: existing.conv_marketplace||0 });
-    else setPubForm({ gasto_meta:0, gasto_marketplace:0, conv_meta:0, conv_marketplace:0 });
+    if (existing) setPubForm({ conv_meta: (existing.conv_meta_insta||0) + (existing.conv_meta_face||0), conv_marketplace: existing.conv_marketplace||0 });
+    else setPubForm({ conv_meta:0, conv_marketplace:0 });
   }, [pubMes, pubData]);
 
   const guardarPub = async () => {
@@ -157,7 +157,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
     if (!orgId) return;
     setPubSaving(true);
     const halfMeta = Math.round((pubForm.conv_meta || 0) / 2);
-    const row = { org_id: orgId, mes: pubMes, gasto_meta: pubForm.gasto_meta, gasto_marketplace: pubForm.gasto_marketplace, conv_meta_insta: halfMeta, conv_meta_face: (pubForm.conv_meta || 0) - halfMeta, conv_marketplace: pubForm.conv_marketplace };
+    const row = { org_id: orgId, mes: pubMes, conv_meta_insta: halfMeta, conv_meta_face: (pubForm.conv_meta || 0) - halfMeta, conv_marketplace: pubForm.conv_marketplace || 0 };
     const existing = pubData.find(p => p.mes === pubMes);
     if (existing) row.id = existing.id;
     const { data, error } = await supabase.from("publicidad_mensual").upsert(row, { onConflict: "org_id,mes" }).select();
@@ -1030,7 +1030,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
           {/* ── Publicidad: formulario de carga mensual ── */}
           <div style={{...card, padding: "14px 16px", marginBottom: 10}}>
             <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: pubFormOpen ? 12 : 0}}>
-              <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase"}}>📣 Inversión publicitaria</div>
+              <div style={{fontSize: 11, fontWeight: 700, color: "var(--qb-text2)", textTransform: "uppercase"}}>📣 Conversaciones publicitarias</div>
               <button onClick={() => setPubFormOpen(v => !v)} style={{
                 border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 600,
                 background: pubFormOpen ? "var(--qb-border)" : "var(--qb-accent)", color: pubFormOpen ? "var(--qb-text2)" : "#fff",
@@ -1046,8 +1046,6 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 </div>
                 <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10}}>
                   {[
-                    {key: "gasto_meta", label: "Gasto Meta (Insta+Face)", prefix: "$"},
-                    {key: "gasto_marketplace", label: "Gasto Marketplace", prefix: "$"},
                     {key: "conv_meta", label: "Conv. Meta", prefix: ""},
                     {key: "conv_marketplace", label: "Conv. Marketplace", prefix: ""},
                   ].map(f => (
@@ -1069,6 +1067,18 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
           {/* ── Análisis de rendimiento publicitario ── */}
           {(() => {
+            const gastoMeta = gastos.filter(g => g.categoria === "Publicidad Meta" && conFecha.length > 0 && (() => {
+              if (!hayFiltro) return true;
+              const f = g.fecha || "";
+              return (!captDesde || f >= captDesde) && (!captHasta || f <= captHasta);
+            })()).reduce((s, g) => s + (g.monto || 0), 0);
+            const gastoMkt = gastos.filter(g => g.categoria === "Publicidad Marketplace" && (() => {
+              if (!hayFiltro) return true;
+              const f = g.fecha || "";
+              return (!captDesde || f >= captDesde) && (!captHasta || f <= captHasta);
+            })()).reduce((s, g) => s + (g.monto || 0), 0);
+            const gastoTotal = gastoMeta + gastoMkt;
+
             const pubMesActual = pubData.find(p => {
               if (hayFiltro) {
                 const mesDesde = captDesde ? captDesde.slice(0,7) : null;
@@ -1079,14 +1089,11 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
               return false;
             });
             const pubMostrar = pubMesActual || (pubData.length > 0 && !hayFiltro ? pubData[0] : null);
-            if (!pubMostrar) return null;
-
-            const gastoMeta = (pubMostrar.gasto_meta || 0);
-            const gastoMkt = (pubMostrar.gasto_marketplace || 0);
-            const gastoTotal = gastoMeta + gastoMkt;
-            const convMeta = (pubMostrar.conv_meta_insta || 0) + (pubMostrar.conv_meta_face || 0);
-            const convMkt = pubMostrar.conv_marketplace || 0;
+            const convMeta = pubMostrar ? (pubMostrar.conv_meta_insta || 0) + (pubMostrar.conv_meta_face || 0) : 0;
+            const convMkt = pubMostrar ? (pubMostrar.conv_marketplace || 0) : 0;
             const convTotal = convMeta + convMkt;
+
+            if (gastoTotal === 0 && convTotal === 0) return null;
 
             const resPub = conFecha.filter(r => {
               const cli = clientes.find(c => c.id === r.clienteId);

@@ -242,15 +242,17 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
   const pubStats = useMemo(() => {
     const validStates = ["pendiente", "senada", "confirmada", "finalizada"];
     const seasonKeys = new Set(seasonMonths.map(m => m.key));
-    const pubSeason = pubData.filter(p => seasonKeys.has(p.mes));
-    if (pubSeason.length === 0) return null;
 
-    const gastoMeta = pubSeason.reduce((s, p) => s + (p.gasto_meta || 0), 0);
-    const gastoMkt = pubSeason.reduce((s, p) => s + (p.gasto_marketplace || 0), 0);
+    const gastoMeta = (gastos || []).filter(g => g.categoria === "Publicidad Meta" && g.fecha && seasonKeys.has(g.fecha.slice(0,7))).reduce((s, g) => s + (g.monto || 0), 0);
+    const gastoMkt = (gastos || []).filter(g => g.categoria === "Publicidad Marketplace" && g.fecha && seasonKeys.has(g.fecha.slice(0,7))).reduce((s, g) => s + (g.monto || 0), 0);
     const gastoTotal = gastoMeta + gastoMkt;
+
+    const pubSeason = pubData.filter(p => seasonKeys.has(p.mes));
     const convMeta = pubSeason.reduce((s, p) => s + (p.conv_meta_insta || 0) + (p.conv_meta_face || 0), 0);
     const convMkt = pubSeason.reduce((s, p) => s + (p.conv_marketplace || 0), 0);
     const convTotal = convMeta + convMkt;
+
+    if (gastoTotal === 0 && convTotal === 0) return null;
 
     const paidOrigins = ["Publicidad Meta Insta", "Publicidad Meta Face", "Marketplace"];
     const resPaid = reservas.filter(r => {
@@ -266,10 +268,13 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
     const ingresoPaid = resPaid.reduce((s, r) => s + (r.montoPactado || 0) + getTotalExtras(r.id, extrasReserva), 0);
 
-    const porMes = pubSeason.map(p => {
-      const mesRes = resPaid.filter(r => r.fecha.startsWith(p.mes));
-      return { mes: p.mes, gasto: (p.gasto_meta||0) + (p.gasto_marketplace||0), reservas: mesRes.length, conv: (p.conv_meta_insta||0) + (p.conv_meta_face||0) + (p.conv_marketplace||0) };
-    }).sort((a, b) => a.mes.localeCompare(b.mes));
+    const porMes = [...seasonKeys].map(mes => {
+      const mesGasto = (gastos || []).filter(g => (g.categoria === "Publicidad Meta" || g.categoria === "Publicidad Marketplace") && g.fecha && g.fecha.startsWith(mes)).reduce((s, g) => s + (g.monto || 0), 0);
+      const mesRes = resPaid.filter(r => r.fecha.startsWith(mes));
+      const mesPub = pubSeason.find(p => p.mes === mes);
+      const mesConv = mesPub ? (mesPub.conv_meta_insta||0) + (mesPub.conv_meta_face||0) + (mesPub.conv_marketplace||0) : 0;
+      return { mes, gasto: mesGasto, reservas: mesRes.length, conv: mesConv };
+    }).filter(m => m.gasto > 0 || m.reservas > 0).sort((a, b) => a.mes.localeCompare(b.mes));
 
     return { gastoTotal, gastoMeta, gastoMkt, convTotal, convMeta, convMkt, totalResPaid, resMeta, resMK, ingresoPaid, porMes };
   }, [pubData, seasonMonths, reservas, clientes, extrasReserva]);
