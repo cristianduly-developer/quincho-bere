@@ -1091,13 +1091,27 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
             if (gastoTotal === 0 && convTotal === 0) return null;
 
-            const resPub = conFecha.filter(r => {
-              const cli = clientes.find(c => c.id === r.clienteId);
-              const o = cli?.origen || "";
-              return ["Publicidad Meta Insta","Publicidad Meta Face","Marketplace"].includes(o);
+            const isAdOrigin = (r) => { const cli = clientes.find(c => c.id === r.clienteId); const o = cli?.origen || ""; return ["Publicidad Meta Insta","Publicidad Meta Face","Marketplace"].includes(o); };
+            const isMetaO = (r) => { const cli = clientes.find(c => c.id === r.clienteId); return cli?.origen === "Publicidad Meta Insta" || cli?.origen === "Publicidad Meta Face"; };
+            const isMktO = (r) => { const cli = clientes.find(c => c.id === r.clienteId); return cli?.origen === "Marketplace"; };
+
+            const allConVisitas = reservas.filter(r => {
+              if (!(r.creadoEn || r.fechaCreacion)) return false;
+              if (r.estado === "cancelada") return false;
+              if (!hayFiltro) return true;
+              const creado = (r.creadoEn || r.fechaCreacion || "").slice(0, 10);
+              if (captDesde && creado < captDesde) return false;
+              if (captHasta && creado > captHasta) return false;
+              return true;
             });
-            const resMeta = conFecha.filter(r => { const cli = clientes.find(c => c.id === r.clienteId); return cli?.origen === "Publicidad Meta Insta" || cli?.origen === "Publicidad Meta Face"; });
-            const resMkt = conFecha.filter(r => { const cli = clientes.find(c => c.id === r.clienteId); return cli?.origen === "Marketplace"; });
+
+            const visitasPub = allConVisitas.filter(r => isAdOrigin(r) && (r.estado === "visita" || r.fechaVisita));
+            const visitasMeta = visitasPub.filter(r => isMetaO(r));
+            const visitasMkt = visitasPub.filter(r => isMktO(r));
+
+            const resPub = conFecha.filter(r => isAdOrigin(r));
+            const resMeta = conFecha.filter(r => isMetaO(r));
+            const resMkt = conFecha.filter(r => isMktO(r));
 
             const ingresosPub = resPub.reduce((s, r) => {
               const extras = extrasReserva.filter(e => e.reservaId === r.id).reduce((a, e) => a + (e.precioFinal || e.precio || 0), 0);
@@ -1108,8 +1122,8 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
             const rangoLabel = hayFiltro ? (captDesde && captHasta ? `${captDesde} al ${captHasta}` : "Filtrado") : "Total acumulado";
 
             const canales = [
-              {nombre: "Meta", gasto: gastoMeta, conv: convMeta, reservas: resMeta.length, color: "#1877F2"},
-              {nombre: "Marketplace", gasto: gastoMkt, conv: convMkt, reservas: resMkt.length, color: "#00C853"},
+              {nombre: "Meta", gasto: gastoMeta, conv: convMeta, visitas: visitasMeta.length, reservas: resMeta.length, color: "#1877F2"},
+              {nombre: "Marketplace", gasto: gastoMkt, conv: convMkt, visitas: visitasMkt.length, reservas: resMkt.length, color: "#00C853"},
             ];
 
             return (
@@ -1118,32 +1132,35 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                 <div style={{fontSize: 12, color: "var(--qb-text2)", marginBottom: 12}}>{rangoLabel}</div>
 
                 {/* Funnel */}
-                <div style={{display: "flex", gap: 6, marginBottom: 14}}>
+                <div style={{display: "flex", gap: 4, marginBottom: 14}}>
                   {[
                     {label: "Invertido", value: fmt(gastoTotal), color: "#EF4444"},
                     {label: "Conversaciones", value: String(convTotal), color: "#F59E0B"},
-                    {label: "Reservas pagadas", value: String(resPub.length), color: "#10B981"},
+                    {label: "Visitas", value: String(visitasPub.length), color: "#EC4899"},
+                    {label: "Reservas", value: String(resPub.length), color: "#10B981"},
                     {label: "Facturado", value: fmt(ingresosPub), color: "#7C3AED"},
                   ].map((step, i) => (
                     <div key={i} style={{flex: 1, textAlign: "center", position: "relative"}}>
-                      <div style={{fontSize: 15, fontWeight: 800, color: step.color}}>{step.value}</div>
-                      <div style={{fontSize: 9, color: "var(--qb-text2)", fontWeight: 600, marginTop: 2}}>{step.label}</div>
-                      {i < 3 && <div style={{position: "absolute", right: -6, top: 6, fontSize: 10, color: "var(--qb-text2)"}}>→</div>}
+                      <div style={{fontSize: 14, fontWeight: 800, color: step.color}}>{step.value}</div>
+                      <div style={{fontSize: 8, color: "var(--qb-text2)", fontWeight: 600, marginTop: 2}}>{step.label}</div>
+                      {i < 4 && <div style={{position: "absolute", right: -4, top: 4, fontSize: 9, color: "var(--qb-text2)"}}>→</div>}
                     </div>
                   ))}
                 </div>
 
                 {/* KPIs */}
-                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14}}>
+                <div style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14}}>
                   {[
-                    {label: "Costo x conversación", value: convTotal > 0 ? fmt(gastoTotal / convTotal) : "—"},
+                    {label: "Costo x conv.", value: convTotal > 0 ? fmt(gastoTotal / convTotal) : "—"},
+                    {label: "Conv→Visita", value: convTotal > 0 ? (visitasPub.length / convTotal * 100).toFixed(1) + "%" : "—"},
+                    {label: "Visita→Reserva", value: visitasPub.length > 0 ? (resPub.length / visitasPub.length * 100).toFixed(1) + "%" : "—"},
                     {label: "Costo x reserva", value: resPub.length > 0 ? fmt(gastoTotal / resPub.length) : "—"},
-                    {label: "Conversión conv→reserva", value: convTotal > 0 ? (resPub.length / convTotal * 100).toFixed(1) + "%" : "—"},
+                    {label: "Conv. total", value: convTotal > 0 ? (resPub.length / convTotal * 100).toFixed(1) + "%" : "—"},
                     {label: "ROI", value: gastoTotal > 0 ? ((ingresosPub - gastoTotal) / gastoTotal * 100).toFixed(0) + "%" : "—"},
                   ].map((kpi, i) => (
-                    <div key={i} style={{background: "var(--qb-bg)", borderRadius: 8, padding: "10px 12px"}}>
-                      <div style={{fontSize: 10, color: "var(--qb-text2)", fontWeight: 600}}>{kpi.label}</div>
-                      <div style={{fontSize: 16, fontWeight: 800, color: "var(--qb-text)", marginTop: 2}}>{kpi.value}</div>
+                    <div key={i} style={{background: "var(--qb-bg)", borderRadius: 8, padding: "8px 10px"}}>
+                      <div style={{fontSize: 9, color: "var(--qb-text2)", fontWeight: 600}}>{kpi.label}</div>
+                      <div style={{fontSize: 14, fontWeight: 800, color: "var(--qb-text)", marginTop: 2}}>{kpi.value}</div>
                     </div>
                   ))}
                 </div>
@@ -1156,8 +1173,11 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
                     <div style={{flex: 1, minWidth: 0}}>
                       <div style={{fontSize: 12, fontWeight: 700, color: "var(--qb-text)"}}>{ch.nombre}</div>
                       <div style={{fontSize: 10, color: "var(--qb-text2)"}}>
-                        {ch.conv} conv · {ch.reservas} reservas
-                        {ch.conv > 0 && ch.reservas > 0 ? ` · ${(ch.reservas/ch.conv*100).toFixed(0)}% conv.` : ""}
+                        {ch.conv} conv → {ch.visitas} visitas → {ch.reservas} reservas
+                      </div>
+                      <div style={{fontSize: 9, color: "var(--qb-text2)", marginTop: 1}}>
+                        {ch.conv > 0 && ch.visitas > 0 ? `${(ch.visitas/ch.conv*100).toFixed(0)}% conv→vis` : ""}
+                        {ch.visitas > 0 && ch.reservas > 0 ? ` · ${(ch.reservas/ch.visitas*100).toFixed(0)}% vis→res` : ""}
                       </div>
                     </div>
                     <div style={{textAlign: "right", flexShrink: 0}}>
