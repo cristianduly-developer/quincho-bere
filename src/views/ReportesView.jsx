@@ -1097,7 +1097,7 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
 
             const allConVisitas = reservas.filter(r => {
               if (!(r.creadoEn || r.fechaCreacion)) return false;
-              if (r.estado === "cancelada") return false;
+              if (r.estado === "cancelada" && !r.fechaVisita) return false;
               if (!hayFiltro) return true;
               const creado = (r.creadoEn || r.fechaCreacion || "").slice(0, 10);
               if (captDesde && creado < captDesde) return false;

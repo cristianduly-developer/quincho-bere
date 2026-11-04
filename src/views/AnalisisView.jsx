@@ -260,7 +260,8 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
     const isMktO = (r) => { const c = (clientes||[]).find(c=>c.id===r.clienteId); return c?.origen === "Marketplace"; };
 
     const allSeasonRes = reservas.filter(r => {
-      if (!r.fecha || r.estado === "cancelada") return false;
+      if (!r.fecha) return false;
+      if (r.estado === "cancelada" && !r.fechaVisita) return false;
       return seasonKeys.has(r.fecha.slice(0, 7));
     });
 
