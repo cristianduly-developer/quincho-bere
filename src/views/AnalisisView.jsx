@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { fmtCurrency, getTotalExtras } from "../lib/utils.js";
+import { fmtCurrency, getTotalExtras, getTotalPagado } from "../lib/utils.js";
 import { MONTHS_SHORT } from "../lib/constants.js";
 import { supabase, getCurrentOrgId } from "../lib/supabase.js";
 
@@ -160,6 +160,13 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
     const seasonKeys = new Set(seasonMonths.map(m => m.key));
     return reservas.filter(r => validStates.includes(r.estado) && r.fecha && r.fecha <= hoyStr && seasonKeys.has(r.fecha.slice(0, 7))).length;
   }, [reservas, seasonMonths]);
+
+  const totalCobrado = useMemo(() => {
+    const validStates = ["pendiente", "senada", "confirmada", "finalizada"];
+    const seasonKeys = new Set(seasonMonths.map(m => m.key));
+    const seasonRes = reservas.filter(r => validStates.includes(r.estado) && r.fecha && seasonKeys.has(r.fecha.slice(0, 7)));
+    return seasonRes.reduce((s, r) => s + getTotalPagado(r.id, pagos), 0);
+  }, [reservas, pagos, seasonMonths]);
 
   const prevTotalEventos = prevSeasonMonths.reduce((s, m) => s + (HIST_2025[m.key]?.eventos || 0), 0);
 
@@ -377,30 +384,38 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
         ) : (
           <>
             {/* Triple ring */}
-            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
               <div style={{ textAlign: "center" }}>
-                <ProgressRing pct={pctEventos} size={95} stroke={8} color="var(--qb-accent)">
-                  <div style={{ fontSize: 20, fontWeight: 900, color: "var(--qb-accent)" }}>{totalEventos}</div>
-                  <div style={{ fontSize: 8, color: "var(--qb-text2)", fontWeight: 700 }}>/{metaEventos}</div>
+                <ProgressRing pct={pctEventos} size={80} stroke={7} color="var(--qb-accent)">
+                  <div style={{ fontSize: 18, fontWeight: 900, color: "var(--qb-accent)" }}>{totalEventos}</div>
+                  <div style={{ fontSize: 7, color: "var(--qb-text2)", fontWeight: 700 }}>/{metaEventos}</div>
                 </ProgressRing>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Reservas</div>
                 <div style={{ fontSize: 9, color: "var(--qb-text2)" }}>{pctEventos}%</div>
               </div>
               <div style={{ textAlign: "center" }}>
-                <ProgressRing pct={totalEventos > 0 ? Math.round((eventosRealizados / totalEventos) * 100) : 0} size={95} stroke={8} color="#7C3AED">
-                  <div style={{ fontSize: 20, fontWeight: 900, color: "#7C3AED" }}>{eventosRealizados}</div>
-                  <div style={{ fontSize: 8, color: "var(--qb-text2)", fontWeight: 700 }}>/{totalEventos}</div>
+                <ProgressRing pct={totalEventos > 0 ? Math.round((eventosRealizados / totalEventos) * 100) : 0} size={80} stroke={7} color="#7C3AED">
+                  <div style={{ fontSize: 18, fontWeight: 900, color: "#7C3AED" }}>{eventosRealizados}</div>
+                  <div style={{ fontSize: 7, color: "var(--qb-text2)", fontWeight: 700 }}>/{totalEventos}</div>
                 </ProgressRing>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Realizados</div>
                 <div style={{ fontSize: 9, color: "var(--qb-text2)" }}>{totalEventos > 0 ? Math.round((eventosRealizados / totalEventos) * 100) : 0}%</div>
               </div>
               <div style={{ textAlign: "center" }}>
-                <ProgressRing pct={pctFac} size={95} stroke={8} color="#16A34A">
-                  <div style={{ fontSize: 15, fontWeight: 900, color: "#16A34A" }}>{(totalFac / 1000000).toFixed(1)}M</div>
-                  <div style={{ fontSize: 8, color: "var(--qb-text2)", fontWeight: 700 }}>/{(metaFac / 1000000).toFixed(0)}M</div>
+                <ProgressRing pct={pctFac} size={80} stroke={7} color="#16A34A">
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#16A34A" }}>{(totalFac / 1000000).toFixed(1)}M</div>
+                  <div style={{ fontSize: 7, color: "var(--qb-text2)", fontWeight: 700 }}>/{(metaFac / 1000000).toFixed(0)}M</div>
                 </ProgressRing>
                 <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Facturación</div>
                 <div style={{ fontSize: 9, color: "var(--qb-text2)" }}>{pctFac}%</div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <ProgressRing pct={totalFac > 0 ? Math.round((totalCobrado / totalFac) * 100) : 0} size={80} stroke={7} color="#0284C7">
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#0284C7" }}>{(totalCobrado / 1000000).toFixed(1)}M</div>
+                  <div style={{ fontSize: 7, color: "var(--qb-text2)", fontWeight: 700 }}>/{(totalFac / 1000000).toFixed(1)}M</div>
+                </ProgressRing>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Cobrado</div>
+                <div style={{ fontSize: 9, color: "var(--qb-text2)" }}>{totalFac > 0 ? Math.round((totalCobrado / totalFac) * 100) : 0}%</div>
               </div>
             </div>
 
