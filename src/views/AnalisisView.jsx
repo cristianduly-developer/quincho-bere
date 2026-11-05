@@ -154,6 +154,13 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
 
   const ticketProm = totalEventos > 0 ? Math.round(totalFac / totalEventos) : 0;
 
+  const eventosRealizados = useMemo(() => {
+    const hoyStr = new Date().toISOString().slice(0, 10);
+    const validStates = ["pendiente", "senada", "confirmada", "finalizada"];
+    const seasonKeys = new Set(seasonMonths.map(m => m.key));
+    return reservas.filter(r => validStates.includes(r.estado) && r.fecha && r.fecha <= hoyStr && seasonKeys.has(r.fecha.slice(0, 7))).length;
+  }, [reservas, seasonMonths]);
+
   const prevTotalEventos = prevSeasonMonths.reduce((s, m) => s + (HIST_2025[m.key]?.eventos || 0), 0);
 
   const monthsPassed = seasonMonths.filter(m => {
@@ -395,6 +402,27 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
               {totalEventos > prevAtThisPoint && <span style={{ color: "#16A34A", fontWeight: 700 }}> (+{totalEventos - prevAtThisPoint})</span>}
               {totalEventos < prevAtThisPoint && <span style={{ color: "#DC2626", fontWeight: 700 }}> ({totalEventos - prevAtThisPoint})</span>}
             </div>
+
+            {/* Eventos realizados vs por venir */}
+            {totalEventos > 0 && (() => {
+              const porVenir = totalEventos - eventosRealizados;
+              const pctRealizado = Math.round((eventosRealizados / totalEventos) * 100);
+              return (
+                <div style={{ marginTop: 10, padding: "10px 14px", background: "var(--qb-bg-card-alt)", borderRadius: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--qb-text2)" }}>Progreso de la temporada</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: "var(--qb-accent)" }}>{pctRealizado}%</span>
+                  </div>
+                  <div style={{ height: 10, background: "var(--qb-border)", borderRadius: 5, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: pctRealizado + "%", background: "var(--qb-accent)", borderRadius: 5, transition: "width .3s" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11 }}>
+                    <span style={{ color: "var(--qb-accent)", fontWeight: 700 }}>{eventosRealizados} realizados</span>
+                    <span style={{ color: "var(--qb-text2)", fontWeight: 600 }}>{porVenir} por venir</span>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
       </div>
