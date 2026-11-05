@@ -376,23 +376,31 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
           </div>
         ) : (
           <>
-            {/* Doble ring */}
-            <div style={{ display: "flex", justifyContent: "center", gap: 28, marginBottom: 20 }}>
+            {/* Triple ring */}
+            <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 20 }}>
               <div style={{ textAlign: "center" }}>
-                <ProgressRing pct={pctEventos} color="var(--qb-accent)">
-                  <div style={{ fontSize: 22, fontWeight: 900, color: "var(--qb-accent)" }}>{totalEventos}</div>
-                  <div style={{ fontSize: 9, color: "var(--qb-text2)", fontWeight: 700 }}>/{metaEventos}</div>
+                <ProgressRing pct={pctEventos} size={95} stroke={8} color="var(--qb-accent)">
+                  <div style={{ fontSize: 20, fontWeight: 900, color: "var(--qb-accent)" }}>{totalEventos}</div>
+                  <div style={{ fontSize: 8, color: "var(--qb-text2)", fontWeight: 700 }}>/{metaEventos}</div>
                 </ProgressRing>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Reservas</div>
-                <div style={{ fontSize: 10, color: "var(--qb-text2)" }}>{pctEventos}% completado</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Reservas</div>
+                <div style={{ fontSize: 9, color: "var(--qb-text2)" }}>{pctEventos}%</div>
               </div>
               <div style={{ textAlign: "center" }}>
-                <ProgressRing pct={pctFac} color="#16A34A">
-                  <div style={{ fontSize: 16, fontWeight: 900, color: "#16A34A" }}>{(totalFac / 1000000).toFixed(1)}M</div>
-                  <div style={{ fontSize: 9, color: "var(--qb-text2)", fontWeight: 700 }}>/{(metaFac / 1000000).toFixed(0)}M</div>
+                <ProgressRing pct={totalEventos > 0 ? Math.round((eventosRealizados / totalEventos) * 100) : 0} size={95} stroke={8} color="#7C3AED">
+                  <div style={{ fontSize: 20, fontWeight: 900, color: "#7C3AED" }}>{eventosRealizados}</div>
+                  <div style={{ fontSize: 8, color: "var(--qb-text2)", fontWeight: 700 }}>/{totalEventos}</div>
                 </ProgressRing>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Facturación</div>
-                <div style={{ fontSize: 10, color: "var(--qb-text2)" }}>{pctFac}% completado</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Realizados</div>
+                <div style={{ fontSize: 9, color: "var(--qb-text2)" }}>{totalEventos > 0 ? Math.round((eventosRealizados / totalEventos) * 100) : 0}%</div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <ProgressRing pct={pctFac} size={95} stroke={8} color="#16A34A">
+                  <div style={{ fontSize: 15, fontWeight: 900, color: "#16A34A" }}>{(totalFac / 1000000).toFixed(1)}M</div>
+                  <div style={{ fontSize: 8, color: "var(--qb-text2)", fontWeight: 700 }}>/{(metaFac / 1000000).toFixed(0)}M</div>
+                </ProgressRing>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--qb-text3)", marginTop: 6 }}>Facturación</div>
+                <div style={{ fontSize: 9, color: "var(--qb-text2)" }}>{pctFac}%</div>
               </div>
             </div>
 
@@ -403,26 +411,6 @@ export default function AnalisisView({ reservas, pagos, extrasReserva, servicios
               {totalEventos < prevAtThisPoint && <span style={{ color: "#DC2626", fontWeight: 700 }}> ({totalEventos - prevAtThisPoint})</span>}
             </div>
 
-            {/* Eventos realizados vs por venir */}
-            {totalEventos > 0 && (() => {
-              const porVenir = totalEventos - eventosRealizados;
-              const pctRealizado = Math.round((eventosRealizados / totalEventos) * 100);
-              return (
-                <div style={{ marginTop: 10, padding: "10px 14px", background: "var(--qb-bg-card-alt)", borderRadius: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--qb-text2)" }}>Progreso de la temporada</span>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "var(--qb-accent)" }}>{pctRealizado}%</span>
-                  </div>
-                  <div style={{ height: 10, background: "var(--qb-border)", borderRadius: 5, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: pctRealizado + "%", background: "var(--qb-accent)", borderRadius: 5, transition: "width .3s" }} />
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11 }}>
-                    <span style={{ color: "var(--qb-accent)", fontWeight: 700 }}>{eventosRealizados} realizados</span>
-                    <span style={{ color: "var(--qb-text2)", fontWeight: 600 }}>{porVenir} por venir</span>
-                  </div>
-                </div>
-              );
-            })()}
           </>
         )}
       </div>

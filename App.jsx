@@ -4741,40 +4741,6 @@ function RecursosView({ recursos, setRecursos, serviciosExtras }) {
   );
 }
 
-// ─── FAB ─────────────────────────────────────────────────
-
-function FAB({ onNewPago, onNewGasto, onNewConsulta }) {
-  const [open,setOpen]=useState(false);
-  return (
-    <div style={{position:"fixed",bottom:82,right:20,zIndex:1500}}>
-      {open && (
-        <>
-          <div onClick={()=>{setOpen(false);onNewConsulta();}} style={{position:"absolute",bottom:188,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
-            <span style={{background:"var(--qb-bg-card)",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:600,color:"#0284C7",boxShadow:"0 2px 10px rgba(0,0,0,0.12)",whiteSpace:"nowrap"}}>Registrar Consultas</span>
-            <div style={{width:48,height:48,borderRadius:24,background:"#0284C7",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(2,132,199,0.4)",fontSize:20,flexShrink:0}}>📩</div>
-          </div>
-          <div onClick={()=>{setOpen(false);onNewGasto();}} style={{position:"absolute",bottom:130,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
-            <span style={{background:"var(--qb-bg-card)",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:600,color:"#DC2626",boxShadow:"0 2px 10px rgba(0,0,0,0.12)",whiteSpace:"nowrap"}}>Registrar Gasto</span>
-            <div style={{width:48,height:48,borderRadius:24,background:"#DC2626",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(220,38,38,0.4)",fontSize:20,flexShrink:0}}>💸</div>
-          </div>
-          <div onClick={()=>{setOpen(false);onNewPago();}} style={{position:"absolute",bottom:72,right:0,display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
-            <span style={{background:"var(--qb-bg-card)",padding:"5px 12px",borderRadius:8,fontSize:13,fontWeight:600,color:"#16A34A",boxShadow:"0 2px 10px rgba(0,0,0,0.12)",whiteSpace:"nowrap"}}>Registrar Cobro</span>
-            <div style={{width:48,height:48,borderRadius:24,background:"#16A34A",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 4px 14px rgba(22,163,74,0.4)",fontSize:20,flexShrink:0}}>💰</div>
-          </div>
-          <div onClick={()=>setOpen(false)} style={{position:"fixed",inset:0,zIndex:-1}} />
-        </>
-      )}
-      <button onClick={()=>setOpen(o=>!o)} style={{
-        width:58,height:58,borderRadius:29,
-        background: open?"#1E0E08":"linear-gradient(135deg,var(--qb-gradient-start),var(--qb-gradient-end))",
-        border:"none",cursor:"pointer",color:"#FFF",fontSize:26,
-        boxShadow:"0 4px 18px var(--qb-gradient-shadow)",
-        display:"flex",alignItems:"center",justifyContent:"center",
-        transform:open?"rotate(45deg)":"none",transition:"all 0.22s",
-      }}>+</button>
-    </div>
-  );
-}
 
 // ─── SIDE MENU ────────────────────────────────────────────
 
@@ -6518,7 +6484,6 @@ Te esperamos nuevamente. Si podés etiquetarnos en tus fotos nos ayudás un mont
       </div>
 
       {/* FAB — solo en mobile */}
-      {!isDesktop && <FAB onNewPago={()=>{setPagoReservaId(null);setModal("pago");}} onNewGasto={()=>setModal("gasto")} onNewConsulta={()=>setModal("consultas")} />}
 
       {/* Side Menu */}
       <SideMenu open={sideOpen} onClose={()=>setSideOpen(false)} onNavigate={setTab} tab={tab} currentUser={currentUser} negocio={negocio} />
