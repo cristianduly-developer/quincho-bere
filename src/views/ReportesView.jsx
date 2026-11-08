@@ -623,13 +623,28 @@ export default function ReportesView({ pagos, gastos, reservas, extrasReserva, s
       )}
 
       {(()=>{
-        if(!serviciosExtras||!serviciosExtras.length) return null;
+        const srvIds = new Set((serviciosExtras||[]).map(s => s.id));
         const items=serviciosExtras.map(function(srv){
           const matching=extrasReserva.filter(function(e){var r=reservas.find(function(x){return x.id===e.reservaId;});return e.servicioId===srv.id&&r&&r.fecha&&enRango(r.fecha);});
           var total=matching.reduce(function(s,e){return s+e.cantidad;},0);
           var ingresos=matching.reduce(function(s,e){return s+(e.precioHistorico*e.cantidad);},0);
           return total>0?{name:srv.descripcion,total,ingresos}:null;
         }).filter(Boolean);
+        const personalizados = extrasReserva.filter(function(e){
+          if(e.servicioId && srvIds.has(e.servicioId)) return false;
+          var r=reservas.find(function(x){return x.id===e.reservaId;});
+          return r&&r.fecha&&enRango(r.fecha);
+        });
+        const persMap = {};
+        personalizados.forEach(function(e){
+          const key = e.descripcion || "Personalizado";
+          if(!persMap[key]) persMap[key] = {total:0, ingresos:0};
+          persMap[key].total += (e.cantidad || 1);
+          persMap[key].ingresos += (e.precioHistorico || 0) * (e.cantidad || 1);
+        });
+        Object.entries(persMap).forEach(function([name, v]){
+          if(v.total > 0) items.push({name, total: v.total, ingresos: v.ingresos});
+        });
         if(!items.length) return null;
         const totalExtrasIngreso=items.reduce((s,it)=>s+it.ingresos,0);
         const resConExtras=new Set(extrasReserva.filter(e=>monthRes.some(r=>r.id===e.reservaId)).map(e=>e.reservaId)).size;
