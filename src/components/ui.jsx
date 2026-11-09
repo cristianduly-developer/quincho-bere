@@ -28,19 +28,33 @@ function formatTimeDisplay(v) {
   return String(v).slice(0, 5);
 }
 
-export function DatePickerCustom({ value, onChange, style: extStyle, readOnly }) {
+function normalizeDate(v) {
+  if (!v) return "";
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "object") return "";
+  return String(v);
+}
+
+function normalizeTime(v) {
+  if (!v) return "";
+  if (typeof v === "object") return "";
+  return String(v);
+}
+
+export function DatePickerCustom({ value: rawValue, onChange, style: extStyle, readOnly }) {
+  const value = normalizeDate(rawValue);
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
 
-  const parsed = value ? new Date(String(value) + "T12:00:00") : today;
+  const parsed = value ? new Date(value + "T12:00:00") : today;
   const [viewYear, setViewYear] = useState(parsed.getFullYear());
   const [viewMonth, setViewMonth] = useState(parsed.getMonth());
 
   useEffect(() => {
     if (value) {
-      const d = new Date(String(value) + "T12:00:00");
+      const d = new Date(value + "T12:00:00");
       setViewYear(d.getFullYear());
       setViewMonth(d.getMonth());
     }
@@ -95,7 +109,7 @@ export function DatePickerCustom({ value, onChange, style: extStyle, readOnly })
               const mm = String(viewMonth + 1).padStart(2, "0");
               const dd = String(d).padStart(2, "0");
               const dateStr = `${viewYear}-${mm}-${dd}`;
-              const isSel = dateStr === String(value || "");
+              const isSel = dateStr === value;
               const isToday = dateStr === todayStr;
               return (
                 <div key={i} onClick={() => pick(d)} style={{
@@ -118,7 +132,8 @@ export function DatePickerCustom({ value, onChange, style: extStyle, readOnly })
   );
 }
 
-export function TimePickerCustom({ value, onChange, style: extStyle, readOnly }) {
+export function TimePickerCustom({ value: rawValue, onChange, style: extStyle, readOnly }) {
+  const value = normalizeTime(rawValue);
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const hoursRef = useRef(null);
