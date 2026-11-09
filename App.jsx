@@ -4,7 +4,7 @@ import { genId, escHtml, fmtCurrency, fmtDate, toDateStr, clientName, monthKey, 
 import { supabase, sb, getCurrentOrgId, setCurrentOrgId, verificarLimiteServidor, mensajeErrorGuardado, getUltimoError } from "./src/lib/supabase.js";
 import { mapReserva, mapCliente, mapPago, mapGasto, mapExtra, mapBloqueo, mapTarea, mapRecordatorio, mapUsuario, mapConsulta, mapMercadoProducto, mapMercadoPedido } from "./src/lib/mappers.js";
 import { card, inputStyle, lbl, labelStyle } from "./src/lib/styles.js";
-import { Field, Input, Select, SearchSelect, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar } from "./src/components/ui.jsx";
+import { Field, Input, Select, SearchSelect, TextArea, Btn, BottomModal, StatusBadge, TurnoBadge, Avatar, DatePickerCustom, TimePickerCustom } from "./src/components/ui.jsx";
 import DailyBriefing, { shouldShowBriefing, markBriefingShown, VisitaCard } from "./src/components/DailyBriefing.jsx";
 import { ThemeProvider, useTheme, THEME_CSS } from "./src/lib/theme.js";
 
@@ -1342,7 +1342,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
                 </div>
                 <div>
                   <div style={{fontSize:10,fontWeight:700,color:"var(--qb-text3)",marginBottom:4,textTransform:"uppercase"}}>Fecha</div>
-                  <input type="date" value={ppFecha} onChange={e=>setPpFecha(e.target.value)}
+                  <DatePickerCustom value={ppFecha} onChange={setPpFecha}
                     style={{width:"100%",padding:"8px 10px",borderRadius:8,border:"1px solid var(--qb-border)",fontSize:14,fontFamily:"inherit",boxSizing:"border-box"}} />
                 </div>
               </div>
@@ -1415,8 +1415,7 @@ function ReservaDetail({ reserva, clientes, recursos, pagos, extrasReserva, serv
         <div style={{background:"var(--qb-st-finalizada-bg)",border:"1.5px solid var(--qb-st-finalizada-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontWeight:700,fontSize:13,color:"#1D4ED8",marginBottom:8}}>📅 Reprogramar evento</div>
           <div style={{fontSize:12,color:"#3B82F6",marginBottom:10}}>Fecha original: <b>{fmtDate(reserva.fecha)}</b> — quedará asentada en las notas.</div>
-          <input type="date" value={rescheduleDate} onChange={e=>setRescheduleDate(e.target.value)}
-            min={toDateStr(new Date())}
+          <DatePickerCustom value={rescheduleDate} onChange={setRescheduleDate}
             style={{...inputStyle,marginBottom:10}} />
           <div style={{display:"flex",gap:8}}>
             <Btn variant="ghost" onClick={()=>{setShowReschedule(false);setRescheduleDate("");}}>Cancelar</Btn>
@@ -3660,8 +3659,8 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
             <div>
               <div style={{fontSize:12,color:"var(--qb-text2)",marginBottom:10}}>Definí el horario y la duración de cada turno. La app genera todos los slots automáticamente.</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Apertura</div><input type="time" value={slotForm.horaInicio} onChange={e=>setSlotForm(p=>({...p,horaInicio:e.target.value}))} style={inpS} /></div>
-                <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Cierre</div><input type="time" value={slotForm.horaFin} onChange={e=>setSlotForm(p=>({...p,horaFin:e.target.value}))} style={inpS} /></div>
+                <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Apertura</div><TimePickerCustom value={slotForm.horaInicio} onChange={v=>setSlotForm(p=>({...p,horaInicio:v}))} style={inpS} /></div>
+                <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Cierre</div><TimePickerCustom value={slotForm.horaFin} onChange={v=>setSlotForm(p=>({...p,horaFin:v}))} style={inpS} /></div>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
                 <div>
@@ -3743,8 +3742,8 @@ function EspacioCard({ espacio, onDelete, onTurnosChange, onTemporadasChange }) 
                     </div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                    <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora inicio</div><input type="time" value={form.horaInicio} onChange={e=>setForm(p=>({...p,horaInicio:e.target.value}))} style={inpS} /></div>
-                    <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora fin</div><input type="time" value={form.horaFin} onChange={e=>setForm(p=>({...p,horaFin:e.target.value}))} style={inpS} /></div>
+                    <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora inicio</div><TimePickerCustom value={form.horaInicio} onChange={v=>setForm(p=>({...p,horaInicio:v}))} style={inpS} /></div>
+                    <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora fin</div><TimePickerCustom value={form.horaFin} onChange={v=>setForm(p=>({...p,horaFin:v}))} style={inpS} /></div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
                     <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" value={form.precioSemana} onChange={e=>setForm(p=>({...p,precioSemana:e.target.value}))} style={inpS} /></div>
@@ -3957,8 +3956,8 @@ function TurnosEspacioSection({ recursos }) {
               <div style={{fontSize:12,fontWeight:700,color:"var(--qb-text2)",marginBottom:8}}>Nuevo turno para {espacio?.nombre}</div>
               <input placeholder="Nombre del turno (ej: Noche, Mañana)" value={form.nombre} onChange={e=>setForm(p=>({...p,nombre:e.target.value}))} style={{...inpS,marginBottom:8}} />
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora inicio</div><input type="time" value={form.horaInicio} onChange={e=>setForm(p=>({...p,horaInicio:e.target.value}))} style={inpS} /></div>
-                <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora fin</div><input type="time" value={form.horaFin} onChange={e=>setForm(p=>({...p,horaFin:e.target.value}))} style={inpS} /></div>
+                <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora inicio</div><TimePickerCustom value={form.horaInicio} onChange={v=>setForm(p=>({...p,horaInicio:v}))} style={inpS} /></div>
+                <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora fin</div><TimePickerCustom value={form.horaFin} onChange={v=>setForm(p=>({...p,horaFin:v}))} style={inpS} /></div>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
                 <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Precio semana ($)</div><input type="number" value={form.precioSemana} onChange={e=>setForm(p=>({...p,precioSemana:e.target.value}))} style={inpS} /></div>
@@ -5427,8 +5426,8 @@ function OnboardingWizard({ onFinish, userName }) {
                 /* ── MODO CANCHA: configuración de slots ── */
                 <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:14}}>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                    <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora apertura</div><input type="time" style={inpS} value={slotCfg.horaInicio} onChange={e=>setSlotCfg(p=>({...p,horaInicio:e.target.value}))} /></div>
-                    <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora cierre</div><input type="time" style={inpS} value={slotCfg.horaFin} onChange={e=>setSlotCfg(p=>({...p,horaFin:e.target.value}))} /></div>
+                    <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora apertura</div><TimePickerCustom style={inpS} value={slotCfg.horaInicio} onChange={v=>setSlotCfg(p=>({...p,horaInicio:v}))} /></div>
+                    <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora cierre</div><TimePickerCustom style={inpS} value={slotCfg.horaFin} onChange={v=>setSlotCfg(p=>({...p,horaFin:v}))} /></div>
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                     <div>
@@ -5475,8 +5474,8 @@ function OnboardingWizard({ onFinish, userName }) {
                     <div style={{background:"var(--qb-bg-hover)",borderRadius:10,padding:12,border:"1px dashed var(--qb-accent)",marginBottom:10}}>
                       <input style={{...inpS,marginBottom:8,fontSize:13}} placeholder="Nombre (ej: Noche, Turno 20hs)" value={turnoForm.nombre} onChange={e=>setTurnoForm(p=>({...p,nombre:e.target.value}))} autoFocus />
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                        <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora inicio</div><input type="time" style={inpS} value={turnoForm.horaInicio} onChange={e=>setTurnoForm(p=>({...p,horaInicio:e.target.value}))} /></div>
-                        <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora fin</div><input type="time" style={inpS} value={turnoForm.horaFin} onChange={e=>setTurnoForm(p=>({...p,horaFin:e.target.value}))} /></div>
+                        <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora inicio</div><TimePickerCustom style={inpS} value={turnoForm.horaInicio} onChange={v=>setTurnoForm(p=>({...p,horaInicio:v}))} /></div>
+                        <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Hora fin</div><TimePickerCustom style={inpS} value={turnoForm.horaFin} onChange={v=>setTurnoForm(p=>({...p,horaFin:v}))} /></div>
                       </div>
                       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
                         <div><div style={{fontSize:11,color:"var(--qb-text2)",marginBottom:3}}>Precio lun–vie ($)</div><input type="number" style={inpS} value={turnoForm.precioSemana} onChange={e=>setTurnoForm(p=>({...p,precioSemana:e.target.value}))} placeholder="0" /></div>
