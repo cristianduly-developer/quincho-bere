@@ -17,14 +17,15 @@ const DIAS_SEMANA = ["Lu","Ma","Mi","Ju","Vi","Sa","Do"];
 
 function formatDateDisplay(v) {
   if (!v) return "";
-  const [y, m, d] = v.split("-");
-  if (!y || !m || !d) return v;
+  const s = String(v);
+  const [y, m, d] = s.split("-");
+  if (!y || !m || !d) return s;
   return `${parseInt(d)} ${MESES[parseInt(m) - 1]?.slice(0, 3)} ${y}`;
 }
 
 function formatTimeDisplay(v) {
   if (!v) return "";
-  return v.slice(0, 5);
+  return String(v).slice(0, 5);
 }
 
 export function DatePickerCustom({ value, onChange, style: extStyle, readOnly }) {
@@ -33,13 +34,13 @@ export function DatePickerCustom({ value, onChange, style: extStyle, readOnly })
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
 
-  const parsed = value ? new Date(value + "T12:00:00") : today;
+  const parsed = value ? new Date(String(value) + "T12:00:00") : today;
   const [viewYear, setViewYear] = useState(parsed.getFullYear());
   const [viewMonth, setViewMonth] = useState(parsed.getMonth());
 
   useEffect(() => {
     if (value) {
-      const d = new Date(value + "T12:00:00");
+      const d = new Date(String(value) + "T12:00:00");
       setViewYear(d.getFullYear());
       setViewMonth(d.getMonth());
     }
@@ -94,7 +95,7 @@ export function DatePickerCustom({ value, onChange, style: extStyle, readOnly })
               const mm = String(viewMonth + 1).padStart(2, "0");
               const dd = String(d).padStart(2, "0");
               const dateStr = `${viewYear}-${mm}-${dd}`;
-              const isSel = dateStr === value;
+              const isSel = dateStr === String(value || "");
               const isToday = dateStr === todayStr;
               return (
                 <div key={i} onClick={() => pick(d)} style={{
@@ -125,7 +126,7 @@ export function TimePickerCustom({ value, onChange, style: extStyle, readOnly })
 
   const [selH, selM] = useMemo(() => {
     if (!value) return [null, null];
-    const parts = value.split(":");
+    const parts = String(value).split(":");
     return [parseInt(parts[0]), parseInt(parts[1])];
   }, [value]);
 
