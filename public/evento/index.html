@@ -571,7 +571,9 @@
 
     html += '<div class="hero-info-strip">';
     html += '<div class="hero-info-block"><div class="hero-info-label">Fecha</div><div class="hero-info-value">' + dayName + ' ' + dayNum + '</div><div class="hero-info-sub">' + monthName + ' ' + year + '</div></div>';
-    html += '<div class="hero-info-block"><div class="hero-info-label">Horario</div><div class="hero-info-value">' + esc(ev.horario || "") + ' a ' + esc(ev.horario_fin || "") + '</div>' + (ev.turno && ev.turno.length < 20 ? '<div class="hero-info-sub">' + esc(ev.turno) + '</div>' : '') + '</div>';
+    var dispHorIni = (sec.hora_evento_inicio || ev.horario || "");
+    var dispHorFin = (sec.hora_evento_fin || ev.horario_fin || "");
+    html += '<div class="hero-info-block"><div class="hero-info-label">Horario</div><div class="hero-info-value">' + esc(dispHorIni) + ' a ' + esc(dispHorFin) + '</div>' + (ev.turno && ev.turno.length < 20 ? '<div class="hero-info-sub">' + esc(ev.turno) + '</div>' : '') + '</div>';
     if (state === "live" && sec.ver_confirmados !== false) {
       html += '<div class="hero-info-block"><div class="hero-info-label">Confirmados</div><div class="hero-info-value">' + totalConf + '</div><div class="hero-info-sub">personas</div></div>';
     } else {
