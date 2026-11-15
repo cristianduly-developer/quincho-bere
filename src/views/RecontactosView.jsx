@@ -21,11 +21,24 @@ function Estrellas({ n }) {
   return <span style={{fontSize:12}}>{Array.from({length:5},(_,i)=><span key={i} style={{color:i<n?"#F59E0B":"#E5E7EB"}}>★</span>)}</span>;
 }
 
+const MOTIVO_LABELS = {
+  no_vino: {label:"No vino",icon:"🚫",color:"#D97706",bg:"#FEF3C7",border:"#FDE68A",prioridad:"alta"},
+  no_definio: {label:"No definió",icon:"🤔",color:"#7C3AED",bg:"#F5F3FF",border:"#C4B5FD",prioridad:"alta"},
+  no_va_a_festejar: {label:"No va a festejar",icon:"❌",color:"#9CA3AF",bg:"#F3F4F6",border:"#D1D5DB",prioridad:"baja"},
+  eligio_otro_lugar: {label:"Eligió otro lugar",icon:"🏠",color:"#9CA3AF",bg:"#F3F4F6",border:"#D1D5DB",prioridad:"baja"},
+};
+function motivoInfo(m) {
+  if(!m) return {label:"Sin motivo",icon:"❓",color:"#6B7280",bg:"#F9FAFB",border:"#E5E7EB",prioridad:"media"};
+  if(MOTIVO_LABELS[m]) return MOTIVO_LABELS[m];
+  return {label:m,icon:"📝",color:"#9CA3AF",bg:"#F3F4F6",border:"#D1D5DB",prioridad:"baja"};
+}
+
 function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }) {
   const [contactados, setContactados] = useState(new Set());
   const [msgLibre, setMsgLibre] = useState(MSG_SEGUIMIENTO_LIBRE);
   const [msgOcupada, setMsgOcupada] = useState(MSG_SEGUIMIENTO_OCUPADA);
   const [editandoMsg, setEditandoMsg] = useState(false);
+  const [ocultarDescartados, setOcultarDescartados] = useState(false);
 
   const today = new Date();
   const todayStr = today.toISOString().slice(0,10);
@@ -61,6 +74,12 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
         .map(r => r.fecha + "|" + r.recursoId)
     );
 
+    const motivoPrioridad = (m) => {
+      if(m==="no_vino") return 0;
+      if(m==="no_definio") return 1;
+      if(!m) return 2;
+      return 3;
+    };
     return Object.values(porCliente)
       .map(r => {
         const cliente = potencialesMap[r.clienteId];
@@ -70,7 +89,12 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
         return { reserva: r, cliente, recurso, fechaLibre, diasDesdeVisita };
       })
       .filter(x => x.cliente)
-      .sort((a,b) => a.diasDesdeVisita - b.diasDesdeVisita);
+      .sort((a,b) => {
+        const pa = motivoPrioridad(a.reserva.motivoNoConcreto);
+        const pb = motivoPrioridad(b.reserva.motivoNoConcreto);
+        if(pa !== pb) return pa - pb;
+        return a.diasDesdeVisita - b.diasDesdeVisita;
+      });
   }, [reservas, clientes, recursos, todayStr]);
 
   const buildWA = ({ cliente, reserva, fechaLibre }) => {
@@ -151,26 +175,42 @@ function SeguimientoTab({ reservas, clientes, recursos, onDescartarSeguimiento }
         </div>
       ) : (
         <>
-          <div style={{fontSize:12,color:"var(--qb-text2)",marginBottom:10}}>
-            {potenciales.length} potencial{potenciales.length!==1?"es":""} para seguimiento
-          </div>
-          {potenciales.map(({ reserva, cliente, recurso, fechaLibre, diasDesdeVisita }) => {
+          {(()=>{
+            const conPrioridad = potenciales.filter(p=>motivoInfo(p.reserva.motivoNoConcreto).prioridad==="alta");
+            const sinPrioridad = potenciales.filter(p=>motivoInfo(p.reserva.motivoNoConcreto).prioridad!=="alta");
+            return (<>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{fontSize:12,color:"var(--qb-text2)"}}>
+                  {potenciales.length} potencial{potenciales.length!==1?"es":""} para seguimiento
+                  {conPrioridad.length>0&&<span style={{fontWeight:700,color:"#D97706"}}> · {conPrioridad.length} para repescar</span>}
+                </div>
+                {sinPrioridad.length>0&&(
+                  <button onClick={()=>setOcultarDescartados(p=>!p)} style={{fontSize:11,fontWeight:600,color:"var(--qb-accent)",background:"none",border:"none",cursor:"pointer",padding:0}}>
+                    {ocultarDescartados?"Mostrar descartados":"Ocultar descartados"}
+                  </button>
+                )}
+              </div>
+            </>);
+          })()}
+          {potenciales.filter(p=>!ocultarDescartados||motivoInfo(p.reserva.motivoNoConcreto).prioridad!=="baja").map(({ reserva, cliente, recurso, fechaLibre, diasDesdeVisita }) => {
             const waUrl = buildWA({ cliente, reserva, fechaLibre });
             const yaContactado = contactados.has(cliente.id);
+            const mi = motivoInfo(reserva.motivoNoConcreto);
             return (
               <div key={cliente.id} style={{
                 background: yaContactado ? "#F9FFF9" : "var(--qb-bg-card)",
                 border:`0.5px solid ${yaContactado?"#BBF7D0":"var(--qb-border)"}`,
                 borderRadius:12, marginBottom:8, padding:"13px 14px",
                 opacity: yaContactado ? 0.7 : 1,
+                borderLeft: mi.prioridad==="alta"?`3px solid ${mi.color}`:undefined,
               }}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                       <span style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>
                         {yaContactado && <span style={{marginRight:4}}>✅</span>}{clientName(cliente)}
                       </span>
-                      <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:99,background:"#FEF9C3",color:"#A16207",border:"1px solid #FDE68A"}}>Potencial</span>
+                      <span style={{fontSize:9,fontWeight:700,padding:"1px 6px",borderRadius:99,background:mi.bg,color:mi.color,border:`1px solid ${mi.border}`}}>{mi.icon} {mi.label}</span>
                     </div>
                     <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:3}}>
                       {recurso?.nombre||"—"} · Le interesaba {fmtDate(reserva.fecha)}

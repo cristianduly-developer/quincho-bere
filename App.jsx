@@ -1118,7 +1118,24 @@ function ExtrasModal({ onClose, onSave, servicios, reservaId }) {
 
 function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
   const [confirmAction, setConfirmAction] = useState(null);
-  const [motivo, setMotivo] = useState("");
+  const [motivoExtra, setMotivoExtra] = useState("");
+  const [subDescarte, setSubDescarte] = useState(null);
+  const motivoOpciones = [
+    {key:"no_vino",label:"No vino",icon:"🚫",color:"#D97706",bg:"#FEF3C7",desc:"Sigue interesado, no pudo venir"},
+    {key:"no_definio",label:"No definió",icon:"🤔",color:"#7C3AED",bg:"#F5F3FF",desc:"Vino pero no cerró"},
+    {key:"descarto",label:"Descartó",icon:"❌",color:"#DC2626",bg:"#FEF2F2",desc:"No va a reservar"},
+  ];
+  const subDescarteOpciones = [
+    {key:"no_va_a_festejar",label:"No va a festejar"},
+    {key:"eligio_otro_lugar",label:"Eligió otro lugar"},
+    {key:"otro",label:"Otro motivo"},
+  ];
+  const enviarNoConcreto = (motivo) => {
+    onNoConcreto(motivo);
+    setConfirmAction(null);
+    setSubDescarte(null);
+    setMotivoExtra("");
+  };
   return (
     <div style={{background:"var(--qb-st-visita-bg)",border:"1.5px solid var(--qb-st-visita-border)",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
       <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",textTransform:"uppercase",letterSpacing:0.6,marginBottom:8}}>👁️ Visita programada</div>
@@ -1147,14 +1164,48 @@ function VisitaPanel({ reserva, cliente, onConfirmVisita, onNoConcreto }) {
           </div>
         </div>
       )}
-      {confirmAction==="noconcreto" && (
+      {confirmAction==="noconcreto" && !subDescarte && (
         <div style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:8,padding:"10px 12px"}}>
-          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:6}}>¿Marcar como no concretada?</div>
-          <div style={{fontSize:12,color:"#991B1B",marginBottom:8}}>La fecha se liberará y la reserva se cancelará.</div>
-          <input value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo (opcional): ej. muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"var(--qb-bg-card)"}} />
+          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:4}}>¿Qué pasó con la visita?</div>
+          <div style={{fontSize:12,color:"#991B1B",marginBottom:10}}>La fecha se liberará y la reserva se cancelará.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:8}}>
+            {motivoOpciones.map(op=>(
+              <button key={op.key} onClick={()=>{
+                if(op.key==="descarto") { setSubDescarte("descarto"); }
+                else { enviarNoConcreto(op.key); }
+              }} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:op.bg,border:`1.5px solid ${op.color}30`,borderRadius:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                <span style={{fontSize:18}}>{op.icon}</span>
+                <div>
+                  <div style={{fontSize:13,fontWeight:700,color:op.color}}>{op.label}</div>
+                  <div style={{fontSize:11,color:"#6B7280"}}>{op.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>{setConfirmAction(null);setSubDescarte(null);}} style={{width:"100%",padding:"8px",background:"none",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+        </div>
+      )}
+      {confirmAction==="noconcreto" && subDescarte==="descarto" && (
+        <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:8}}>¿Por qué descartó?</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:8}}>
+            {subDescarteOpciones.map(op=>(
+              <button key={op.key} onClick={()=>{ if(op.key==="otro") { setSubDescarte("otro"); } else { enviarNoConcreto(op.key); } }}
+                style={{padding:"9px 12px",background:"#FFF",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:600,color:"#DC2626",textAlign:"left"}}>
+                {op.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>setSubDescarte(null)} style={{width:"100%",padding:"8px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+        </div>
+      )}
+      {confirmAction==="noconcreto" && subDescarte==="otro" && (
+        <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:8}}>Contanos el motivo</div>
+          <input value={motivoExtra} onChange={e=>setMotivoExtra(e.target.value)} placeholder="Ej: muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #FECACA",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"#FFF"}} />
           <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>onNoConcreto(motivo.trim())} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
-            <button onClick={()=>{setConfirmAction(null);setMotivo("");}} style={{padding:"8px 12px",background:"none",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+            <button onClick={()=>enviarNoConcreto(motivoExtra.trim()||"otro")} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Confirmar</button>
+            <button onClick={()=>setSubDescarte("descarto")} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
           </div>
         </div>
       )}
@@ -1744,7 +1795,13 @@ function ClienteDetail({ cliente, reservas, onClose, onEdit, onReactivar, turnos
               </div>
             </>}
             {esVisitaNoConcreto && <div style={{fontSize:11,color:"#7C3AED",marginTop:3,fontWeight:600}}>🟣 Visitó el {fmtDate(r.fechaVisita)} — no concretó</div>}
-            {esVisitaNoConcreto && r.motivoNoConcreto && <div style={{fontSize:11,color:"#6B7280",marginTop:2,fontStyle:"italic"}}>Motivo: {r.motivoNoConcreto}</div>}
+            {esVisitaNoConcreto && r.motivoNoConcreto && (()=>{
+              const ml={no_vino:{l:"No vino",c:"#D97706",bg:"#FEF3C7"},no_definio:{l:"No definió",c:"#7C3AED",bg:"#F5F3FF"},no_va_a_festejar:{l:"No va a festejar",c:"#9CA3AF",bg:"#F3F4F6"},eligio_otro_lugar:{l:"Eligió otro lugar",c:"#9CA3AF",bg:"#F3F4F6"}};
+              const m=ml[r.motivoNoConcreto];
+              return m
+                ? <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:99,background:m.bg,color:m.c,marginTop:3,display:"inline-block"}}>{m.l}</span>
+                : <div style={{fontSize:11,color:"#6B7280",marginTop:2,fontStyle:"italic"}}>Motivo: {r.motivoNoConcreto}</div>;
+            })()}
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
             {esVisitaNoConcreto

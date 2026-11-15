@@ -272,7 +272,8 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
   const [reproHora, setReproHora] = useState(reserva.horaVisita || "");
   const [showPosponer, setShowPosponer] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
-  const [motivo, setMotivo] = useState("");
+  const [subDescarte, setSubDescarte] = useState(null);
+  const [motivoExtra, setMotivoExtra] = useState("");
 
   return (
     <div style={{background:"var(--qb-st-visita-bg)",border:"1.5px solid var(--qb-st-visita-border)",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
@@ -324,14 +325,47 @@ export function VisitaCard({ reserva, cliente, onConfirm, onPosponer, onReprogra
         </div>
       )}
 
-      {open && confirmAction === "noconcreto" && (
+      {open && confirmAction === "noconcreto" && !subDescarte && (
         <div style={{background:"var(--qb-st-cancelada-bg)",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:8,padding:"10px 12px",marginTop:10}}>
-          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:8}}>¿Marcar como no concretada?</div>
-          <div style={{fontSize:12,color:"#991B1B",marginBottom:8}}>La fecha se liberará y la reserva se cancelará.</div>
-          <input value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo (opcional): ej. muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"var(--qb-bg-card)"}} />
+          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:4}}>¿Qué pasó con la visita?</div>
+          <div style={{fontSize:12,color:"#991B1B",marginBottom:10}}>La fecha se liberará y la reserva se cancelará.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:8}}>
+            <button onClick={()=>{onNoConcreto(reserva,"no_vino");setOpen(false);setConfirmAction(null);}} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:"#FEF3C7",border:"1.5px solid #D9770630",borderRadius:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+              <span style={{fontSize:18}}>🚫</span>
+              <div><div style={{fontSize:13,fontWeight:700,color:"#D97706"}}>No vino</div><div style={{fontSize:11,color:"#6B7280"}}>Sigue interesado, no pudo venir</div></div>
+            </button>
+            <button onClick={()=>{onNoConcreto(reserva,"no_definio");setOpen(false);setConfirmAction(null);}} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:"#F5F3FF",border:"1.5px solid #7C3AED30",borderRadius:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+              <span style={{fontSize:18}}>🤔</span>
+              <div><div style={{fontSize:13,fontWeight:700,color:"#7C3AED"}}>No definió</div><div style={{fontSize:11,color:"#6B7280"}}>Vino pero no cerró</div></div>
+            </button>
+            <button onClick={()=>setSubDescarte("descarto")} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:"#FEF2F2",border:"1.5px solid #DC262630",borderRadius:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+              <span style={{fontSize:18}}>❌</span>
+              <div><div style={{fontSize:13,fontWeight:700,color:"#DC2626"}}>Descartó</div><div style={{fontSize:11,color:"#6B7280"}}>No va a reservar</div></div>
+            </button>
+          </div>
+          <button onClick={()=>{setConfirmAction(null);setSubDescarte(null);}} style={{width:"100%",padding:"8px",background:"none",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+        </div>
+      )}
+
+      {open && confirmAction === "noconcreto" && subDescarte === "descarto" && (
+        <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:8}}>¿Por qué descartó?</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:8}}>
+            <button onClick={()=>{onNoConcreto(reserva,"no_va_a_festejar");setOpen(false);setConfirmAction(null);setSubDescarte(null);}} style={{padding:"9px 12px",background:"#FFF",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:600,color:"#DC2626",textAlign:"left"}}>No va a festejar</button>
+            <button onClick={()=>{onNoConcreto(reserva,"eligio_otro_lugar");setOpen(false);setConfirmAction(null);setSubDescarte(null);}} style={{padding:"9px 12px",background:"#FFF",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:600,color:"#DC2626",textAlign:"left"}}>Eligió otro lugar</button>
+            <button onClick={()=>setSubDescarte("otro")} style={{padding:"9px 12px",background:"#FFF",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:600,color:"#DC2626",textAlign:"left"}}>Otro motivo</button>
+          </div>
+          <button onClick={()=>setSubDescarte(null)} style={{width:"100%",padding:"8px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+        </div>
+      )}
+
+      {open && confirmAction === "noconcreto" && subDescarte === "otro" && (
+        <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"10px 12px",marginTop:10}}>
+          <div style={{fontSize:13,fontWeight:700,color:"#991B1B",marginBottom:8}}>Contanos el motivo</div>
+          <input value={motivoExtra} onChange={e=>setMotivoExtra(e.target.value)} placeholder="Ej: muy caro, muchos invitados..." style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #FECACA",borderRadius:6,fontSize:12,fontFamily:"inherit",marginBottom:8,background:"#FFF"}} />
           <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>{onNoConcreto(reserva,motivo.trim());setOpen(false);setConfirmAction(null);setMotivo("");}} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Sí, no concretó</button>
-            <button onClick={()=>{setConfirmAction(null);setMotivo("");}} style={{padding:"8px 12px",background:"none",border:"1px solid var(--qb-st-cancelada-border)",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
+            <button onClick={()=>{onNoConcreto(reserva,motivoExtra.trim()||"otro");setOpen(false);setConfirmAction(null);setSubDescarte(null);setMotivoExtra("");}} style={{flex:1,padding:"8px",background:"#DC2626",color:"#FFF",border:"none",borderRadius:6,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Confirmar</button>
+            <button onClick={()=>setSubDescarte("descarto")} style={{padding:"8px 12px",background:"none",border:"1px solid #FECACA",borderRadius:6,fontSize:12,color:"#991B1B",cursor:"pointer",fontFamily:"inherit"}}>Volver</button>
           </div>
         </div>
       )}
