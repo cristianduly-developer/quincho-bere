@@ -1302,8 +1302,8 @@
     html += '<div class="card-title">🕐 Horario del evento</div>';
     html += '<div style="font-size:12px;color:var(--text-sub);margin-bottom:10px;line-height:1.5">Si tu evento tiene un horario distinto al del alquiler, ponelo aca y aparece en la invitacion.</div>';
     html += '<div style="display:flex;gap:8px;align-items:center">';
-    html += '<div style="flex:1"><div class="section-label">Desde</div><input class="input" type="time" id="inp-hora-evento" value="' + esc(sections.hora_evento_inicio || "") + '" min="' + esc(res.horario || "") + '" max="' + esc(res.horario_fin || "") + '" /></div>';
-    html += '<div style="flex:1"><div class="section-label">Hasta</div><input class="input" type="time" id="inp-hora-evento-fin" value="' + esc(sections.hora_evento_fin || "") + '" min="' + esc(res.horario || "") + '" max="' + esc(res.horario_fin || "") + '" /></div>';
+    html += '<div style="flex:1"><div class="section-label">Desde</div><input class="input" type="time" id="inp-hora-evento" value="' + esc(sections.hora_evento_inicio || res.horario || "") + '" min="' + esc(res.horario || "") + '" max="' + esc(res.horario_fin || "") + '" /></div>';
+    html += '<div style="flex:1"><div class="section-label">Hasta</div><input class="input" type="time" id="inp-hora-evento-fin" value="' + esc(sections.hora_evento_fin || res.horario_fin || "") + '" min="' + esc(res.horario || "") + '" max="' + esc(res.horario_fin || "") + '" /></div>';
     html += '</div>';
     html += '<div style="font-size:11px;color:#DC2626;font-weight:600;margin-top:6px">⚠️ Tiene que estar dentro del horario del alquiler (' + esc(res.horario || "") + ' a ' + esc(res.horario_fin || "") + ')</div>';
     html += '</div>';
