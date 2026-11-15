@@ -1792,6 +1792,7 @@
         var hefVal = hefInp ? hefInp.value.trim() : "";
         var alqIni = DATA.reserva.horario || "";
         var alqFin = DATA.reserva.horario_fin || "";
+        if ((heVal && !hefVal) || (!heVal && hefVal)) { showToast("Completa ambos horarios o deja los dos vacios"); saving = false; renderApp(); return; }
         if (heVal && alqIni && heVal < alqIni) { showToast("El horario de inicio no puede ser antes de " + alqIni); saving = false; renderApp(); return; }
         if (hefVal && alqFin && hefVal > alqFin) { showToast("El horario de fin no puede ser despues de " + alqFin); saving = false; renderApp(); return; }
         if (heVal && hefVal && heVal >= hefVal) { showToast("El horario de inicio tiene que ser antes del fin"); saving = false; renderApp(); return; }
