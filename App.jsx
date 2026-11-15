@@ -2956,6 +2956,7 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
     return true;
   }).sort((a,b)=>(a.fechaVisita||a.fecha).localeCompare(b.fechaVisita||b.fecha)),[reservas,today]);
   const tmReservas=useMemo(()=>reservas.filter(r=>r.fecha===tmStr&&(r.estado==="senada"||r.estado==="confirmada")&&!r.recordatorioEnviado),[reservas,tmStr]);
+  const todayVisitas=useMemo(()=>reservas.filter(r=>r.estado==="visita"&&(r.fechaVisita||r.fecha)===today),[reservas,today]);
 
   const applyTemplate=(template,r)=>{
     const c=clientes.find(x=>x.id===r.clienteId);
@@ -3152,6 +3153,49 @@ function InicioView({ reservas, clientes, pagos, extrasReserva, serviciosExtras,
           </div>
         );
       })}
+      {todayVisitas.length>0&&(
+        <div style={{...card,padding:"14px 16px",marginBottom:16,border:"2px solid #7C3AED"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>👁️ Visitas de hoy</div>
+              <div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>{todayVisitas.length} visita{todayVisitas.length!==1?"s":""} · {fmtDate(today)}</div>
+            </div>
+          </div>
+          {todayVisitas.map(r=>{
+            const c=clientes.find(x=>x.id===r.clienteId);
+            const puede=puedeEnviar("vis_"+r.id);
+            const msgVisita="Hola "+clientName(c)+", te escribo del "+(negocio?.nombreNegocio||"Quincho")+" para confirmar tu visita de hoy para conocer el lugar 🏡";
+            return (
+              <div key={r.id} style={{background:"#F5F3FF",borderRadius:10,padding:"10px 12px",marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14,color:"var(--qb-text)"}}>{clientName(c)}</div>
+                    {r.horaVisita&&<div style={{fontSize:12,color:"var(--qb-text2)",marginTop:2}}>⏰ {r.horaVisita} hs</div>}
+                  </div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#7C3AED",background:"#EDE9FE",padding:"3px 8px",borderRadius:6}}>Visita</div>
+                </div>
+                {!puede&&(
+                  <div style={{fontSize:12,color:"#5B21B6",background:"#EDE9FE",border:"1px solid #C4B5FD",borderRadius:8,padding:"7px 10px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span>⏰ Fuera de horario comercial</span>
+                    <button onClick={()=>setForzarEnvio(p=>({...p,["vis_"+r.id]:true}))} style={{fontSize:11,fontWeight:700,color:"#7C3AED",background:"none",border:"none",cursor:"pointer",padding:0}}>Enviar igual</button>
+                  </div>
+                )}
+                {c&&c.whatsapp&&(puede?(
+                  <a href={"https://wa.me/"+waNumber(c.whatsapp)+"?text="+encodeURIComponent(msgVisita)} target="_blank" rel="noreferrer"
+                    style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,background:"#25D366",color:"#FFF",textDecoration:"none",padding:"10px 14px",borderRadius:8,fontWeight:700,fontSize:13}}>
+                    💬 Confirmar visita por WhatsApp
+                  </a>
+                ):(
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"center",background:"#F5F3FF",color:"#5B21B6",padding:"10px 14px",borderRadius:8,fontSize:13,fontWeight:600,opacity:0.6}}>
+                    💬 Confirmar visita por WhatsApp
+                  </div>
+                ))}
+                {!(c&&c.whatsapp)&&<div style={{fontSize:12,color:"#DC2626"}}>⚠️ Sin número de WhatsApp</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {negocio?.recordatorioActivo!==false&&tmReservas.length>0&&(
         <div id="reminders-section" style={{...card,padding:"14px 16px",marginBottom:16,border:"2px solid #25D366"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
